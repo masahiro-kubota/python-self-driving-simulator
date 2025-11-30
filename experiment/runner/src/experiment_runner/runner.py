@@ -299,13 +299,14 @@ class ExperimentRunner:
                 # Use dashboard package
                 from dashboard import HTMLDashboardGenerator
 
-                # Find OSM file in workspace root
+                # Find OSM file in dashboard assets
                 workspace_root = Path(__file__).parent.parent.parent.parent.parent
-                osm_path = workspace_root / "lanelet2_map.osm"
+                osm_path = workspace_root / "dashboard" / "assets" / "lanelet2_map.osm"
                 if not osm_path.exists():
                     osm_path = None
                     print(
-                        "Warning: lanelet2_map.osm not found, dashboard will not include map data"
+                        "Warning: lanelet2_map.osm not found in dashboard/assets, "
+                        "dashboard will not include map data"
                     )
 
                 generator = HTMLDashboardGenerator()
