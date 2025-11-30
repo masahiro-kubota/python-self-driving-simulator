@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from core.data import Action, Observation, Trajectory, VehicleState
+from core.interfaces.dashboard import DashboardGenerator
 
 
 class PerceptionComponent(ABC):
@@ -115,6 +116,7 @@ class Simulator(ABC):
 
 __all__ = [
     "ControlComponent",
+    "DashboardGenerator",
     "PerceptionComponent",
     "PlanningComponent",
     "Simulator",

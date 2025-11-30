@@ -9,6 +9,7 @@ dependencies = [
     "mlflow>=2.0.0",
     "boto3>=1.0.0",
     "core",
+    "dashboard",
     "simulator_utils",
     "simulator_kinematic",
     "simulator_dynamic",
@@ -34,6 +35,7 @@ experiment-runner = "experiment_runner.cli:main"
 
 [tool.uv.sources]
 core = { workspace = true }
+dashboard = { workspace = true }
 simulator_utils = { workspace = true }
 simulator_kinematic = { workspace = true }
 simulator_dynamic = { workspace = true }

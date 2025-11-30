@@ -25,6 +25,7 @@ experiment_runner = { workspace = true }
 [tool.uv.workspace]
 members = [
     "core",
+    "dashboard",
     "experiment_runner",
     "simulators/simulator_utils",
     "simulators/simulator_kinematic",

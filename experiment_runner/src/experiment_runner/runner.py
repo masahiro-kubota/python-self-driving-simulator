@@ -2,7 +2,6 @@
 
 import importlib
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Any
@@ -298,13 +297,11 @@ class ExperimentRunner:
                 print("Generating interactive dashboard...")
                 dashboard_path = Path("/tmp/dashboard.html")
 
-                # Workspace root is 4 levels up from this file
-                workspace_root = Path(__file__).parent.parent.parent.parent
-                visualization_scripts = workspace_root / "visualization/scripts"
-                sys.path.insert(0, str(visualization_scripts))
-                from generate_dashboard import generate_dashboard
+                # Use dashboard package
+                from dashboard import HTMLDashboardGenerator
 
                 # Find OSM file in workspace root
+                workspace_root = Path(__file__).parent.parent.parent.parent
                 osm_path = workspace_root / "lanelet2_map.osm"
                 if not osm_path.exists():
                     osm_path = None
@@ -312,7 +309,8 @@ class ExperimentRunner:
                         "Warning: lanelet2_map.osm not found, dashboard will not include map data"
                     )
 
-                generate_dashboard(log, dashboard_path, osm_path)
+                generator = HTMLDashboardGenerator()
+                generator.generate(log, dashboard_path, osm_path)
                 if not is_ci:
                     mlflow.log_artifact(str(dashboard_path))
                 else:
