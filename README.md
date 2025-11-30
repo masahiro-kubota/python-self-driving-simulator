@@ -69,8 +69,6 @@ e2e_aichallenge_playground/
 │   │   ├── pure_pursuit/
 │   │   └── planning_utils/
 │   └── control/                    # 制御コンポーネント
-│       ├── pid/
-│       └── neural_controller/
 ├── experiment/configs/             # 実験設定ファイル
 │   └── experiments/                # 実験設定
 │       ├── pure_pursuit.yaml
@@ -79,105 +77,113 @@ e2e_aichallenge_playground/
 └── mlflow/     # MLflow + MinIO サーバー
 ```
 
-### 詳細構成
+### アーキテクチャ概要
+
+本プロジェクトは、明確な責務分離と依存関係を持つモジュラーアーキテクチャを採用しています。
+
+```mermaid
+graph TD
+    %% Core Framework
+    Core[core]
+
+    %% Simulators
+    Sim[simulators] --> Core
+
+    %% Components
+    Comp[components_packages] --> Core
+
+    %% Dashboard
+    Dash[dashboard] --> Core
+
+    %% Experiment Runner
+    Runner[experiment/runner] --> Core
+    Runner --> Sim
+    Runner --> Comp
+    Runner --> Dash
+
+    %% Styling
+    classDef core fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef impl fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef app fill:#bfb,stroke:#333,stroke-width:2px;
+
+    class Core core;
+    class Sim,Comp,Dash impl;
+    class Runner app;
+```
+
+### コアインターフェース
+
+`core` パッケージは、全てのコンポーネントが準拠すべきインターフェースを定義しています。
+
+```mermaid
+classDiagram
+    class PlanningComponent {
+        <<interface>>
+        +plan(observation, state) Trajectory
+    }
+
+    class ControlComponent {
+        <<interface>>
+        +control(trajectory, state) Action
+    }
+
+    class Simulator {
+        <<interface>>
+        +reset() VehicleState
+        +step(action) tuple
+    }
+
+    class DashboardGenerator {
+        <<interface>>
+        +generate(log, output_path, osm_path)
+    }
+
+    PlanningComponent <|-- PurePursuitPlanner
+    ControlComponent <|-- PIDController
+    ControlComponent <|-- NeuralController
+    Simulator <|-- KinematicSimulator
+    DashboardGenerator <|-- HTMLDashboardGenerator
+```
+
+### パッケージ詳細
 
 #### 📦 `core/` - コアフレームワーク
-```
-core/
-├── pyproject.toml
-└── src/core/
-    ├── interfaces/              # 抽象インターフェース定義
-    │   ├── perception.py       # 認識コンポーネントIF
-    │   ├── planning.py         # 計画コンポーネントIF
-    │   ├── control.py          # 制御コンポーネントIF
-    │   └── simulator.py        # シミュレータIF
-    ├── data/                    # データ構造定義
-    │   ├── vehicle_state.py
-    │   ├── observation.py
-    │   ├── trajectory.py
-    │   └── action.py
-    └── utils/                   # 共通ユーティリティ
-        ├── geometry.py
-        ├── transforms.py
-        └── config.py
-```
+**責務**: プロジェクト全体の基盤となるデータ構造とインターフェース定義。
+- **Interfaces**: `PlanningComponent`, `ControlComponent`, `Simulator`, `DashboardGenerator`
+- **Data Types**: `VehicleState`, `Trajectory`, `Action`, `Observation`, `SimulationLog`
+- **Utils**: 幾何計算、座標変換
 
-**役割**: すべてのコンポーネントが従うべきインターフェースと共通データ構造を定義
-
-**依存関係**: なし（最も基礎的なパッケージ）
+**依存関係**: なし（最下層）
 
 #### 🎮 `simulators/` - シミュレータ実装
-```
-simulators/
-├── pyproject.toml
-└── src/simulators/
-    └── simple_2d/              # 軽量2Dシミュレータ
-        ├── simulator.py
-        ├── vehicle.py
-        ├── track.py
-        └── obstacles.py
-```
-
-**役割**: 開発・学習用の軽量シミュレータ（ROS2不要）
+**責務**: 車両運動モデルと環境のシミュレーション。
+- **Kinematic**: 自転車モデルに基づく運動学シミュレータ
+- **Dynamic**: (WIP) 動力学シミュレータ
 
 **依存関係**: `core`
 
 #### 🧩 `components_packages/` - 自動運転コンポーネント
-```
-components_packages/
-├── planning/                   # 計画モジュール
-│   ├── pure_pursuit/          # Pure Pursuit プランナー
-│   └── planning_utils/        # トラックローダー等
-└── control/                    # 制御モジュール
-    ├── pid/                   # PID コントローラー
-    └── neural_controller/     # ニューラルコントローラー
-```
-
-**役割**: 計画・制御の各コンポーネント実装（ルールベース・学習ベース）
+**責務**: 認識・計画・制御のアルゴリズム実装。
+- **Planning**: `PurePursuitPlanner` (経路追従), `PlanningUtils`
+- **Control**: `PIDController` (縦横制御), `NeuralController` (学習ベース)
 
 **依存関係**: `core`
 
-#### 🧪 `experiment/runner/` - 統一実験実行フレームワーク
-```
-experiment/runner/
-├── pyproject.toml
-├── src/experiment/runner/
-│   ├── cli.py                 # CLIエントリーポイント
-│   ├── config.py              # 設定管理
-│   └── runner.py              # 実験実行ロジック
-└── tests/                     # 統合テスト
-```
+#### 📊 `dashboard/` - 可視化ダッシュボード
+**責務**: シミュレーション結果の可視化と分析。
+- **Python Package**: `HTMLDashboardGenerator` (ログデータの注入、HTML生成)
+- **Frontend**: React + Vite + Recharts によるインタラクティブな可視化
+- **Assets**: 地図データ (`lanelet2_map.osm`)
 
-**役割**: YAML設定ファイルで実験を定義・実行
+**依存関係**: `core`
 
-**依存関係**: `core`, `simulators`, `dashboard`, コンポーネントパッケージ
+#### 🧪 `experiment/runner/` - 実験実行フレームワーク
+**責務**: 設定ファイルに基づいたコンポーネントの組み立てと実験ループの実行。
+- **Config**: YAML設定の読み込みと検証
+- **Runner**: シミュレーションループの実行、メトリクス計算、MLflow記録
+- **Integration**: 各コンポーネントとダッシュボードの統合
 
-#### 📊 `dashboard/` - シミュレーション可視化ダッシュボード
-
-React/Viteベースのインタラクティブなダッシュボード。
-
-```
-dashboard/
-├── src/                        # Reactコンポーネント
-├── dist/                       # ビルド成果物
-├── inject_data.py              # データ注入スクリプト
-└── package.json
-```
-
-**役割**: シミュレーション結果の可視化（GitHub Pagesで公開）
-
-#### ⚙️ `experiment/configs/` - 実験設定ファイル
-
-YAMLファイルで実験の再現性を保証。
-
-```
-experiment/configs/
-├── experiments/                # 実験設定
-│   ├── pure_pursuit.yaml
-│   ├── pure_pursuit_dynamic.yaml
-│   └── imitation_learning.yaml
-└── current_experiment.yaml     # 現在の実験設定（自動生成）
-```
+**依存関係**: `core`, `simulators`, `components_packages`, `dashboard`
 
 ---
 
