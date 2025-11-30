@@ -1,10 +1,9 @@
-"""Generate interactive HTML dashboard from SimulationLog."""
+"""Generate interactive HTML dashboard from SimulationLog using React template."""
 
 import argparse
+import json
 from pathlib import Path
-
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
+from typing import Any
 
 from core.data import SimulationLog
 
@@ -16,157 +15,58 @@ def generate_dashboard(log: SimulationLog, output_path: str | Path) -> None:
         log: Simulation log
         output_path: Output HTML file path
     """
-    # Extract data
-    timestamps = [s.timestamp for s in log.steps]
-    x_coords = [s.vehicle_state.x for s in log.steps]
-    y_coords = [s.vehicle_state.y for s in log.steps]
-    velocities = [s.vehicle_state.velocity for s in log.steps]
-    yaws = [s.vehicle_state.yaw for s in log.steps]
-    steerings = [s.action.steering for s in log.steps]
-    accelerations = [s.action.acceleration for s in log.steps]
+    # 1. Prepare data
+    data: dict[str, Any] = {
+        "metadata": {
+            "controller": log.metadata.get("controller", "Unknown Controller"),
+            "execution_time": log.metadata.get("execution_time", "Unknown Time"),
+            **log.metadata,
+        },
+        "steps": [],
+    }
 
-    # Create subplots
-    fig = make_subplots(
-        rows=3,
-        cols=2,
-        subplot_titles=(
-            "Trajectory (X-Y)",
-            "Velocity vs Time",
-            "Yaw vs Time",
-            "Steering vs Time",
-            "Acceleration vs Time",
-            "Speed Profile",
-        ),
-        specs=[
-            [{"type": "scatter"}, {"type": "scatter"}],
-            [{"type": "scatter"}, {"type": "scatter"}],
-            [{"type": "scatter"}, {"type": "scatter"}],
-        ],
-    )
+    for step in log.steps:
+        data["steps"].append(
+            {
+                "timestamp": step.timestamp,
+                "x": step.vehicle_state.x,
+                "y": step.vehicle_state.y,
+                "z": getattr(step.vehicle_state, "z", 0.0),
+                "yaw": step.vehicle_state.yaw,
+                "velocity": step.vehicle_state.velocity,
+                "acceleration": step.action.acceleration,
+                "steering": step.action.steering,
+            }
+        )
 
-    # 1. Trajectory
-    fig.add_trace(
-        go.Scatter(
-            x=x_coords,
-            y=y_coords,
-            mode="lines+markers",
-            name="Trajectory",
-            marker=dict(size=3, color=timestamps, colorscale="Viridis", showscale=True),
-            line=dict(width=2),
-            hovertemplate="X: %{x:.2f}<br>Y: %{y:.2f}<br>Time: %{marker.color:.2f}s<extra></extra>",
-        ),
-        row=1,
-        col=1,
-    )
+    # 2. Load template
+    # Assuming the script is in tools/scripts/generate_dashboard.py
+    # and the template is in tools/dashboard/dist/index.html
+    script_dir = Path(__file__).parent
+    template_path = script_dir.parent / "dashboard" / "dist" / "index.html"
 
-    # 2. Velocity
-    fig.add_trace(
-        go.Scatter(
-            x=timestamps,
-            y=velocities,
-            mode="lines",
-            name="Velocity",
-            line=dict(color="blue", width=2),
-            hovertemplate="Time: %{x:.2f}s<br>Velocity: %{y:.2f} m/s<extra></extra>",
-        ),
-        row=1,
-        col=2,
-    )
+    if not template_path.exists():
+        print(f"Error: Dashboard template not found at {template_path}")
+        print("Please build the dashboard first: cd tools/dashboard && npm run build")
+        return
 
-    # 3. Yaw
-    fig.add_trace(
-        go.Scatter(
-            x=timestamps,
-            y=yaws,
-            mode="lines",
-            name="Yaw",
-            line=dict(color="green", width=2),
-            hovertemplate="Time: %{x:.2f}s<br>Yaw: %{y:.2f} rad<extra></extra>",
-        ),
-        row=2,
-        col=1,
-    )
+    with open(template_path, encoding="utf-8") as f:
+        template_content = f.read()
 
-    # 4. Steering
-    fig.add_trace(
-        go.Scatter(
-            x=timestamps,
-            y=steerings,
-            mode="lines",
-            name="Steering",
-            line=dict(color="red", width=2),
-            hovertemplate="Time: %{x:.2f}s<br>Steering: %{y:.2f} rad<extra></extra>",
-        ),
-        row=2,
-        col=2,
-    )
+    # 3. Inject data
+    json_data = json.dumps(data)
+    injection_script = f"<script>window.SIMULATION_DATA = {json_data};</script>"
 
-    # 5. Acceleration
-    fig.add_trace(
-        go.Scatter(
-            x=timestamps,
-            y=accelerations,
-            mode="lines",
-            name="Acceleration",
-            line=dict(color="purple", width=2),
-            hovertemplate="Time: %{x:.2f}s<br>Accel: %{y:.2f} m/s²<extra></extra>",
-        ),
-        row=3,
-        col=1,
-    )
+    # Inject before </head> or </body>
+    if "</head>" in template_content:
+        html_content = template_content.replace("</head>", f"{injection_script}</head>")
+    else:
+        html_content = template_content.replace("</body>", f"{injection_script}</body>")
 
-    # 6. Speed profile (color-coded by speed)
-    fig.add_trace(
-        go.Scatter(
-            x=list(range(len(velocities))),
-            y=velocities,
-            mode="markers",
-            name="Speed Profile",
-            marker=dict(
-                size=5,
-                color=velocities,
-                colorscale="RdYlGn",
-                showscale=True,
-                colorbar=dict(title="Speed (m/s)", x=1.15),
-            ),
-            hovertemplate="Step: %{x}<br>Speed: %{y:.2f} m/s<extra></extra>",
-        ),
-        row=3,
-        col=2,
-    )
+    # 4. Write output
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
 
-    # Update layout
-    fig.update_layout(
-        title=dict(
-            text=f"Simulation Dashboard<br><sub>{log.metadata.get('controller', 'Unknown Controller')} | {log.metadata.get('execution_time', 'Unknown Time')}</sub>",
-            x=0.5,
-            xanchor="center",
-        ),
-        height=1200,
-        showlegend=False,
-        hovermode="closest",
-        template="plotly_white",
-    )
-
-    # Update axes labels
-    fig.update_xaxes(title_text="X [m]", row=1, col=1)
-    fig.update_yaxes(title_text="Y [m]", row=1, col=1)
-    fig.update_xaxes(title_text="Time [s]", row=1, col=2)
-    fig.update_yaxes(title_text="Velocity [m/s]", row=1, col=2)
-    fig.update_xaxes(title_text="Time [s]", row=2, col=1)
-    fig.update_yaxes(title_text="Yaw [rad]", row=2, col=1)
-    fig.update_xaxes(title_text="Time [s]", row=2, col=2)
-    fig.update_yaxes(title_text="Steering [rad]", row=2, col=2)
-    fig.update_xaxes(title_text="Time [s]", row=3, col=1)
-    fig.update_yaxes(title_text="Acceleration [m/s²]", row=3, col=1)
-    fig.update_xaxes(title_text="Step", row=3, col=2)
-    fig.update_yaxes(title_text="Speed [m/s]", row=3, col=2)
-
-    # Make trajectory plot square
-    fig.update_yaxes(scaleanchor="x", scaleratio=1, row=1, col=1)
-
-    # Save to HTML
-    fig.write_html(str(output_path), include_plotlyjs="cdn")
     print(f"Dashboard saved to {output_path}")
 
 

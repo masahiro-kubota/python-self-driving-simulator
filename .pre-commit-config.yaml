@@ -27,3 +27,19 @@ repos:
         language: system
         pass_filenames: false
         files: ^core/
+
+  # React Dashboard linter and formatter
+  - repo: local
+    hooks:
+      - id: dashboard-lint
+        name: Dashboard ESLint
+        entry: bash -c 'cd tools/dashboard && npm run lint'
+        language: system
+        pass_filenames: false
+        files: ^tools/dashboard/src/.*\.(ts|tsx)$
+      - id: dashboard-format
+        name: Dashboard Prettier
+        entry: bash -c 'cd tools/dashboard && npm run format:check'
+        language: system
+        pass_filenames: false
+        files: ^tools/dashboard/src/.*\.(ts|tsx|css)$

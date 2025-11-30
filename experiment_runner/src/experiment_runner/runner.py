@@ -320,8 +320,7 @@ class ExperimentRunner:
             if mcap_path.exists():
                 mcap_path.unlink()
             if dashboard_path.exists() and not is_ci:
-                # dashboard_path.unlink()  # Keep for inspection
-                pass
+                dashboard_path.unlink()
 
             # Print MLflow links (skip in CI)
             if not is_ci:
