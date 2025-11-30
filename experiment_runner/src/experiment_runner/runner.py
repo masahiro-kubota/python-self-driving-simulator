@@ -215,6 +215,9 @@ class ExperimentRunner:
                     mlflow.log_artifact(str(self.track_path), artifact_path="input_data")
 
             # Initialize log
+            from datetime import datetime
+
+            params["execution_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             log = SimulationLog(metadata=params)
             mcap_path = Path(self.config.logging.mcap.output_dir) / "simulation.mcap"
 
@@ -317,7 +320,8 @@ class ExperimentRunner:
             if mcap_path.exists():
                 mcap_path.unlink()
             if dashboard_path.exists() and not is_ci:
-                dashboard_path.unlink()
+                # dashboard_path.unlink()  # Keep for inspection
+                pass
 
             # Print MLflow links (skip in CI)
             if not is_ci:

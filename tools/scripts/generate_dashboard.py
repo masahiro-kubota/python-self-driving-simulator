@@ -138,7 +138,7 @@ def generate_dashboard(log: SimulationLog, output_path: str | Path) -> None:
     # Update layout
     fig.update_layout(
         title=dict(
-            text=f"Simulation Dashboard<br><sub>{log.metadata.get('controller', 'Unknown Controller')}</sub>",
+            text=f"Simulation Dashboard<br><sub>{log.metadata.get('controller', 'Unknown Controller')} | {log.metadata.get('execution_time', 'Unknown Time')}</sub>",
             x=0.5,
             xanchor="center",
         ),
