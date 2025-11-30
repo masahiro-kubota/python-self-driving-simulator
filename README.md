@@ -131,6 +131,8 @@ classDiagram
         <<interface>>
         +reset() VehicleState
         +step(action) tuple
+        +render() Any
+        +get_log() SimulationLog
     }
 
     class DashboardGenerator {
