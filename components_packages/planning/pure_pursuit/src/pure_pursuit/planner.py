@@ -74,9 +74,7 @@ class PurePursuitPlanner(PlanningComponent):
                 target_x = p1.x + (p2.x - p1.x) * ratio
                 target_y = p1.y + (p2.y - p1.y) * ratio
                 target_v = p1.velocity + (p2.velocity - p1.velocity) * ratio
-                target_point = TrajectoryPoint(
-                    x=target_x, y=target_y, yaw=0.0, velocity=target_v
-                )
+                target_point = TrajectoryPoint(x=target_x, y=target_y, yaw=0.0, velocity=target_v)
                 break
 
             accumulated_dist += d

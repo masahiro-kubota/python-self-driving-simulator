@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
+
 from core.data import Action, Observation, Trajectory, VehicleState
 from core.interfaces import ControlComponent
 from core.utils.geometry import distance, normalize_angle
@@ -15,9 +16,7 @@ from core.utils.geometry import distance, normalize_angle
 class MLP(nn.Module):
     """Simple MLP model."""
 
-    def __init__(
-        self, input_size: int, output_size: int, hidden_size: int = 64
-    ) -> None:
+    def __init__(self, input_size: int, output_size: int, hidden_size: int = 64) -> None:
         super().__init__()
         self.network = nn.Sequential(
             nn.Linear(input_size, hidden_size),
@@ -65,7 +64,7 @@ class NeuralController(ControlComponent):
 
         # Load scaler
         if Path(scaler_path).exists():
-            with open(scaler_path, "r") as f:
+            with open(scaler_path) as f:
                 self.scaler_params = json.load(f)
         else:
             print(f"Warning: Scaler file not found at {scaler_path}")
@@ -81,9 +80,7 @@ class NeuralController(ControlComponent):
         """
         self.reference_trajectory = trajectory
 
-    def calculate_errors(
-        self, vehicle_state: VehicleState
-    ) -> tuple[float, float, float]:
+    def calculate_errors(self, vehicle_state: VehicleState) -> tuple[float, float, float]:
         """Calculate lateral error, yaw error, and reference velocity.
 
         Args:
@@ -163,9 +160,7 @@ class NeuralController(ControlComponent):
             features_norm = features
 
         # Inference
-        input_tensor = (
-            torch.from_numpy(features_norm).float().unsqueeze(0).to(self.device)
-        )
+        input_tensor = torch.from_numpy(features_norm).float().unsqueeze(0).to(self.device)
 
         with torch.no_grad():
             output_tensor = self.model(input_tensor)

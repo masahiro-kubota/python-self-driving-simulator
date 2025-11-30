@@ -75,9 +75,7 @@ class PIDController(ControlComponent):
         self.integral_error += error  # Note: Should multiply by dt, but assuming constant call rate for now or simplified
         derivative_error = error - self.prev_error
 
-        acceleration = (
-            self.kp * error + self.ki * self.integral_error + self.kd * derivative_error
-        )
+        acceleration = self.kp * error + self.ki * self.integral_error + self.kd * derivative_error
 
         self.prev_error = error
 

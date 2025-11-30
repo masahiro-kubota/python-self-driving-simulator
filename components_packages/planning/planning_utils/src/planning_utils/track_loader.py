@@ -3,8 +3,9 @@
 import csv
 from pathlib import Path
 
-from core.data import Trajectory, TrajectoryPoint
 from scipy.spatial.transform import Rotation
+
+from core.data import Trajectory, TrajectoryPoint
 
 
 def load_track_csv(file_path: str | Path) -> Trajectory:
@@ -18,7 +19,7 @@ def load_track_csv(file_path: str | Path) -> Trajectory:
     """
     points: list[TrajectoryPoint] = []
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         reader = csv.DictReader(f)
         for row in reader:
             x = float(row["x"])
