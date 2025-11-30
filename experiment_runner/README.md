@@ -4,19 +4,6 @@
 
 ## Usage
 
-### 基本的な使用方法
-
-```bash
-# テンプレートをコピー
-cp experiments/configs/pure_pursuit.yaml configs/current_experiment.yaml
-
-# 設定を編集
-vim configs/current_experiment.yaml
-
-# 実行
-uv run scripts/run_experiment.py
-```
-
 ### 実行方法
 
 ```bash
@@ -86,4 +73,5 @@ for exp in experiments:
 - `pyyaml`: YAML設定の読み込み
 - `mlflow`: 実験トラッキング
 - `boto3`: MLflow S3アーティファクトストレージ
-- `core`, `components`, `simulators`, `tools`: 内部パッケージ
+- `core`, `simulators`, `tools`: 内部パッケージ
+- `pure-pursuit`, `pid-controller`, `neural-controller`, `planning-utils`: コンポーネントパッケージ

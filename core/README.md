@@ -125,7 +125,7 @@ uv sync
 uv sync --extra dev
 
 # coreパッケージのみインストール
-cd packages/core
+cd core
 uv pip install -e .
 ```
 
