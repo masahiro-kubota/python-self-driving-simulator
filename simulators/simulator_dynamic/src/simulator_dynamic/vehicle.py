@@ -2,10 +2,10 @@
 
 import math
 
+from core.utils.geometry import normalize_angle
 from simulator_dynamic.state import DynamicVehicleState
 from simulator_dynamic.tire_model import LinearTireModel
 from simulator_dynamic.vehicle_params import VehicleParameters
-from simulator_utils.geometry import normalize_angle
 
 
 class DynamicVehicleModel:

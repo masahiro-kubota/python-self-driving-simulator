@@ -3,7 +3,7 @@
 import math
 
 from core.data import VehicleState
-from simulator_utils.geometry import normalize_angle
+from core.utils.geometry import normalize_angle
 
 
 class KinematicVehicleModel:
