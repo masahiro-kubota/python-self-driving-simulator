@@ -17,7 +17,6 @@ dependencies = [
     "pid-controller",
     "planning-utils",
     "neural-controller",
-    "visualization",
     "mcap>=1.0.0",
     "mcap-protobuf-support>=0.5.0",
 ]
@@ -39,7 +38,6 @@ dashboard = { workspace = true }
 simulator_utils = { workspace = true }
 simulator_kinematic = { workspace = true }
 simulator_dynamic = { workspace = true }
-visualization = { workspace = true }
 pure-pursuit = { workspace = true }
 pid-controller = { workspace = true }
 neural-controller = { workspace = true }

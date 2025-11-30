@@ -66,7 +66,6 @@ e2e_aichallenge_playground/
 ├── experiment/runner/              # 統一実験実行フレームワーク
 ├── simulators/                     # シミュレータ実装
 ├── dashboard/                      # シミュレーション可視化ダッシュボード
-├── visualization/                  # 可視化ツール
 ├── components_packages/            # コンポーネントパッケージ
 │   ├── planning/                   # 計画コンポーネント
 │   │   ├── pure_pursuit/
@@ -153,7 +152,7 @@ experiment/runner/
 
 **役割**: YAML設定ファイルで実験を定義・実行
 
-**依存関係**: `core`, `simulators`, `visualization`, コンポーネントパッケージ
+**依存関係**: `core`, `simulators`, `dashboard`, コンポーネントパッケージ
 
 #### 📊 `dashboard/` - シミュレーション可視化ダッシュボード
 
@@ -171,24 +170,6 @@ dashboard/
 
 **依存関係**: なし（独立したフロントエンドアプリ）
 
-#### 📈 `visualization/` - 可視化ツール
-
-複数の実験で再利用可能な可視化ツール群。
-
-```
-visualization/
-├── scripts/
-│   ├── plot_logs.py            # 静止画プロット
-│   ├── animate_logs.py         # アニメーション生成
-│   └── mcap_to_log.py          # MCAP変換
-└── src/visualization/
-    ├── plotter.py              # プロットクラス
-    └── animator.py             # アニメーションクラス
-```
-
-**役割**: シミュレーションログの可視化・分析
-
-**依存関係**: `core`
 
 #### ⚙️ `experiment/configs/` - 実験設定ファイル
 
