@@ -270,8 +270,27 @@ class ExperimentRunner:
             if dashboard_path.exists():
                 dashboard_path.unlink()
 
-            print(f"\nMLflow Run ID: {mlflow.active_run().info.run_id}")  # type: ignore
-            print(f"View results at: {self.config.logging.mlflow.tracking_uri}")
+            # Get run info for detailed links
+            run_info = mlflow.active_run().info  # type: ignore
+            run_id = run_info.run_id
+            experiment_id = run_info.experiment_id
+
+            print(f"\n{'='*70}")
+            print("MLflow Tracking")
+            print(f"{'='*70}")
+            print(f"Run ID: {run_id}")
+            print(f"Experiment: {self.config.experiment.name}")
+            print("\nView this run:")
+            print(
+                f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}"
+            )
+            print("\nView artifacts (dashboard, MCAP):")
+            print(
+                f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}/artifacts"
+            )
+            print("\nView all runs in this experiment:")
+            print(f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}")
+            print(f"{'='*70}\n")
 
     def _run_training(self) -> None:
         """Run training mode."""

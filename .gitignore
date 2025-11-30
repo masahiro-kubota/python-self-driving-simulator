@@ -1,9 +1,15 @@
 .coverage
-
-# Daily experiment configs (personal use)
-/configs/*.yaml
-!/configs/.gitkeep
-
-# Custom data files (personal use)
-/data/
-!/data/**/.gitkeep
+# W&B
+wandb/
+artifacts/
+# データとモデル（MLflow/W&B で管理）
+data/
+!data/.gitkeep
+# MLflow
+mlruns/
+mlartifacts/
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
