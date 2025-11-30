@@ -38,7 +38,7 @@ jobs:
           npm run build
 
       - name: Run integration tests
-        run: uv run pytest experiment_runner/tests -m integration -v -s
+        run: uv run pytest experiment/runner/tests -m integration -v -s
         env:
           CI: 'true'
 
