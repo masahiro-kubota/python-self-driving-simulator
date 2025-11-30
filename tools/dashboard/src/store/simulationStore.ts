@@ -26,8 +26,27 @@ export const useSimulationStore = create<SimulationState>((set, get) => ({
   playbackSpeed: 1,
 
   setData: (data) => {
-    const duration = data.steps.length > 0 ? data.steps[data.steps.length - 1].timestamp : 0;
-    set({ data, duration, currentTime: 0 });
+    // Flatten the nested data structure from SimulationLog to match TrajectoryPoint interface
+    // The injected data has nested 'vehicle_state' and 'action' objects, but the UI expects a flat structure.
+    const flattenedSteps = data.steps.map((step: any) => {
+      const vehicleState = step.vehicle_state || {};
+      const action = step.action || {};
+
+      return {
+        timestamp: step.timestamp,
+        x: vehicleState.x ?? step.x ?? 0,
+        y: vehicleState.y ?? step.y ?? 0,
+        z: vehicleState.z ?? step.z ?? 0,
+        yaw: vehicleState.yaw ?? step.yaw ?? 0,
+        velocity: vehicleState.velocity ?? step.velocity ?? 0,
+        acceleration: action.acceleration ?? step.acceleration ?? 0,
+        steering: action.steering ?? step.steering ?? 0,
+      };
+    });
+
+    const duration =
+      flattenedSteps.length > 0 ? flattenedSteps[flattenedSteps.length - 1].timestamp : 0;
+    set({ data: { ...data, steps: flattenedSteps }, duration, currentTime: 0 });
   },
 
   setCurrentTime: (time) => {
