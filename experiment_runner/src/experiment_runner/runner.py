@@ -137,6 +137,11 @@ class ExperimentRunner:
 
     def _setup_mlflow(self) -> None:
         """Set up MLflow tracking."""
+        # Skip MLflow in CI environments
+        if os.getenv("CI") == "true":
+            print("CI environment detected - skipping MLflow setup")
+            return
+
         if not self.config.logging.mlflow.enabled:
             return
 
@@ -166,25 +171,39 @@ class ExperimentRunner:
         assert self.planner is not None
         assert self.controller is not None
 
+        # Check if running in CI environment
+        is_ci = os.getenv("CI") == "true"
+
         # Get reference trajectory for metrics
         if hasattr(self.planner, "reference_trajectory"):
             reference_trajectory = self.planner.reference_trajectory  # type: ignore
         else:
             reference_trajectory = None
 
-        with mlflow.start_run():
-            # Log parameters
-            params = {
-                "planner": self.config.components.planning.type,
-                "controller": self.config.components.control.type,
-                **self.config.components.planning.params,
-                **self.config.components.control.params,
-            }
-            mlflow.log_params(params)
+        # Context manager for MLflow (no-op in CI)
+        if is_ci:
+            # Use a dummy context manager in CI
+            from contextlib import nullcontext
 
-            # Log input data files as artifacts for reproducibility
-            if self.track_path is not None:
-                mlflow.log_artifact(str(self.track_path), artifact_path="input_data")
+            mlflow_context = nullcontext()
+            params = {}  # Empty params for CI
+        else:
+            mlflow_context = mlflow.start_run()
+
+        with mlflow_context:
+            # Log parameters (skip in CI)
+            if not is_ci:
+                params = {
+                    "planner": self.config.components.planning.type,
+                    "controller": self.config.components.control.type,
+                    **self.config.components.planning.params,
+                    **self.config.components.control.params,
+                }
+                mlflow.log_params(params)
+
+                # Log input data files as artifacts for reproducibility
+                if self.track_path is not None:
+                    mlflow.log_artifact(str(self.track_path), artifact_path="input_data")
 
             # Initialize log
             log = SimulationLog(metadata=params)
@@ -239,14 +258,15 @@ class ExperimentRunner:
                 print("Calculating metrics...")
                 calculator = MetricsCalculator(reference_trajectory=reference_trajectory)
                 metrics = calculator.calculate(log)
-                mlflow.log_metrics(metrics.to_dict())
+                if not is_ci:
+                    mlflow.log_metrics(metrics.to_dict())
 
                 print("\nMetrics:")
                 for key, value in metrics.to_dict().items():
                     print(f"  {key}: {value}")
 
-            # Upload MCAP
-            if self.config.logging.mcap.enabled:
+            # Upload MCAP (skip in CI)
+            if self.config.logging.mcap.enabled and not is_ci:
                 print("Uploading MCAP file...")
                 mlflow.log_artifact(str(mcap_path))
 
@@ -262,35 +282,45 @@ class ExperimentRunner:
                 from generate_dashboard import generate_dashboard
 
                 generate_dashboard(log, dashboard_path)
-                mlflow.log_artifact(str(dashboard_path))
+                if not is_ci:
+                    mlflow.log_artifact(str(dashboard_path))
+                else:
+                    # In CI, save to a persistent location for artifact upload
+                    ci_dashboard_path = Path("dashboard.html")
+                    if dashboard_path.exists():
+                        import shutil
+
+                        shutil.copy(dashboard_path, ci_dashboard_path)
+                        print(f"Dashboard saved to {ci_dashboard_path} for CI artifact upload")
 
             # Clean up
             if mcap_path.exists():
                 mcap_path.unlink()
-            if dashboard_path.exists():
+            if dashboard_path.exists() and not is_ci:
                 dashboard_path.unlink()
 
-            # Get run info for detailed links
-            run_info = mlflow.active_run().info  # type: ignore
-            run_id = run_info.run_id
-            experiment_id = run_info.experiment_id
+            # Print MLflow links (skip in CI)
+            if not is_ci:
+                run_info = mlflow.active_run().info  # type: ignore
+                run_id = run_info.run_id
+                experiment_id = run_info.experiment_id
 
-            print(f"\n{'='*70}")
-            print("MLflow Tracking")
-            print(f"{'='*70}")
-            print(f"Run ID: {run_id}")
-            print(f"Experiment: {self.config.experiment.name}")
-            print("\nView this run:")
-            print(
-                f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}"
-            )
-            print("\nView artifacts (dashboard, MCAP):")
-            print(
-                f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}/artifacts"
-            )
-            print("\nView all runs in this experiment:")
-            print(f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}")
-            print(f"{'='*70}\n")
+                print(f"\n{'='*70}")
+                print("MLflow Tracking")
+                print(f"{'='*70}")
+                print(f"Run ID: {run_id}")
+                print(f"Experiment: {self.config.experiment.name}")
+                print("\nView this run:")
+                print(
+                    f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}"
+                )
+                print("\nView artifacts (dashboard, MCAP):")
+                print(
+                    f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}/runs/{run_id}/artifacts"
+                )
+                print("\nView all runs in this experiment:")
+                print(f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}")
+                print(f"{'='*70}\n")
 
     def _run_training(self) -> None:
         """Run training mode."""
