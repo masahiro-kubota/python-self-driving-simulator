@@ -1,15 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
+import Plot from 'react-plotly.js';
 import { Paper, Typography, Box, useTheme } from '@mui/material';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-} from 'recharts';
 import { useSimulationStore } from '../store/simulationStore';
 import type { TrajectoryPoint } from '../types';
 
@@ -32,7 +23,80 @@ export const TimeSeriesPlot: React.FC<TimeSeriesPlotProps> = ({
   const lineColor = color || theme.palette.primary.main;
   const { data, currentTime } = useSimulationStore();
   const currentPoint = useSimulationStore((state) => state.getCurrentPoint());
-  // Simple implementation without delayed rendering or absolute positioning
+
+  // Prepare plot data
+  const plotData = useMemo((): Plotly.Data[] => {
+    if (!data) return [];
+    return [
+      {
+        x: data.steps.map((p) => p.timestamp),
+        y: data.steps.map((p) => p[dataKey as keyof TrajectoryPoint] as number),
+        mode: 'lines',
+        type: 'scatter',
+        name: title,
+        line: {
+          color: lineColor,
+          width: 2,
+        },
+        hovertemplate: 'Time: %{x:.2f}s<br>Value: %{y:.3f} ' + unit + '<extra></extra>',
+      },
+    ];
+  }, [data, dataKey, title, lineColor, unit]);
+
+  // Layout configuration
+  const layout = useMemo((): Partial<Plotly.Layout> => {
+    if (!data || data.steps.length === 0) {
+      return {
+        height,
+        margin: { l: 50, r: 30, t: 10, b: 40 },
+        paper_bgcolor: theme.palette.background.paper,
+        plot_bgcolor: theme.palette.background.default,
+      };
+    }
+
+    const timestamps = data.steps.map((p) => p.timestamp);
+    const minTime = Math.min(...timestamps);
+    const maxTime = Math.max(...timestamps);
+
+    return {
+      height,
+      margin: { l: 50, r: 30, t: 10, b: 40 },
+      xaxis: {
+        title: { text: 'Time (s)' },
+        range: [minTime, maxTime],
+        gridcolor: theme.palette.divider,
+        zerolinecolor: theme.palette.divider,
+      },
+      yaxis: {
+        title: { text: unit },
+        gridcolor: theme.palette.divider,
+        zerolinecolor: theme.palette.divider,
+      },
+      hovermode: 'closest',
+      dragmode: 'pan',
+      paper_bgcolor: theme.palette.background.paper,
+      plot_bgcolor: theme.palette.background.default,
+      font: {
+        color: theme.palette.text.primary,
+      },
+      shapes: [
+        {
+          type: 'line',
+          x0: currentTime,
+          x1: currentTime,
+          y0: 0,
+          y1: 1,
+          yref: 'paper',
+          line: {
+            color: theme.palette.error.main,
+            width: 2,
+            dash: 'dash',
+          },
+        },
+      ],
+    };
+  }, [data, currentTime, height, unit, theme]);
+
   if (!data) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height={height}>
@@ -42,6 +106,13 @@ export const TimeSeriesPlot: React.FC<TimeSeriesPlotProps> = ({
   }
 
   const currentValue = currentPoint ? (currentPoint[dataKey as keyof TrajectoryPoint] ?? 0) : 0;
+
+  const config: Partial<Plotly.Config> = {
+    displayModeBar: true,
+    displaylogo: false,
+    modeBarButtonsToRemove: ['select2d', 'lasso2d'],
+    scrollZoom: true,
+  };
 
   return (
     <Paper elevation={2} sx={{ overflow: 'hidden', borderRadius: 2 }}>
@@ -62,43 +133,8 @@ export const TimeSeriesPlot: React.FC<TimeSeriesPlotProps> = ({
           {(typeof currentValue === 'number' ? currentValue : 0).toFixed(3)} {unit}
         </Typography>
       </Box>
-      <Box sx={{ height, bgcolor: 'background.default', width: '100%' }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data.steps} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-            <XAxis
-              dataKey="timestamp"
-              type="number"
-              domain={['dataMin', 'dataMax']}
-              tickFormatter={(val) => val.toFixed(1)}
-              stroke={theme.palette.text.secondary}
-            />
-            <YAxis stroke={theme.palette.text.secondary} />
-            <Tooltip
-              labelFormatter={(label) => `Time: ${Number(label).toFixed(2)}s`}
-              formatter={(value: number) => [`${value.toFixed(3)} ${unit}`, title]}
-              contentStyle={{
-                backgroundColor: theme.palette.background.paper,
-                border: `1px solid ${theme.palette.divider}`,
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey={dataKey}
-              stroke={lineColor}
-              dot={false}
-              strokeWidth={2}
-              isAnimationActive={false}
-            />
-            {/* Current time indicator */}
-            <ReferenceLine
-              x={currentTime}
-              stroke={theme.palette.error.main}
-              strokeDasharray="3 3"
-              strokeWidth={2}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+      <Box sx={{ bgcolor: 'background.default' }}>
+        <Plot data={plotData} layout={layout} config={config} style={{ width: '100%' }} />
       </Box>
     </Paper>
   );

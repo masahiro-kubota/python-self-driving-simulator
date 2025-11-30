@@ -1,75 +1,111 @@
 # Dashboard
 
-Interactive web-based dashboard for visualizing simulation results.
+シミュレーション結果を可視化するインタラクティブなWebダッシュボード。
 
-## Overview
+## 概要
 
-This dashboard is a React + TypeScript application built with Vite. It provides:
-- Real-time trajectory visualization
-- Time-series plots for velocity, steering, acceleration, and yaw
-- Interactive time slider for playback control
+React + TypeScript + Viteで構築されたダッシュボードです。以下の機能を提供します:
 
-## Development
+- リアルタイム軌跡可視化(Plotly.js)
+- 速度、ステアリング、加速度、ヨー角の時系列プロット
+- インタラクティブなタイムスライダー
+- ズーム、パン、ホバー情報表示
 
-### Prerequisites
+### ダッシュボード生成の仕組み
+
+ダッシュボードは以下の2ステップで生成されます:
+
+1. **フロントエンドのビルド** (`npm run build`)
+   - Reactアプリケーションを単一のHTMLファイル(`dist/index.html`)にビルド
+   - このHTMLファイルがダッシュボードのテンプレートとなる
+
+2. **データの注入** (Pythonの`HTMLDashboardGenerator`)
+   - `SimulationLog`型のデータをテンプレートHTMLに注入
+   - 完成したHTMLファイルを出力
+
+この仕組みにより、**`npm run build`が必須**となります。開発サーバー(`npm run dev`)は開発プレビュー用であり、実際のダッシュボード生成には使用できません。
+
+## 開発
+
+### 前提条件
 
 ```bash
 cd dashboard/frontend
 npm install
 ```
 
-### Development Server
+### ビルド
 
-Run the development server with hot module replacement (HMR):
-
-```bash
-npm run dev
-```
-
-This will start a local server at `http://localhost:5173` where you can preview changes in real-time.
-
-### Building for Production
-
-**IMPORTANT**: After making changes to the React code, you must rebuild the production bundle:
+Reactコードを変更した後は、必ずプロダクションビルドを実行してください:
 
 ```bash
 npm run build
 ```
 
-This generates `dashboard/frontend/dist/index.html`, which is used by the Python `HTMLDashboardGenerator` to create simulation dashboards.
+これにより `dashboard/frontend/dist/index.html` が生成されます。このファイルがPythonの `HTMLDashboardGenerator` で使用されます。
 
-## Architecture
+### テスト
 
-- **Frontend**: React + TypeScript + Vite + MUI (Material-UI)
-- **State Management**: Zustand
-- **Charts**: Recharts
-- **Build**: Single-file HTML output (via `vite-plugin-singlefile`)
+Reactコンポーネントを修正した後は、統合テストスクリプトを実行してください:
 
-## Integration
+```bash
+./dashboard/tests/test_dashboard.sh
+```
 
-The dashboard is integrated with the experiment runner:
-1. `experiment-runner` generates simulation data
-2. `HTMLDashboardGenerator` (Python) injects data into `dist/index.html`
-3. The resulting HTML is uploaded to MLflow as an artifact
+このスクリプトは以下を自動実行します:
+1. フロントエンドのビルド
+2. ダミーデータの生成
+3. ダッシュボードHTMLの生成
+4. ブラウザでの表示
 
-## Customization
+**オプション:**
+- `--no-build`: ビルドをスキップ(既存のdist/index.htmlを使用)
+- `--no-open`: ブラウザを開かない
 
-### Theme
+詳細は [TESTING.md](./TESTING.md) を参照してください。
 
-The dashboard uses MUI's default dark theme. To customize colors, edit `src/components/DashboardLayout.tsx`:
+## アーキテクチャ
+
+- **フロントエンド**: React + TypeScript + Vite + MUI
+- **状態管理**: Zustand
+- **グラフ**: Plotly.js (react-plotly.js経由)
+- **ビルド**: 単一HTMLファイル出力 (vite-plugin-singlefile)
+
+## 統合
+
+ダッシュボードは実験ランナーと統合されています:
+
+1. `experiment-runner` がシミュレーションデータを生成
+2. `HTMLDashboardGenerator` (Python) がデータを `dist/index.html` に注入
+3. 生成されたHTMLがMLflowにアーティファクトとしてアップロード
+
+## カスタマイズ
+
+### テーマ
+
+MUIのダークテーマを使用しています。色をカスタマイズするには `src/components/DashboardLayout.tsx` を編集してください:
 
 ```typescript
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
-    // Add custom colors here
+    // カスタムカラーをここに追加
   },
 });
 ```
 
-### Components
+### コンポーネント
 
-- `DashboardLayout.tsx`: Main layout and theme provider
-- `TrajectoryView.tsx`: 2D trajectory visualization
-- `TimeSeriesPlot.tsx`: Time-series charts
-- `TimeSlider.tsx`: Playback control
+- `DashboardLayout.tsx`: メインレイアウトとテーマプロバイダー
+- `TrajectoryView.tsx`: 2D軌跡可視化 (Plotly)
+- `TimeSeriesPlot.tsx`: 時系列グラフ (Plotly)
+- `TimeSlider.tsx`: 再生コントロール
+
+## テストデータ
+
+`tests/dummy_data.py` には以下のダミーデータ生成関数があります:
+
+- `generate_circular_trajectory()`: 円形軌跡
+- `generate_figure_eight_trajectory()`: 8の字軌跡
+
+新しいテストパターンを追加する場合は、このモジュールに関数を追加してください。

@@ -79,8 +79,6 @@ e2e_aichallenge_playground/
 
 ### アーキテクチャ概要
 
-本プロジェクトは、明確な責務分離と依存関係を持つモジュラーアーキテクチャを採用しています。
-
 ```mermaid
 graph TD
     %% Core Framework
