@@ -37,7 +37,9 @@ export const TimeSeriesPlot: React.FC<TimeSeriesPlotProps> = ({
       </Box>
     );
 
-  const currentValue = currentPoint ? currentPoint[dataKey as keyof typeof currentPoint] : 0;
+  const currentValue = currentPoint
+    ? ((currentPoint[dataKey as keyof typeof currentPoint] as number) ?? 0)
+    : 0;
 
   return (
     <Paper elevation={2} sx={{ overflow: 'hidden', borderRadius: 2 }}>
@@ -55,7 +57,7 @@ export const TimeSeriesPlot: React.FC<TimeSeriesPlotProps> = ({
           {title}
         </Typography>
         <Typography variant="h6" sx={{ fontFamily: 'monospace', color: color }}>
-          {currentValue.toFixed(3)} {unit}
+          {(typeof currentValue === 'number' ? currentValue : 0).toFixed(3)} {unit}
         </Typography>
       </Box>
       <Box sx={{ height: height, bgcolor: 'background.default' }}>
