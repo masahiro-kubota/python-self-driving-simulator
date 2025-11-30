@@ -60,34 +60,43 @@ export const TimeSeriesPlot: React.FC<TimeSeriesPlotProps> = ({
           {(typeof currentValue === 'number' ? currentValue : 0).toFixed(3)} {unit}
         </Typography>
       </Box>
-      <Box sx={{ height: height, bgcolor: 'background.default', minWidth: 0 }}>
-        <ResponsiveContainer width="99%" height="100%" minWidth={0} minHeight={0}>
-          <LineChart data={data.steps} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#444" />
-            <XAxis
-              dataKey="timestamp"
-              type="number"
-              domain={['dataMin', 'dataMax']}
-              tickFormatter={(val) => val.toFixed(1)}
-              stroke="#999"
-            />
-            <YAxis stroke="#999" />
-            <Tooltip
-              labelFormatter={(label) => `Time: ${Number(label).toFixed(2)}s`}
-              formatter={(value: number) => [`${value.toFixed(3)} ${unit}`, title]}
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }}
-            />
-            <Line
-              type="monotone"
-              dataKey={dataKey}
-              stroke={color}
-              dot={false}
-              strokeWidth={2}
-              isAnimationActive={false}
-            />
-            <ReferenceLine x={currentTime} stroke="#ef4444" strokeDasharray="3 3" strokeWidth={2} />
-          </LineChart>
-        </ResponsiveContainer>
+      <Box
+        sx={{ height: height, bgcolor: 'background.default', position: 'relative', width: '100%' }}
+      >
+        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.steps} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#444" />
+              <XAxis
+                dataKey="timestamp"
+                type="number"
+                domain={['dataMin', 'dataMax']}
+                tickFormatter={(val) => val.toFixed(1)}
+                stroke="#999"
+              />
+              <YAxis stroke="#999" />
+              <Tooltip
+                labelFormatter={(label) => `Time: ${Number(label).toFixed(2)}s`}
+                formatter={(value: number) => [`${value.toFixed(3)} ${unit}`, title]}
+                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155' }}
+              />
+              <Line
+                type="monotone"
+                dataKey={dataKey}
+                stroke={color}
+                dot={false}
+                strokeWidth={2}
+                isAnimationActive={false}
+              />
+              <ReferenceLine
+                x={currentTime}
+                stroke="#ef4444"
+                strokeDasharray="3 3"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
       </Box>
     </Paper>
   );
