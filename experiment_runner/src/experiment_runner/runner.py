@@ -138,7 +138,7 @@ class ExperimentRunner:
     def _setup_mlflow(self) -> None:
         """Set up MLflow tracking."""
         # Skip MLflow in CI environments
-        if os.getenv("CI") == "true":
+        if os.getenv("CI"):
             print("CI environment detected - skipping MLflow setup")
             return
 
@@ -172,7 +172,7 @@ class ExperimentRunner:
         assert self.controller is not None
 
         # Check if running in CI environment
-        is_ci = os.getenv("CI") == "true"
+        is_ci = bool(os.getenv("CI"))
 
         # Get reference trajectory for metrics
         if hasattr(self.planner, "reference_trajectory"):
