@@ -6,7 +6,7 @@ from typing import Any
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from components.control.neural_controller import NeuralController
+from neural_controller import NeuralController
 from torch.utils.data import DataLoader, random_split
 
 import mlflow

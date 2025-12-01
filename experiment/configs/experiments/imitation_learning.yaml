@@ -1,48 +1,26 @@
 experiment:
-  name: "imitation_learning"
-  description: "Train neural network controller via imitation learning"
+  name: "train_neural_controller"
+  type: "training"
+  description: "Train neural controller via imitation learning"
 
-components:
-  perception: null
-  planning:
-    type: "PurePursuitPlanner"
-    params:
-      lookahead_distance: 5.0
-      # track_path: "experiments/pure_pursuit_tracking/data/raceline_awsim_15km.csv" # Use default
-  control:
-    type: "NeuralController"
-    params:
-      model_path: "data/control/neural_controller/models/nn_controller.pth"
-      scaler_path: "data/control/neural_controller/models/scaler.json"
-      input_size: 4
-      output_size: 2
-      hidden_size: 64
-
-simulator:
-  type: "KinematicSimulator"
-  params:
-    dt: 0.1
-    initial_state:
-      from_track: true
-
-execution:
-  mode: "inference" # Changed to inference for evaluation
-  max_steps: 2000
-  num_runs: 1
-  parallel: false
+model:
+  type: "NeuralController"
+  architecture:
+    input_size: 4
+    hidden_size: 64
+    output_size: 2
 
 training:
+  data_dir: "data/raw/pure_pursuit"
+  reference_trajectory_path: "component_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
   epochs: 100
   batch_size: 32
   learning_rate: 0.001
   validation_split: 0.2
+  optimizer: "adam"
+  loss_function: "mse"
 
 logging:
   mlflow:
     enabled: true
     tracking_uri: "http://localhost:5000"
-  mcap:
-    enabled: true
-    output_dir: "data/training/raw"
-  dashboard:
-    enabled: true

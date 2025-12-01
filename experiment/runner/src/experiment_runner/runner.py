@@ -10,7 +10,7 @@ import mlflow
 from core.data import SimulationStep, VehicleState
 from core.interfaces import Controller, Planner, Simulator
 
-from experiment_runner.config import ExperimentConfig
+from experiment_runner.config import ExperimentConfig, ExperimentType
 from experiment_runner.logging import MCAPLogger
 from experiment_runner.metrics import MetricsCalculator
 
@@ -163,18 +163,24 @@ class ExperimentRunner:
 
     def run(self) -> None:
         """Run the experiment."""
-        self._setup_components()
-        self._setup_mlflow()
+        exp_type = self.config.experiment.type
 
-        if self.config.execution.mode == "inference":
-            self._run_inference()
-        elif self.config.execution.mode == "training":
+        if exp_type == ExperimentType.DATA_COLLECTION:
+            self._setup_components()
+            self._setup_mlflow()
+            self._run_data_collection()
+        elif exp_type == ExperimentType.TRAINING:
+            self._setup_mlflow()
             self._run_training()
+        elif exp_type == ExperimentType.EVALUATION:
+            self._setup_components()
+            self._setup_mlflow()
+            self._run_evaluation()
         else:
-            raise ValueError(f"Unknown execution mode: {self.config.execution.mode}")
+            raise ValueError(f"Unknown experiment type: {exp_type}")
 
-    def _run_inference(self) -> None:
-        """Run inference mode."""
+    def _run_evaluation(self) -> None:
+        """Run evaluation mode."""
         assert self.simulator is not None
         assert self.planner is not None
         assert self.controller is not None
@@ -227,7 +233,10 @@ class ExperimentRunner:
             current_state = self.simulator.reset()
 
             with MCAPLogger(mcap_path) as mcap_logger:
-                for step in range(self.config.execution.max_steps):
+                max_steps = (
+                    self.config.execution.max_steps_per_episode if self.config.execution else 2000
+                )
+                for step in range(max_steps):
                     # Plan
                     target_trajectory = self.planner.plan(None, current_state)  # type: ignore
 
@@ -362,6 +371,83 @@ class ExperimentRunner:
                 print(f"  {self.config.logging.mlflow.tracking_uri}/#/experiments/{experiment_id}")
                 print(f"{'='*70}\n")
 
+    def _run_data_collection(self) -> None:
+        """Run data collection mode."""
+        assert self.simulator is not None
+        assert self.planner is not None
+        assert self.controller is not None
+        assert self.config.data_collection is not None
+        assert self.config.execution is not None
+
+        # Check if running in CI environment
+        is_ci = bool(os.getenv("CI"))
+
+        # Context manager for MLflow (no-op in CI)
+        if is_ci:
+            from contextlib import nullcontext
+
+            mlflow_context = nullcontext()
+        else:
+            mlflow_context = mlflow.start_run()
+
+        with mlflow_context:
+            # Log parameters (skip in CI)
+            if not is_ci:
+                params = {
+                    "planner": self.config.components.planning.type,  # type: ignore
+                    "controller": self.config.components.control.type,  # type: ignore
+                    "num_episodes": self.config.execution.num_episodes,
+                }
+                mlflow.log_params(params)
+
+            # Create output directory
+            output_dir = Path(self.config.data_collection.output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            print(f"Starting data collection for {self.config.execution.num_episodes} episodes...")
+            print(f"Output directory: {output_dir}")
+
+            for episode in range(self.config.execution.num_episodes):
+                print(f"\nEpisode {episode + 1}/{self.config.execution.num_episodes}")
+
+                # Initialize state from simulator
+                current_state = self.simulator.reset()
+
+                # Run episode
+                for step in range(self.config.execution.max_steps_per_episode):
+                    # Plan
+                    target_trajectory = self.planner.plan(None, current_state)  # type: ignore
+
+                    # Control
+                    action = self.controller.control(target_trajectory, current_state)
+
+                    # Simulate and get next state
+                    next_state, observation, done, info = self.simulator.step(action)
+
+                    # Update state for next iteration
+                    current_state = next_state
+
+                    # Check done flag from simulator
+                    if done:
+                        print(f"  Episode completed at step {step}")
+                        break
+
+                # Save episode data
+                if (episode + 1) % self.config.data_collection.save_frequency == 0:
+                    log = self.simulator.get_log()
+
+                    if self.config.data_collection.format == "json":
+                        log_path = output_dir / f"episode_{episode:04d}.json"
+                        log.save(log_path)
+                        print(f"  Saved: {log_path}")
+                    elif self.config.data_collection.format == "mcap":
+                        # TODO: Implement MCAP saving
+                        print("  MCAP format not yet implemented")
+
+            print(
+                f"\nData collection completed. {self.config.execution.num_episodes} episodes saved to {output_dir}"
+            )
+
     def _run_training(self) -> None:
         """Run training mode."""
         # Check if running in CI environment
@@ -378,49 +464,73 @@ class ExperimentRunner:
         with mlflow_context:
             print("Starting training...")
 
-            # Import Trainer here to avoid circular imports or import errors if training pkg not installed
-            from experiment_training.trainer import Trainer
+            # Get model type and training config
+            model_type = self.config.model.type if self.config.model else "NeuralController"
+            training_config = self.config.training.dict() if self.config.training else {}
 
-            # Get training config
-            training_config = (
-                self.config.training.dict() if hasattr(self.config, "training") else {}
-            )
+            # Add model architecture to training config
+            if self.config.model and self.config.model.architecture:
+                training_config.update(self.config.model.architecture)
 
-            # Setup reference trajectory (needed for feature calculation)
-            # We assume the planner has been setup and has the reference trajectory
-            if self.planner is None:
-                self._setup_components()
+            # Choose trainer based on model type
+            if model_type == "MLP":
+                # Simple function approximation
+                from experiment_training.function_trainer import FunctionTrainer
 
-            if (
-                not hasattr(self.planner, "reference_trajectory")
-                or self.planner.reference_trajectory is None
-            ):  # type: ignore
-                raise ValueError("Planner must have a reference trajectory for training")
+                trainer = FunctionTrainer(config=training_config)
 
-            reference_trajectory = self.planner.reference_trajectory  # type: ignore
+                # Find data file
+                data_dir = Path(self.config.training.data_dir)
+                if not data_dir.exists():
+                    print(f"Warning: Data directory {data_dir} does not exist")
+                    return
 
-            # Initialize Trainer
-            trainer = Trainer(
-                config=training_config,
-                reference_trajectory=reference_trajectory,
-                workspace_root=Path(__file__).parent.parent.parent.parent.parent,
-            )
+                data_files = list(data_dir.glob("*.json"))
+                if not data_files:
+                    print(f"No training data (.json) found in {data_dir}")
+                    return
 
-            # Find data files
-            # For now, we look for JSON logs in the data directory specified in config or default
-            # Assuming config.logging.mcap.output_dir contains the raw data
-            data_dir = Path(self.config.logging.mcap.output_dir)
-            if not data_dir.exists():
-                print(f"Warning: Data directory {data_dir} does not exist")
-                return
+                # Use first data file for function approximation
+                trainer.train(data_files[0])
 
-            # Find all .json files (using JSON for now as per Dataset implementation)
-            data_paths = list(data_dir.glob("*.json"))
+            elif model_type == "NeuralController":
+                # Imitation learning for controller
+                from experiment_training.trainer import Trainer
 
-            if not data_paths:
-                print(f"No training data (.json) found in {data_dir}")
-                # Fallback to check for mcap if implemented later
-                return
+                # Load reference trajectory from config
+                if not self.config.training or not self.config.training.reference_trajectory_path:
+                    raise ValueError(
+                        "training.reference_trajectory_path is required for NeuralController training"
+                    )
 
-            # Run training
-            trainer.train(data_paths)
+                from planning_utils import load_track_csv
+
+                workspace_root = Path(__file__).parent.parent.parent.parent.parent
+                ref_traj_path = workspace_root / self.config.training.reference_trajectory_path
+                reference_trajectory = load_track_csv(ref_traj_path)
+
+                # Initialize Trainer
+                trainer = Trainer(
+                    config=training_config,
+                    reference_trajectory=reference_trajectory,
+                    workspace_root=workspace_root,
+                )
+
+                # Find data files
+                data_dir = Path(self.config.training.data_dir)
+                if not data_dir.exists():
+                    print(f"Warning: Data directory {data_dir} does not exist")
+                    return
+
+                # Find all .json files
+                data_paths = list(data_dir.glob("*.json"))
+
+                if not data_paths:
+                    print(f"No training data (.json) found in {data_dir}")
+                    return
+
+                # Run training
+                trainer.train(data_paths)
+
+            else:
+                raise ValueError(f"Unknown model type: {model_type}")

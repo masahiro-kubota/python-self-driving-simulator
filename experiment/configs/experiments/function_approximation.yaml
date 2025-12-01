@@ -1,0 +1,26 @@
+experiment:
+  name: "function_approximation_sin"
+  type: "training"
+  description: "Neural network function approximation: learn sin(x)"
+
+model:
+  type: "MLP"
+  architecture:
+    input_size: 1
+    hidden_size: 32
+    output_size: 1
+
+training:
+  data_dir: "data/raw/function_approx"
+  reference_trajectory_path: null  # Not needed for function approximation
+  epochs: 200
+  batch_size: 16
+  learning_rate: 0.01
+  validation_split: 0.2
+  optimizer: "adam"
+  loss_function: "mse"
+
+logging:
+  mlflow:
+    enabled: true
+    tracking_uri: "http://localhost:5000"

@@ -1,7 +1,7 @@
 experiment:
-  name: "pure_pursuit_tracking"
-  type: "evaluation"
-  description: "Evaluate Pure Pursuit planner with PID controller"
+  name: "collect_pure_pursuit_data"
+  type: "data_collection"
+  description: "Collect expert demonstrations using Pure Pursuit and PID"
 
 components:
   perception: null
@@ -24,23 +24,18 @@ simulator:
       from_track: true
 
 execution:
-  num_episodes: 1
+  num_episodes: 10
   max_steps_per_episode: 2000
   parallel: false
 
-evaluation:
-  metrics:
-    - "lap_time"
-    - "lateral_error"
-    - "comfort"
-  generate_dashboard: true
+data_collection:
+  output_dir: "data/raw/pure_pursuit"
+  format: "json"
+  save_frequency: 1
 
 logging:
   mlflow:
     enabled: true
     tracking_uri: "http://localhost:5000"
-  mcap:
-    enabled: true
-    output_dir: "/tmp"
   dashboard:
-    enabled: true
+    enabled: false
