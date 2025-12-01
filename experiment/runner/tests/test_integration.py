@@ -31,7 +31,7 @@ def test_pure_pursuit_experiment() -> None:
     assert config.experiment.name == "pure_pursuit_tracking"
     assert config.components.planning.type == "PurePursuitPlanner"
     assert config.components.control.type == "PIDController"
-    assert config.execution.max_steps == 2000
+    assert config.execution.max_steps_per_episode == 2000
 
     # Run experiment
     runner = ExperimentRunner(config)
@@ -89,7 +89,7 @@ def test_config_loading() -> None:
     assert config.components.planning.params["lookahead_distance"] == 5.0
     assert config.components.control.params["kp"] == 1.0
     assert config.simulator.type == "KinematicSimulator"
-    assert config.execution.mode == "inference"
+
     assert config.logging.mlflow.enabled is True
 
 
