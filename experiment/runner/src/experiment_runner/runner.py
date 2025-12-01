@@ -18,13 +18,15 @@ from experiment_runner.metrics import MetricsCalculator
 class ExperimentRunner:
     """Unified experiment runner."""
 
-    def __init__(self, config: ExperimentConfig) -> None:
+    def __init__(self, config: ExperimentConfig, config_path: str | Path | None = None) -> None:
         """Initialize experiment runner.
 
         Args:
             config: Experiment configuration
+            config_path: Path to the config file (for MLflow logging)
         """
         self.config = config
+        self.config_path = Path(config_path) if config_path else None
         self.simulator: Simulator | None = None
         self.planner: Planner | None = None
         self.controller: Controller | None = None
@@ -407,6 +409,8 @@ class ExperimentRunner:
             print(f"Starting data collection for {self.config.execution.num_episodes} episodes...")
             print(f"Output directory: {output_dir}")
 
+            collected_files = []
+
             for episode in range(self.config.execution.num_episodes):
                 print(f"\nEpisode {episode + 1}/{self.config.execution.num_episodes}")
 
@@ -439,6 +443,7 @@ class ExperimentRunner:
                     if self.config.data_collection.format == "json":
                         log_path = output_dir / f"episode_{episode:04d}.json"
                         log.save(log_path)
+                        collected_files.append(log_path)
                         print(f"  Saved: {log_path}")
                     elif self.config.data_collection.format == "mcap":
                         # TODO: Implement MCAP saving
@@ -447,6 +452,22 @@ class ExperimentRunner:
             print(
                 f"\nData collection completed. {self.config.execution.num_episodes} episodes saved to {output_dir}"
             )
+
+            # Upload collected data and config to MLflow (skip in CI)
+            if not is_ci and collected_files:
+                print("\nUploading data to MLflow...")
+
+                # Upload all collected data files
+                for data_file in collected_files:
+                    mlflow.log_artifact(str(data_file), artifact_path="training_data")
+
+                # Upload the config file used for data collection
+                # This allows reproducing the data collection experiment
+                if hasattr(self, "config_path") and self.config_path:
+                    mlflow.log_artifact(str(self.config_path), artifact_path="config")
+
+                print(f"Uploaded {len(collected_files)} data files to MLflow")
+                print("Data can be retrieved from MLflow even if local data/ directory is deleted")
 
     def _run_training(self) -> None:
         """Run training mode."""

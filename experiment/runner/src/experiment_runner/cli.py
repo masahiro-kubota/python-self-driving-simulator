@@ -49,7 +49,7 @@ def main() -> None:
     if config.experiment.description:
         print(f"Description: {config.experiment.description}")
 
-    runner = ExperimentRunner(config)
+    runner = ExperimentRunner(config, config_path=config_path)
     runner.run()
 
 
