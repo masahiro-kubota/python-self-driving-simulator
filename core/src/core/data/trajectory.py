@@ -13,8 +13,6 @@ class TrajectoryPoint:
     y: float  # Y座標 [m]
     yaw: float  # ヨー角 [rad]
     velocity: float  # 速度 [m/s]
-    curvature: float | None = None  # 曲率 [1/m]
-    timestamp: float | None = None  # タイムスタンプ [s]
 
 
 @dataclass

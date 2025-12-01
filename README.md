@@ -207,6 +207,12 @@ uv run pytest
 
 # 統合テストの実行
 uv run pytest experiment/runner/tests -m integration -v
+
+# シミュレーションテストの実行（Pure Pursuit実験）
+uv run pytest experiment/runner/tests/test_integration.py::test_pure_pursuit_experiment -v
+
+# Pre-commitフックの実行（全ファイル）
+uv run pre-commit run --all-files
 ```
 
 ### 開発用ツールのセットアップ
