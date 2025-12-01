@@ -74,7 +74,7 @@ class ExperimentRunner:
             # __file__ is in src/experiment_runner/runner.py
             # Go to components_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/
             components_root = (
-                Path(__file__).parent.parent.parent.parent.parent / "components_packages"
+                Path(__file__).parent.parent.parent.parent.parent / "component_packages"
             )
             default_track = (
                 components_root
@@ -364,4 +364,63 @@ class ExperimentRunner:
 
     def _run_training(self) -> None:
         """Run training mode."""
-        raise NotImplementedError("Training mode not yet implemented")
+        # Check if running in CI environment
+        is_ci = bool(os.getenv("CI"))
+
+        # Context manager for MLflow
+        if is_ci:
+            from contextlib import nullcontext
+
+            mlflow_context = nullcontext()
+        else:
+            mlflow_context = mlflow.start_run()
+
+        with mlflow_context:
+            print("Starting training...")
+
+            # Import Trainer here to avoid circular imports or import errors if training pkg not installed
+            from experiment_training.trainer import Trainer
+
+            # Get training config
+            training_config = (
+                self.config.training.dict() if hasattr(self.config, "training") else {}
+            )
+
+            # Setup reference trajectory (needed for feature calculation)
+            # We assume the planner has been setup and has the reference trajectory
+            if self.planner is None:
+                self._setup_components()
+
+            if (
+                not hasattr(self.planner, "reference_trajectory")
+                or self.planner.reference_trajectory is None
+            ):  # type: ignore
+                raise ValueError("Planner must have a reference trajectory for training")
+
+            reference_trajectory = self.planner.reference_trajectory  # type: ignore
+
+            # Initialize Trainer
+            trainer = Trainer(
+                config=training_config,
+                reference_trajectory=reference_trajectory,
+                workspace_root=Path(__file__).parent.parent.parent.parent.parent,
+            )
+
+            # Find data files
+            # For now, we look for JSON logs in the data directory specified in config or default
+            # Assuming config.logging.mcap.output_dir contains the raw data
+            data_dir = Path(self.config.logging.mcap.output_dir)
+            if not data_dir.exists():
+                print(f"Warning: Data directory {data_dir} does not exist")
+                return
+
+            # Find all .json files (using JSON for now as per Dataset implementation)
+            data_paths = list(data_dir.glob("*.json"))
+
+            if not data_paths:
+                print(f"No training data (.json) found in {data_dir}")
+                # Fallback to check for mcap if implemented later
+                return
+
+            # Run training
+            trainer.train(data_paths)

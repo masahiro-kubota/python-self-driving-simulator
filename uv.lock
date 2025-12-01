@@ -7,6 +7,7 @@ members = [
     "dashboard",
     "e2e-aichallenge-playground",
     "experiment-runner",
+    "experiment-training",
     "neural-controller",
     "pid-controller",
     "planning-utils",
@@ -622,6 +623,7 @@ dependencies = [
     { name = "boto3" },
     { name = "core" },
     { name = "dashboard" },
+    { name = "experiment-training" },
     { name = "mcap" },
     { name = "mcap-protobuf-support" },
     { name = "mlflow" },
@@ -651,14 +653,15 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.0.0" },
     { name = "core", editable = "core" },
     { name = "dashboard", editable = "dashboard" },
+    { name = "experiment-training", editable = "experiment/training" },
     { name = "mcap", specifier = ">=1.0.0" },
     { name = "mcap-protobuf-support", specifier = ">=0.5.0" },
     { name = "mlflow", specifier = ">=2.0.0" },
-    { name = "neural-controller", editable = "components_packages/control/neural_controller" },
-    { name = "neural-controller", marker = "extra == 'neural'", editable = "components_packages/control/neural_controller" },
-    { name = "pid-controller", editable = "components_packages/control/pid" },
-    { name = "planning-utils", editable = "components_packages/planning/planning_utils" },
-    { name = "pure-pursuit", editable = "components_packages/planning/pure_pursuit" },
+    { name = "neural-controller", editable = "component_packages/control/neural_controller" },
+    { name = "neural-controller", marker = "extra == 'neural'", editable = "component_packages/control/neural_controller" },
+    { name = "pid-controller", editable = "component_packages/control/pid" },
+    { name = "planning-utils", editable = "component_packages/planning/planning_utils" },
+    { name = "pure-pursuit", editable = "component_packages/planning/pure_pursuit" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
@@ -667,6 +670,27 @@ requires-dist = [
     { name = "simulator-dynamic", editable = "simulators/simulator_dynamic" },
     { name = "simulator-kinematic", editable = "simulators/simulator_kinematic" },
     { name = "simulator-utils", editable = "simulators/simulator_utils" },
+]
+
+[[package]]
+name = "experiment-training"
+version = "0.1.0"
+source = { editable = "experiment/training" }
+dependencies = [
+    { name = "core" },
+    { name = "mlflow" },
+    { name = "neural-controller" },
+    { name = "numpy" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "core", editable = "core" },
+    { name = "mlflow", specifier = ">=2.0.0" },
+    { name = "neural-controller", editable = "component_packages/control/neural_controller" },
+    { name = "numpy", specifier = ">=1.20.0" },
+    { name = "torch", specifier = ">=2.0.0" },
 ]
 
 [[package]]
@@ -1369,7 +1393,7 @@ wheels = [
 [[package]]
 name = "neural-controller"
 version = "0.1.0"
-source = { editable = "components_packages/control/neural_controller" }
+source = { editable = "component_packages/control/neural_controller" }
 dependencies = [
     { name = "core" },
     { name = "numpy" },
@@ -1700,7 +1724,7 @@ wheels = [
 [[package]]
 name = "pid-controller"
 version = "0.1.0"
-source = { editable = "components_packages/control/pid" }
+source = { editable = "component_packages/control/pid" }
 dependencies = [
     { name = "core" },
 ]
@@ -1780,7 +1804,7 @@ wheels = [
 [[package]]
 name = "planning-utils"
 version = "0.1.0"
-source = { editable = "components_packages/planning/planning_utils" }
+source = { editable = "component_packages/planning/planning_utils" }
 dependencies = [
     { name = "core" },
     { name = "numpy" },
@@ -1844,7 +1868,7 @@ wheels = [
 [[package]]
 name = "pure-pursuit"
 version = "0.1.0"
-source = { editable = "components_packages/planning/pure_pursuit" }
+source = { editable = "component_packages/planning/pure_pursuit" }
 dependencies = [
     { name = "core" },
     { name = "numpy" },
@@ -1855,7 +1879,7 @@ dependencies = [
 requires-dist = [
     { name = "core", editable = "core" },
     { name = "numpy", specifier = ">=1.26.0" },
-    { name = "planning-utils", editable = "components_packages/planning/planning_utils" },
+    { name = "planning-utils", editable = "component_packages/planning/planning_utils" },
 ]
 
 [[package]]

@@ -8,7 +8,7 @@ components:
     type: "PurePursuitPlanner"
     params:
       lookahead_distance: 5.0
-      track_path: "components_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
+      track_path: "component_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
   control:
     type: "PIDController"
     params:

@@ -30,10 +30,11 @@ members = [
     "simulators/simulator_utils",
     "simulators/simulator_kinematic",
     "simulators/simulator_dynamic",
-    "components_packages/planning/pure_pursuit",
-    "components_packages/planning/planning_utils",
-    "components_packages/control/pid",
-    "components_packages/control/neural_controller",
+    "component_packages/planning/pure_pursuit",
+    "component_packages/planning/planning_utils",
+    "component_packages/control/pid",
+    "component_packages/control/neural_controller",
+    "experiment/training",
 ]
 
 [tool.ruff]

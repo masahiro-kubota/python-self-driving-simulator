@@ -62,7 +62,7 @@ e2e_aichallenge_playground/
 ├── core/                           # コアフレームワーク
 ├── experiment/runner/              # 統一実験実行フレームワーク
 ├── simulators/                     # シミュレータ実装
-├── components_packages/            # コンポーネントパッケージ
+├── component_packages/            # コンポーネントパッケージ
 │   ├── planning/                   # 計画コンポーネント
 │   │   ├── pure_pursuit/
 │   │   └── planning_utils/
@@ -86,7 +86,7 @@ graph TD
     Sim[simulators] --> Core
 
     %% Components
-    Comp[components_packages] --> Core
+    Comp[component_packages] --> Core
 
     %% Dashboard
     Dash[dashboard] --> Core
@@ -199,6 +199,14 @@ uv run experiment-runner --config experiment/configs/experiments/pure_pursuit.ya
 uv run experiment-runner --config experiment/configs/experiments/imitation_learning.yaml
 ```
 
+### 開発・テスト用ツールのセットアップ
+
+```bash
+# 開発用依存関係（pre-commit等）をインストール
+uv sync --extra dev
+uv run pre-commit install
+```
+
 ### テストの実行
 
 ```bash
@@ -215,13 +223,6 @@ uv run pytest experiment/runner/tests/test_integration.py::test_pure_pursuit_exp
 uv run pre-commit run --all-files
 ```
 
-### 開発用ツールのセットアップ
-
-```bash
-# 開発用依存関係（pre-commit等）をインストール
-uv sync --extra dev
-uv run pre-commit install
-```
 
 ### コンポーネントの組み合わせ
 

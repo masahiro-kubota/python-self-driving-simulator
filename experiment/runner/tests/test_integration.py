@@ -116,7 +116,7 @@ def test_custom_track_loading(_setup_mlflow_env: None) -> None:
     # Copy default track to custom path
     default_track = (
         workspace_root
-        / "components_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
+        / "component_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
     )
     import shutil
 
