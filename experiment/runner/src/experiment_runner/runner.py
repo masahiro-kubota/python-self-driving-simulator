@@ -79,9 +79,7 @@ class ExperimentRunner:
             # Use default track from component directory
             # __file__ is in src/experiment_runner/runner.py
             # Go to components_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/
-            components_root = (
-                Path(__file__).parent.parent.parent.parent.parent / "component_packages"
-            )
+            components_root = Path(__file__).parent.parent.parent.parent.parent / "ad_components"
             default_track = (
                 components_root
                 / "planning/pure_pursuit/src/pure_pursuit/data/tracks"

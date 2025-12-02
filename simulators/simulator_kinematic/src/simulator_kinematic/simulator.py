@@ -2,9 +2,9 @@
 
 from typing import TYPE_CHECKING, Any
 
-from simulator_core.base import BaseSimulator
+from simulators_core.base import BaseSimulator
 
-from core.data import Action, Observation, SimulationStep, VehicleParameters, VehicleState
+from core.data import Action, SimulationStep, VehicleParameters, VehicleState
 from simulator_kinematic.vehicle import KinematicVehicleModel
 
 if TYPE_CHECKING:
@@ -40,27 +40,19 @@ class KinematicSimulator(BaseSimulator):
         )
         self.vehicle_model = KinematicVehicleModel(wheelbase=self.vehicle_params.wheelbase)
 
-    def step(self, action: Action) -> tuple[VehicleState, Observation, bool, dict[str, Any]]:
-        """1ステップ実行.
+    def step(self, action: Action) -> tuple[VehicleState, bool, dict[str, Any]]:
+        """Execute one simulation step.
 
         Args:
-            action: 制御指令
+            action: Control action
 
         Returns:
-            vehicle_state: 更新された車両状態
-            observation: 観測データ
-            done: エピソード終了フラグ
-            info: 追加情報
+            tuple containing:
+                - next_state: Updated vehicle state
+                - done: Episode termination flag
+                - info: Additional information
         """
-        # Log current step before update
-        self.log.add_step(
-            SimulationStep(
-                timestamp=self._current_state.timestamp or 0.0,
-                vehicle_state=self._current_state,
-                action=action,
-            )
-        )
-
+        # Update vehicle state
         self._current_state = self.vehicle_model.step(
             state=self._current_state,
             steering=action.steering,
@@ -68,8 +60,18 @@ class KinematicSimulator(BaseSimulator):
             dt=self.dt,
         )
 
-        observation = self._create_observation(self._current_state)
+        # Update simulation log
+        step = SimulationStep(
+            timestamp=self._current_state.timestamp,
+            vehicle_state=self._current_state,
+            action=action,
+            ad_component_log=None,  # Will be populated by ExperimentRunner if needed
+            info=self._create_info(),
+        )
+        self.log.add_step(step)
+
+        # Check termination
         done = self._is_done()
         info = self._create_info()
 
-        return self._current_state, observation, done, info
+        return self._current_state, done, info

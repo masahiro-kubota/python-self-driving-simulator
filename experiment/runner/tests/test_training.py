@@ -77,7 +77,7 @@ class TestTrainingIntegration:
             # The runner needs a planner with reference trajectory to calculate errors
             mock_planner = MagicMock()
             # Create a dummy reference trajectory (straight line)
-            from core.data import Trajectory, TrajectoryPoint
+            from core.data.ad_components import Trajectory, TrajectoryPoint
 
             ref_traj = Trajectory(
                 [TrajectoryPoint(x=float(i), y=0.0, yaw=0.0, velocity=5.0) for i in range(20)]

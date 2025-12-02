@@ -3,7 +3,10 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from core.data import Action, Observation, Trajectory, VehicleState
+from ad_components_core.data import Observation
+
+from core.data import Action, VehicleState
+from core.data.ad_components import Trajectory
 
 
 class Perception(ABC):

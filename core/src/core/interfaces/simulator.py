@@ -3,10 +3,10 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
-from core.data import Action, Observation, SimulationLog, VehicleState
+from core.data import Action, SimulationLog, Trajectory, VehicleState
 
 if TYPE_CHECKING:
-    from core.data import SimulationResult, Trajectory
+    from core.data import SimulationResult
     from core.interfaces import Controller, Planner
 
 
@@ -22,17 +22,17 @@ class Simulator(ABC):
         """
 
     @abstractmethod
-    def step(self, action: Action) -> tuple[VehicleState, Observation, bool, dict[str, Any]]:
-        """1ステップ実行.
+    def step(self, action: Action) -> tuple[VehicleState, bool, dict[str, Any]]:
+        """シミュレーションを1ステップ進める.
 
         Args:
-            action: 制御指令
+            action: 実行するアクション
 
         Returns:
-            vehicle_state: 更新された車両状態
-            observation: 観測データ
-            done: エピソード終了フラグ
-            info: 追加情報
+            tuple[VehicleState, bool, dict[str, Any]]:
+                - next_state: 次の車両状態
+                - done: エピソード終了フラグ
+                - info: 追加情報
         """
 
     @abstractmethod

@@ -1,0 +1,21 @@
+[project]
+name = "pid-controller"
+version = "0.1.0"
+description = "PID controller"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.26.0",
+    "core",
+    "ad-components-core",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pid_controller"]
+
+[tool.uv.sources]
+core = { workspace = true }
+ad-components-core = { workspace = true }

@@ -69,22 +69,29 @@ docker compose down -v  # データも削除
 
 ```
 e2e_aichallenge_playground/
-├── core/                           # コアフレームワーク
-├── experiment/runner/              # 統一実験実行フレームワーク
-├── experiment/training/            # 学習機能（Dataset, Trainer）
-├── simulators/                     # シミュレータ実装
-├── component_packages/            # コンポーネントパッケージ
-│   ├── planning/                   # 計画コンポーネント
+├── core/                           # プロジェクト基盤（データ構造・インターフェース）
+├── ad_components/             # コンポーネントパッケージ
+│   ├── core/                      # コンポーネント共通基盤
+│   ├── planning/                  # 計画コンポーネント
 │   │   ├── pure_pursuit/
 │   │   └── planning_utils/
-│   └── control/                    # 制御コンポーネント
-├── experiment/configs/             # 実験設定ファイル
-│   └── experiments/                # 実験設定
-│       ├── pure_pursuit.yaml
-│       ├── data_collection_pure_pursuit.yaml
-│       └── imitation_learning_s3.yaml
-├── data/                           # 一時データ（MinIOで管理するためGit対象外）
-└── mlflow/     # MLflow + MinIO サーバー
+│   └── control/                   # 制御コンポーネント
+│       ├── pid_controller/
+│       └── neural_controller/
+├── simulators/                    # シミュレータ実装
+│   ├── core/                     # シミュレータ基底クラス (simulators_core)
+│   ├── simulator_kinematic/      # 運動学シミュレータ
+│   └── simulator_dynamic/        # 動力学シミュレータ
+├── experiment/
+│   ├── runner/                   # 統一実験実行フレームワーク
+│   ├── training/                 # 学習機能（Dataset, Trainer）
+│   └── configs/                  # 実験設定ファイル
+│       ├── experiments/          # 実験設定
+│       ├── vehicles/             # 車両パラメータ
+│       └── scenes/               # シーン設定
+├── dashboard/                    # 可視化ダッシュボード
+├── data/                         # 一時データ（Git対象外）
+└── mlflow/                       # MLflow + MinIO サーバー
 ```
 
 ### アーキテクチャ概要
@@ -92,58 +99,76 @@ e2e_aichallenge_playground/
 ```mermaid
 graph TD
     %% Core Framework
-    Core[core]
+    Core[core<br/>プロジェクト基盤]
+    ADCompCore[ad_components_core<br/>コンポーネント共通]
+    SimCore[simulators_core<br/>シミュレータ基底]
+
+    %% Core dependencies
+    ADCompCore --> Core
+    SimCore --> Core
+    SimCore --> ADCompCore
 
     %% Simulators
-    Sim[simulators] --> Core
+    SimKin[simulator_kinematic] --> SimCore
+    SimDyn[simulator_dynamic] --> SimCore
 
     %% Components
-    Comp[component_packages] --> Core
+    Planning[planning/*] --> ADCompCore
+    Control[control/*] --> ADCompCore
 
     %% Dashboard
     Dash[dashboard] --> Core
 
     %% Training
     Train[experiment/training] --> Core
+    Train --> ADCompCore
 
     %% Experiment Runner
     Runner[experiment/runner] --> Core
-    Runner --> Sim
-    Runner --> Comp
+    Runner --> ADCompCore
+    Runner --> SimCore
+    Runner --> SimKin
+    Runner --> SimDyn
+    Runner --> Planning
+    Runner --> Control
     Runner --> Dash
     Runner --> Train
 
     %% Styling
     classDef core fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef base fill:#fbb,stroke:#333,stroke-width:2px;
     classDef impl fill:#bbf,stroke:#333,stroke-width:2px;
     classDef app fill:#bfb,stroke:#333,stroke-width:2px;
 
     class Core core;
-    class Sim,Comp,Dash,Train impl;
+    class ADCompCore,SimCore base;
+    class SimKin,SimDyn,Planning,Control,Dash,Train impl;
     class Runner app;
 ```
 
 ### コアインターフェース
 
-`core` パッケージは、全てのコンポーネントが準拠すべきインターフェースを定義しています。
+`core` と `ad_components_core` パッケージが、全てのコンポーネントが準拠すべきインターフェースを定義しています。
 
 ```mermaid
 classDiagram
     class Planner {
         <<interface>>
         +plan(observation, state) Trajectory
+        +reset() void
     }
 
     class Controller {
         <<interface>>
         +control(trajectory, state) Action
+        +reset() void
     }
 
     class Simulator {
         <<interface>>
         +reset() VehicleState
         +step(action) tuple
-        +render() Any
+        +run(planner, controller) SimulationResult
         +get_log() SimulationLog
     }
 
@@ -156,6 +181,7 @@ classDiagram
     Controller <|-- PIDController
     Controller <|-- NeuralController
     Simulator <|-- KinematicSimulator
+    Simulator <|-- DynamicSimulator
     DashboardGenerator <|-- HTMLDashboardGenerator
 ```
 
@@ -163,25 +189,73 @@ classDiagram
 
 #### 📦 `core/` - コアフレームワーク
 **責務**: プロジェクト全体の基盤となるデータ構造とインターフェース定義。
-- **Interfaces**: `Planner`, `Controller`, `Simulator`, `DashboardGenerator`
-- **Data Types**: `VehicleState`, `Trajectory`, `Action`, `Observation`, `SimulationLog`
-- **Utils**: 幾何計算、座標変換、設定ファイル処理
 
-**依存関係**: なし（最下層）
+**主要な型**:
+- **AD Components**: `VehicleState`, `Action`, `Trajectory`, `Sensing`, `ADComponentConfig`, `ADComponentLog`
+- **Experiment**: `ExperimentConfig`, `ExperimentResult`
+- **Simulation**: `SimulationConfig`, `SimulationResult`, `SimulationLog`, `SimulationStep`
+- **Environment**: `Scene`, `TrackBoundary`, `Obstacle`
+- **Vehicle**: `VehicleParameters`
 
-#### 🎮 `simulators/` - シミュレータ実装
-**責務**: 車両運動モデルと環境のシミュレーション。
-- **Kinematic**: 自転車モデルに基づく運動学シミュレータ
-- **Dynamic**: (WIP) 動力学シミュレータ
+**インターフェース**: `Simulator`, `DashboardGenerator`, `ExperimentRunner`
+
+**依存関係**: `ad_components_core`
+
+#### 🧩 `ad_components/core/` - コンポーネント共通基盤
+**責務**: 自動運転コンポーネント間で共有されるインターフェースとデータ型。
+
+**主要な型**:
+- `Observation` - コンポーネントが使用する観測データ
+- `Trajectory`, `TrajectoryPoint` - 軌道データ
+
+**インターフェース**: `Planner`, `Controller`, `Perception`, `ADComponent`
 
 **依存関係**: `core`
 
-#### 🧩 `components_packages/` - 自動運転コンポーネント
-**責務**: 認識・計画・制御のアルゴリズム実装。
-- **Planning**: `PurePursuitPlanner` (経路追従), `PlanningUtils`
-- **Control**: `PIDController` (縦横制御), `NeuralController` (学習ベース)
+#### 🎮 `simulators/core/` - シミュレータ基底クラス
+**責務**: シミュレータの共通機能と基底クラス。
+
+**主要なクラス**:
+- `BaseSimulator` - シミュレータの基底実装
+- 数値積分関数 (`euler_step`, `rk4_step`)
 
 **依存関係**: `core`
+
+#### 🏎️ `simulators/simulator_kinematic/` - 運動学シミュレータ
+**責務**: 自転車モデルに基づく運動学シミュレーション。
+
+**主要なクラス**:
+- `KinematicSimulator` - 運動学シミュレータ
+- `KinematicVehicleModel` - 車両運動モデル
+
+**依存関係**: `simulators_core`, `core`
+
+#### 🏁 `simulators/simulator_dynamic/` - 動力学シミュレータ
+**責務**: 動力学モデルに基づく高精度シミュレーション。
+
+**主要なクラス**:
+- `DynamicSimulator` - 動力学シミュレータ
+- `DynamicVehicleModel` - 車両動力学モデル
+
+**依存関係**: `simulators_core`, `core`
+
+#### 🗺️ `ad_components/planning/` - 計画コンポーネント
+**責務**: 経路計画アルゴリズムの実装。
+
+**実装**:
+- `pure_pursuit` - Pure Pursuit経路追従
+- `planning_utils` - 計画用ユーティリティ
+
+**依存関係**: `ad_components_core`, `core`
+
+#### 🎮 `ad_components/control/` - 制御コンポーネント
+**責務**: 車両制御アルゴリズムの実装。
+
+**実装**:
+- `pid_controller` - PID縦横制御
+- `neural_controller` - ニューラルネットワークベース制御
+
+**依存関係**: `ad_components_core`, `core`
 
 #### 📊 `dashboard/` - 可視化ダッシュボード
 **責務**: シミュレーション結果の可視化と分析。
@@ -193,13 +267,13 @@ classDiagram
 
 #### 🧪 `experiment/runner/` - 実験実行フレームワーク
 **責務**: 設定ファイルに基づいたコンポーネントの組み立てと実験ループの実行。
-- **Config**: YAML設定の読み込みと検証
+- **Config**: YAML設定の読み込みと検証 (Pydantic)
 - **Runner**: シミュレーションループの実行、MLflow記録
 - **Logging**: MCAP形式でのシミュレーションデータ記録
 - **Metrics**: シミュレーション評価指標の計算
 - **Integration**: 各コンポーネントとダッシュボードの統合
 
-**依存関係**: `core`, `simulators`, `components_packages`, `dashboard`
+**依存関係**: `core`, `ad_components_core`, `simulators_core`, 各コンポーネント, `dashboard`
 
 #### 🧠 `experiment/training/` - 学習機能
 **責務**: データセット管理とモデル学習の実行。
@@ -207,7 +281,7 @@ classDiagram
 - **Trainer**: 学習ループ、検証、モデル保存
 - **FunctionTrainer**: 関数近似タスク用の簡易トレーナー
 
-**依存関係**: `core`
+**依存関係**: `core`, `ad_components_core`
 
 ---
 

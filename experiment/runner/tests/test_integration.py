@@ -30,7 +30,7 @@ def test_pure_pursuit_experiment() -> None:
     # Verify configuration
     assert config.experiment.name == "pure_pursuit_tracking"
     assert config.components.planning.type == "pure_pursuit.PurePursuitPlanner"
-    assert config.components.control.type == "pid.PIDController"
+    assert config.components.control.type == "pid_controller.PIDController"
     assert config.execution.max_steps_per_episode == 2000
 
     # Run experiment
@@ -86,7 +86,7 @@ def test_pure_pursuit_experiment_new_config() -> None:
         assert "params.planner" in latest_run, "Planner parameter should be logged"
         assert latest_run["params.planner"] == "pure_pursuit.PurePursuitPlanner"
         assert "params.controller" in latest_run, "Controller parameter should be logged"
-        assert latest_run["params.controller"] == "pid.PIDController"
+        assert latest_run["params.controller"] == "pid_controller.PIDController"
 
         # Verify artifacts were uploaded
         run_id = latest_run["run_id"]
@@ -139,7 +139,7 @@ def test_custom_track_loading(_setup_mlflow_env: None) -> None:
     # Copy default track to custom path
     default_track = (
         workspace_root
-        / "component_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
+        / "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
     )
     import shutil
 

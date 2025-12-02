@@ -3,9 +3,9 @@
 import math
 from typing import TYPE_CHECKING, Any
 
-from simulator_core.base import BaseSimulator
+from simulators_core.base import BaseSimulator
 
-from core.data import Action, Observation, VehicleParameters, VehicleState
+from core.data import Action, VehicleParameters, VehicleState
 from simulator_dynamic.state import DynamicVehicleState
 from simulator_dynamic.vehicle import DynamicVehicleModel
 from simulator_dynamic.vehicle_params import VehicleParameters as DynamicVehicleParams
@@ -72,17 +72,17 @@ class DynamicSimulator(BaseSimulator):
         self._dynamic_state = self._kinematic_to_dynamic(self.initial_state)
         return self._current_state
 
-    def step(self, action: Action) -> tuple[VehicleState, Observation, bool, dict[str, Any]]:
-        """1ステップ実行.
+    def step(self, action: Action) -> tuple[VehicleState, bool, dict[str, Any]]:
+        """Execute one simulation step.
 
         Args:
-            action: 制御指令
+            action: Control action
 
         Returns:
-            vehicle_state: 更新された車両状態
-            observation: 観測データ
-            done: エピソード終了フラグ
-            info: 追加情報
+            tuple containing:
+                - next_state: Updated vehicle state
+                - done: Episode termination flag
+                - info: Additional information
         """
         # Convert acceleration to throttle (simplified)
         throttle = action.acceleration / 5.0  # Normalize to [-1, 1] range

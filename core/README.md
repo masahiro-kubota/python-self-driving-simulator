@@ -12,20 +12,42 @@
 
 各コンポーネントの抽象基底クラス：
 
-- **`PerceptionComponent`**: 認識コンポーネント
-- **`PlanningComponent`**: 計画コンポーネント
-- **`ControlComponent`**: 制御コンポーネント
+- **`Perception`**: 認識コンポーネント
+- **`Planner`**: 計画コンポーネント
+- **`Controller`**: 制御コンポーネント
 - **`Simulator`**: シミュレータ
 
 ### Data Structures (`core.data`)
 
 共通のデータ構造：
 
+#### AD Components (`core.data.ad_components`)
+コンポーネント間で共有されるデータ型：
 - **`VehicleState`**: 車両状態（位置、速度、姿勢など）
-- **`Observation`**: センサー観測データ
 - **`Action`**: 制御指令（ステアリング、加速度）
 - **`Trajectory`**: 軌道（経路点の列）
 - **`TrajectoryPoint`**: 軌道上の1点
+- **`Sensing`**: センサーデータ基底クラス
+- **`ADComponentConfig`**: コンポーネント設定
+- **`ADComponentLog`**: コンポーネントログ
+
+#### Simulation (`core.data.simulation`)
+シミュレーション関連：
+- **`SimulationConfig`**: シミュレーション設定
+- **`SimulationLog`**: シミュレーションログ
+- **`SimulationResult`**: シミュレーション結果
+- **`SimulationStep`**: シミュレーションステップ
+
+#### Environment (`core.data.environment`)
+環境関連：
+- **`Scene`**: シーン定義
+- **`Obstacle`**: 障害物
+- **`TrackBoundary`**: トラック境界
+
+#### Experiment (`core.data.experiment`)
+実験関連：
+- **`ExperimentConfig`**: 実験設定
+- **`ExperimentResult`**: 実験結果
 
 ### Utilities (`core.utils`)
 
@@ -58,11 +80,15 @@
 
 ### インターフェースの実装
 
-```python
-from core.interfaces import PlanningComponent
-from core.data import VehicleState, Observation, Trajectory
+### インターフェースの実装
 
-class MyPlanner(PlanningComponent):
+```python
+from core.interfaces import Planner
+from core.data.ad_components import Trajectory
+from core.data import VehicleState
+from ad_components_core.data import Observation
+
+class MyPlanner(Planner):
     def plan(self, observation: Observation, vehicle_state: VehicleState) -> Trajectory:
         # 計画ロジックを実装
         pass
@@ -75,7 +101,7 @@ class MyPlanner(PlanningComponent):
 ### データ構造の使用
 
 ```python
-from core.data import VehicleState, Action
+from core.data.ad_components import VehicleState, Action
 
 # 車両状態の作成
 state = VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=5.0)

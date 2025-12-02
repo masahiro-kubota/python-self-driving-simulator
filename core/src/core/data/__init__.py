@@ -1,21 +1,35 @@
 """Core data structures."""
 
-from core.data.action import Action
-from core.data.observation import Observation
-from core.data.obstacle import Obstacle, ObstacleType
-from core.data.result import SimulationResult
-from core.data.scene import Scene, TrackBoundary
-from core.data.simulation_log import SimulationLog, SimulationStep
-from core.data.state import VehicleState
-from core.data.trajectory import Trajectory, TrajectoryPoint
-from core.data.vehicle_params import VehicleParameters
+from core.data.ad_components import (
+    Action,
+    ADComponentConfig,
+    ADComponentLog,
+    ADComponentSpec,
+    ADComponentType,
+    Sensing,
+    Trajectory,
+    TrajectoryPoint,
+    VehicleState,
+)
+from core.data.environment import Obstacle, ObstacleType, Scene, TrackBoundary
+from core.data.experiment import ExperimentConfig, ExperimentResult, ExperimentType
+from core.data.simulation import SimulationConfig, SimulationLog, SimulationResult, SimulationStep
+from core.data.vehicle import VehicleParameters
 
 __all__ = [
+    "ADComponentConfig",
+    "ADComponentLog",
+    "ADComponentSpec",
+    "ADComponentType",
     "Action",
-    "Observation",
+    "ExperimentConfig",
+    "ExperimentResult",
+    "ExperimentType",
     "Obstacle",
     "ObstacleType",
     "Scene",
+    "Sensing",
+    "SimulationConfig",
     "SimulationLog",
     "SimulationResult",
     "SimulationStep",

@@ -28,6 +28,7 @@ managed = true
 
 [tool.uv.sources]
 experiment-runner = { workspace = true }
+ad-components-core = { workspace = true }
 pure-pursuit = { workspace = true }
 planning-utils = { workspace = true }
 pid-controller = { workspace = true }
@@ -41,13 +42,14 @@ members = [
     "core",
     "dashboard",
     "experiment/runner",
-    "simulators/simulator_core",
+    "simulators/core",
     "simulators/simulator_kinematic",
     "simulators/simulator_dynamic",
-    "component_packages/planning/pure_pursuit",
-    "component_packages/planning/planning_utils",
-    "component_packages/control/pid",
-    "component_packages/control/neural_controller",
+    "ad_components/core",
+    "ad_components/planning/pure_pursuit",
+    "ad_components/planning/planning_utils",
+    "ad_components/control/pid_controller",
+    "ad_components/control/neural_controller",
     "experiment/training",
 ]
 

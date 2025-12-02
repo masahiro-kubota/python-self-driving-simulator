@@ -3,6 +3,7 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
+    "ad-components-core",
     "core",
     "dashboard",
     "e2e-aichallenge-playground",
@@ -16,6 +17,17 @@ members = [
     "simulator-dynamic",
     "simulator-kinematic",
 ]
+
+[[package]]
+name = "ad-components-core"
+version = "0.1.0"
+source = { editable = "ad_components/core" }
+dependencies = [
+    { name = "core" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "core", editable = "core" }]
 
 [[package]]
 name = "alembic"
@@ -341,6 +353,7 @@ name = "core"
 version = "0.1.0"
 source = { editable = "core" }
 dependencies = [
+    { name = "ad-components-core" },
     { name = "numpy" },
     { name = "pyyaml" },
 ]
@@ -357,13 +370,14 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ad-components-core", editable = "ad_components/core" },
     { name = "deptry", marker = "extra == 'dev'", specifier = ">=0.12.0" },
     { name = "numpy", specifier = ">=2.3.5" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0.0" },
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
-    { name = "pyyaml", specifier = ">=6.0.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
 ]
 
@@ -617,14 +631,14 @@ requires-dist = [
     { name = "deptry", marker = "extra == 'dev'", specifier = ">=0.12.0" },
     { name = "experiment-runner", editable = "experiment/runner" },
     { name = "lark", marker = "extra == 'dev'", specifier = ">=1.0.0" },
-    { name = "neural-controller", marker = "extra == 'dev'", editable = "component_packages/control/neural_controller" },
-    { name = "pid-controller", marker = "extra == 'dev'", editable = "component_packages/control/pid" },
-    { name = "planning-utils", marker = "extra == 'dev'", editable = "component_packages/planning/planning_utils" },
+    { name = "neural-controller", marker = "extra == 'dev'", editable = "ad_components/control/neural_controller" },
+    { name = "pid-controller", marker = "extra == 'dev'", editable = "ad_components/control/pid_controller" },
+    { name = "planning-utils", marker = "extra == 'dev'", editable = "ad_components/planning/planning_utils" },
     { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0.0" },
-    { name = "pure-pursuit", marker = "extra == 'dev'", editable = "component_packages/planning/pure_pursuit" },
+    { name = "pure-pursuit", marker = "extra == 'dev'", editable = "ad_components/planning/pure_pursuit" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "simulator-core", marker = "extra == 'dev'", editable = "simulators/simulator_core" },
+    { name = "simulator-core", marker = "extra == 'dev'", editable = "simulators/core" },
     { name = "simulator-dynamic", marker = "extra == 'dev'", editable = "simulators/simulator_dynamic" },
     { name = "simulator-kinematic", marker = "extra == 'dev'", editable = "simulators/simulator_kinematic" },
 ]
@@ -676,7 +690,7 @@ dependencies = [
 requires-dist = [
     { name = "core", editable = "core" },
     { name = "mlflow", specifier = ">=2.0.0" },
-    { name = "neural-controller", editable = "component_packages/control/neural_controller" },
+    { name = "neural-controller", editable = "ad_components/control/neural_controller" },
     { name = "numpy", specifier = ">=1.20.0" },
     { name = "torch", specifier = ">=2.0.0" },
 ]
@@ -1381,8 +1395,9 @@ wheels = [
 [[package]]
 name = "neural-controller"
 version = "0.1.0"
-source = { editable = "component_packages/control/neural_controller" }
+source = { editable = "ad_components/control/neural_controller" }
 dependencies = [
+    { name = "ad-components-core" },
     { name = "core" },
     { name = "numpy" },
     { name = "torch" },
@@ -1390,6 +1405,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ad-components-core", editable = "ad_components/core" },
     { name = "core", editable = "core" },
     { name = "numpy", specifier = ">=1.26.0" },
     { name = "torch", specifier = ">=2.0.0" },
@@ -1712,13 +1728,19 @@ wheels = [
 [[package]]
 name = "pid-controller"
 version = "0.1.0"
-source = { editable = "component_packages/control/pid" }
+source = { editable = "ad_components/control/pid_controller" }
 dependencies = [
+    { name = "ad-components-core" },
     { name = "core" },
+    { name = "numpy" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "core", editable = "core" }]
+requires-dist = [
+    { name = "ad-components-core", editable = "ad_components/core" },
+    { name = "core", editable = "core" },
+    { name = "numpy", specifier = ">=1.26.0" },
+]
 
 [[package]]
 name = "pillow"
@@ -1792,7 +1814,7 @@ wheels = [
 [[package]]
 name = "planning-utils"
 version = "0.1.0"
-source = { editable = "component_packages/planning/planning_utils" }
+source = { editable = "ad_components/planning/planning_utils" }
 dependencies = [
     { name = "core" },
     { name = "numpy" },
@@ -1856,8 +1878,9 @@ wheels = [
 [[package]]
 name = "pure-pursuit"
 version = "0.1.0"
-source = { editable = "component_packages/planning/pure_pursuit" }
+source = { editable = "ad_components/planning/pure_pursuit" }
 dependencies = [
+    { name = "ad-components-core" },
     { name = "core" },
     { name = "numpy" },
     { name = "planning-utils" },
@@ -1865,9 +1888,10 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ad-components-core", editable = "ad_components/core" },
     { name = "core", editable = "core" },
     { name = "numpy", specifier = ">=1.26.0" },
-    { name = "planning-utils", editable = "component_packages/planning/planning_utils" },
+    { name = "planning-utils", editable = "ad_components/planning/planning_utils" },
 ]
 
 [[package]]
@@ -2362,7 +2386,7 @@ wheels = [
 [[package]]
 name = "simulator-core"
 version = "0.1.0"
-source = { editable = "simulators/simulator_core" }
+source = { editable = "simulators/core" }
 dependencies = [
     { name = "core" },
     { name = "numpy" },
@@ -2408,7 +2432,7 @@ requires-dist = [
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "simulator-core", editable = "simulators/simulator_core" },
+    { name = "simulator-core", editable = "simulators/core" },
 ]
 
 [[package]]
@@ -2435,7 +2459,7 @@ requires-dist = [
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "simulator-core", editable = "simulators/simulator_core" },
+    { name = "simulator-core", editable = "simulators/core" },
 ]
 
 [[package]]

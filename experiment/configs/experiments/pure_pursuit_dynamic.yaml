@@ -9,7 +9,7 @@ components:
     params:
       lookahead_distance: 5.0
   control:
-    type: "pid.PIDController"
+    type: "pid_controller.PIDController"
     params:
       kp: 1.0
       ki: 0.1
