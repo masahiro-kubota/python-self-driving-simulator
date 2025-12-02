@@ -31,14 +31,11 @@ class ExperimentRunner:
         self.planner: Planner | None = None
         self.controller: Controller | None = None
 
-    def _instantiate_component(
-        self, module_path: str, class_name: str, params: dict[str, Any]
-    ) -> Any:
+    def _instantiate_component(self, component_type: str, params: dict[str, Any]) -> Any:
         """Dynamically instantiate a component.
 
         Args:
-            module_path: Module path (e.g., "components.planning")
-            class_name: Class name (e.g., "PurePursuitPlanner")
+            component_type: Component type in "module.ClassName" format
             params: Component parameters
 
         Returns:
@@ -55,7 +52,15 @@ class ExperimentRunner:
             else:
                 resolved_params[key] = value
 
-        module = importlib.import_module(module_path)
+        try:
+            module_name, class_name = component_type.rsplit(".", 1)
+        except ValueError:
+            raise ValueError(
+                f"Invalid component type: {component_type}. "
+                "Must be in 'module.ClassName' format."
+            ) from None
+
+        module = importlib.import_module(module_name)
         cls = getattr(module, class_name)
         return cls(**resolved_params)
 
@@ -71,7 +76,7 @@ class ExperimentRunner:
             # User specified custom track path
             workspace_root = Path(__file__).parent.parent.parent.parent.parent
             track_path = workspace_root / planning_params.pop("track_path")
-        elif planning_type == "PurePursuitPlanner":
+        elif "PurePursuitPlanner" in planning_type:
             # Use default track from component directory
             # __file__ is in src/experiment_runner/runner.py
             # Go to components_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/
@@ -86,17 +91,12 @@ class ExperimentRunner:
             if default_track.exists():
                 track_path = default_track
 
-        # Determine module path based on type
-        if planning_type == "PurePursuitPlanner":
-            planning_module = "pure_pursuit"
-        else:
-            planning_module = "components.planning"  # Fallback/TODO
-
-        self.planner = self._instantiate_component(planning_module, planning_type, planning_params)
+        self.planner = self._instantiate_component(planning_type, planning_params)
 
         # Load track if specified and store for artifact logging
         self.track_path = None
         if track_path is not None:
+            # Dynamically import load_track_csv to avoid hard dependency
             from planning_utils import load_track_csv
 
             track = load_track_csv(track_path)
@@ -107,14 +107,7 @@ class ExperimentRunner:
         control_type = self.config.components.control.type
         control_params = self.config.components.control.params
 
-        if control_type == "PIDController":
-            control_module = "pid"
-        elif control_type == "NeuralController":
-            control_module = "neural_controller"
-        else:
-            control_module = "components.control"  # Fallback
-
-        self.controller = self._instantiate_component(control_module, control_type, control_params)
+        self.controller = self._instantiate_component(control_type, control_params)
 
         # Simulator
         sim_type = self.config.simulator.type
@@ -134,16 +127,7 @@ class ExperimentRunner:
             else:
                 raise ValueError("Planner does not have reference_trajectory")
 
-        # Determine simulator module based on type
-        if sim_type == "KinematicSimulator":
-            sim_module = "simulator_kinematic"
-        elif sim_type == "DynamicSimulator":
-            sim_module = "simulator_dynamic"
-        else:
-            # Fallback for backward compatibility
-            sim_module = "simulators"
-
-        self.simulator = self._instantiate_component(sim_module, sim_type, sim_params)
+        self.simulator = self._instantiate_component(sim_type, sim_params)
 
     def _setup_mlflow(self) -> None:
         """Set up MLflow tracking."""

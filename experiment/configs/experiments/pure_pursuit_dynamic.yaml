@@ -5,18 +5,18 @@ experiment:
 components:
   perception: null
   planning:
-    type: "PurePursuitPlanner"
+    type: "pure_pursuit.PurePursuitPlanner"
     params:
       lookahead_distance: 5.0
   control:
-    type: "PIDController"
+    type: "pid.PIDController"
     params:
       kp: 1.0
       ki: 0.1
       kd: 0.05
 
 simulator:
-  type: "DynamicSimulator"
+  type: "simulator_dynamic.DynamicSimulator"
   params:
     dt: 0.01  # Smaller dt for RK4 stability
     initial_state:

@@ -627,25 +627,9 @@ dependencies = [
     { name = "mcap" },
     { name = "mcap-protobuf-support" },
     { name = "mlflow" },
-    { name = "neural-controller" },
-    { name = "pid-controller" },
-    { name = "planning-utils" },
-    { name = "pure-pursuit" },
     { name = "pydantic" },
     { name = "pyyaml" },
-    { name = "simulator-dynamic" },
-    { name = "simulator-kinematic" },
     { name = "simulator-utils" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "ruff" },
-]
-neural = [
-    { name = "neural-controller" },
 ]
 
 [package.metadata]
@@ -657,18 +641,8 @@ requires-dist = [
     { name = "mcap", specifier = ">=1.0.0" },
     { name = "mcap-protobuf-support", specifier = ">=0.5.0" },
     { name = "mlflow", specifier = ">=2.0.0" },
-    { name = "neural-controller", editable = "component_packages/control/neural_controller" },
-    { name = "neural-controller", marker = "extra == 'neural'", editable = "component_packages/control/neural_controller" },
-    { name = "pid-controller", editable = "component_packages/control/pid" },
-    { name = "planning-utils", editable = "component_packages/planning/planning_utils" },
-    { name = "pure-pursuit", editable = "component_packages/planning/pure_pursuit" },
     { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "simulator-dynamic", editable = "simulators/simulator_dynamic" },
-    { name = "simulator-kinematic", editable = "simulators/simulator_kinematic" },
     { name = "simulator-utils", editable = "simulators/simulator_utils" },
 ]
 

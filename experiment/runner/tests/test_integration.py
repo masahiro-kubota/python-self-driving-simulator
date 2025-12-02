@@ -29,8 +29,8 @@ def test_pure_pursuit_experiment() -> None:
 
     # Verify configuration
     assert config.experiment.name == "pure_pursuit_tracking"
-    assert config.components.planning.type == "PurePursuitPlanner"
-    assert config.components.control.type == "PIDController"
+    assert config.components.planning.type == "pure_pursuit.PurePursuitPlanner"
+    assert config.components.control.type == "pid.PIDController"
     assert config.execution.max_steps_per_episode == 2000
 
     # Run experiment
@@ -63,7 +63,9 @@ def test_pure_pursuit_experiment() -> None:
 
         # Verify parameters were logged
         assert "params.planner" in latest_run, "Planner parameter should be logged"
-        assert latest_run["params.planner"] == "PurePursuitPlanner"
+        assert latest_run["params.planner"] == "pure_pursuit.PurePursuitPlanner"
+        assert "params.controller" in latest_run, "Controller parameter should be logged"
+        assert latest_run["params.controller"] == "pid.PIDController"
 
         # Verify artifacts were uploaded
         run_id = latest_run["run_id"]

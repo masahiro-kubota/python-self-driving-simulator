@@ -4,11 +4,33 @@ experiment:
   description: "Train neural controller using data from MLflow"
 
 model:
-  type: "NeuralController"
+  type: "neural_controller.NeuralController"
   architecture:
     input_size: 4
     hidden_size: 64
     output_size: 2
+
+simulator:
+  type: "simulator_kinematic.KinematicSimulator"
+  params:
+    dt: 0.1
+    wheelbase: 2.5
+    initial_state:
+      from_track: true
+
+components:
+  planning:
+    type: "pure_pursuit.PurePursuitPlanner"
+    params:
+      lookahead_distance: 5.0
+
+  control:
+    type: "neural_controller.NeuralController"
+    params:
+      # MLflowからダウンロードしたモデルを使用
+      # パスは自動的に解決される
+      model_path: "model.pt"
+      scaler_path: "scaler.pkl"
 
 training:
   # Option 1: Use MLflow Run ID (data will be downloaded automatically)
