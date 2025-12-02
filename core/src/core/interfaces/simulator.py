@@ -1,9 +1,13 @@
 """Simulator interface for autonomous driving simulation."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from core.data import Action, Observation, SimulationLog, VehicleState
+
+if TYPE_CHECKING:
+    from core.data import SimulationResult, Trajectory
+    from core.interfaces import Controller, Planner
 
 
 class Simulator(ABC):
@@ -29,6 +33,26 @@ class Simulator(ABC):
             observation: 観測データ
             done: エピソード終了フラグ
             info: 追加情報
+        """
+
+    @abstractmethod
+    def run(
+        self,
+        planner: "Planner",
+        controller: "Controller",
+        max_steps: int = 1000,
+        reference_trajectory: "Trajectory | None" = None,
+    ) -> "SimulationResult":
+        """シミュレーションを実行.
+
+        Args:
+            planner: プランナー
+            controller: コントローラー
+            max_steps: 最大ステップ数
+            reference_trajectory: 参照軌道（ゴール判定用）
+
+        Returns:
+            SimulationResult: シミュレーション結果
         """
 
     @abstractmethod

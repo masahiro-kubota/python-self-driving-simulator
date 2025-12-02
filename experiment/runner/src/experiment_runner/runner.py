@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import mlflow
-from core.data import SimulationStep, VehicleState
+from core.data import VehicleState
 from core.interfaces import Controller, Planner, Simulator
 
 from experiment_runner.config import ExperimentConfig, ExperimentType
@@ -221,81 +221,48 @@ class ExperimentRunner:
                 if self.track_path is not None:
                     mlflow.log_artifact(str(self.track_path), artifact_path="input_data")
 
-            # Initialize log
+            # Initialize metadata
             from datetime import datetime
 
             params["execution_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            # log = SimulationLog(metadata=params)  # Handled by simulator
             mcap_path = Path(self.config.logging.mcap.output_dir) / "simulation.mcap"
 
             print("Starting simulation...")
             start_time = time.time()
 
-            # Initialize state from simulator
-            current_state = self.simulator.reset()
-
-            with MCAPLogger(mcap_path) as mcap_logger:
-                max_steps = (
-                    self.config.execution.max_steps_per_episode if self.config.execution else 2000
-                )
-                for step in range(max_steps):
-                    # Plan
-                    target_trajectory = self.planner.plan(None, current_state)  # type: ignore
-
-                    # Control
-                    action = self.controller.control(target_trajectory, current_state)
-
-                    # Simulate and get next state
-                    next_state, observation, done, info = self.simulator.step(action)
-
-                    # Log to MCAP (still done here for now, or could be moved to simulator too?)
-                    # For now, we keep MCAP logging here as it might depend on runner-specifics,
-                    # but we remove the SimulationLog accumulation.
-                    # Actually, we need to construct SimulationStep for MCAP logging.
-                    sim_step = SimulationStep(
-                        timestamp=step * self.simulator.dt,  # type: ignore
-                        vehicle_state=current_state,
-                        action=action,
-                    )
-                    mcap_logger.log_step(sim_step)
-
-                    if step % 100 == 0:
-                        print(
-                            f"Step {step}: x={current_state.x:.2f}, "
-                            f"y={current_state.y:.2f}, v={current_state.velocity:.2f}"
-                        )
-
-                    # Check if reached end
-                    if reference_trajectory is not None:
-                        dist_to_end = (
-                            (current_state.x - reference_trajectory[-1].x) ** 2
-                            + (current_state.y - reference_trajectory[-1].y) ** 2
-                        ) ** 0.5
-                        # Use time threshold instead of step threshold to handle different dt
-                        elapsed_time = step * self.simulator.dt
-                        if dist_to_end < 5.0 and elapsed_time > 20.0:
-                            break
-
-                    # Update state for next iteration
-                    current_state = next_state
-
-                    # Check done flag from simulator
-                    if done:
-                        print("Simulation done.")
-                        break
+            # Run simulation using simulator.run()
+            max_steps = (
+                self.config.execution.max_steps_per_episode if self.config.execution else 2000
+            )
+            result = self.simulator.run(
+                planner=self.planner,
+                controller=self.controller,
+                max_steps=max_steps,
+                reference_trajectory=reference_trajectory,
+            )
 
             end_time = time.time()
             print(f"Simulation finished in {end_time - start_time:.2f}s")
+            print(f"Result: {result.reason} (success={result.success})")
 
-            # Retrieve log from simulator
-            log = self.simulator.get_log()
+            # Get log from result
+            log = result.log
             log.metadata = params
+
+            # Log to MCAP
+            with MCAPLogger(mcap_path) as mcap_logger:
+                for step in log.steps:
+                    mcap_logger.log_step(step)
 
             # Calculate metrics
             if reference_trajectory is not None:
                 print("Calculating metrics...")
                 calculator = MetricsCalculator(reference_trajectory=reference_trajectory)
                 metrics = calculator.calculate(log)
+
+                # Override success metric with SimulationResult.success
+                metrics.success = 1 if result.success else 0
+
                 if not is_ci:
                     mlflow.log_metrics(metrics.to_dict())
 
@@ -416,34 +383,28 @@ class ExperimentRunner:
 
             collected_files = []
 
+            # Get reference trajectory if available
+            if hasattr(self.planner, "reference_trajectory"):
+                reference_trajectory = self.planner.reference_trajectory  # type: ignore
+            else:
+                reference_trajectory = None
+
             for episode in range(self.config.execution.num_episodes):
                 print(f"\nEpisode {episode + 1}/{self.config.execution.num_episodes}")
 
-                # Initialize state from simulator
-                current_state = self.simulator.reset()
+                # Run episode using simulator.run()
+                result = self.simulator.run(
+                    planner=self.planner,
+                    controller=self.controller,
+                    max_steps=self.config.execution.max_steps_per_episode,
+                    reference_trajectory=reference_trajectory,
+                )
 
-                # Run episode
-                for step in range(self.config.execution.max_steps_per_episode):
-                    # Plan
-                    target_trajectory = self.planner.plan(None, current_state)  # type: ignore
-
-                    # Control
-                    action = self.controller.control(target_trajectory, current_state)
-
-                    # Simulate and get next state
-                    next_state, observation, done, info = self.simulator.step(action)
-
-                    # Update state for next iteration
-                    current_state = next_state
-
-                    # Check done flag from simulator
-                    if done:
-                        print(f"  Episode completed at step {step}")
-                        break
+                print(f"  Episode completed: {result.reason}")
 
                 # Save episode data
                 if (episode + 1) % self.config.data_collection.save_frequency == 0:
-                    log = self.simulator.get_log()
+                    log = result.log
 
                     if self.config.data_collection.format == "json":
                         log_path = output_dir / f"episode_{episode:04d}.json"

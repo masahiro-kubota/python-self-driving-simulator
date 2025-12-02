@@ -6,7 +6,7 @@ artifacts/
 mlruns/
 mlartifacts/
 # Data and Models
-data/
+/data/
 outputs/
 # Python
 __pycache__/
