@@ -85,6 +85,23 @@ class DummySimulator(Simulator):
     def render(self) -> None:
         """Render simulator."""
 
+    def run(
+        self,
+        planner: Planner,
+        controller: Controller,
+        max_steps: int = 1000,
+        reference_trajectory: Trajectory | None = None,
+    ) -> object:
+        """Run simulation (dummy implementation for testing)."""
+        from core.data import SimulationResult
+
+        return SimulationResult(
+            success=True,
+            total_steps=10,
+            final_state=self.state,
+            metrics={},
+        )
+
     def get_log(self) -> SimulationLog:
         """Get simulation log."""
         return SimulationLog(steps=[], metadata={})

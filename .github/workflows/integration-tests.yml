@@ -42,6 +42,29 @@ jobs:
         env:
           CI: 'true'
 
+      - name: Run unit tests with coverage
+        run: |
+          uv run pytest --cov=core --cov=experiment_runner --cov=experiment_training --cov=simulator_core --cov=simulator_kinematic --cov=simulator_dynamic --cov-report=xml --cov-report=term -m "not integration"
+        env:
+          CI: 'true'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Upload coverage report (HTML)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: htmlcov/
+          retention-days: 7
+
       - name: Copy dashboard
         if: always()
         run: |

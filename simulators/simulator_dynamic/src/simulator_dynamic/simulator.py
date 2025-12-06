@@ -100,11 +100,10 @@ class DynamicSimulator(BaseSimulator):
             self._dynamic_state, action.steering, action.acceleration
         )
 
-        observation = self._create_observation(self._current_state)
         done = self._is_done()
         info = self._create_info()
 
-        return self._current_state, observation, done, info
+        return self._current_state, done, info
 
     def _kinematic_to_dynamic(self, state: VehicleState) -> DynamicVehicleState:
         """キネマティクス状態をダイナミクス状態に変換.

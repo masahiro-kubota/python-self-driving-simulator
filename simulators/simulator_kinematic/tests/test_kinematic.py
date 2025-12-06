@@ -69,7 +69,7 @@ class TestKinematicSimulator:
         sim.reset()
 
         action = Action(steering=0.0, acceleration=1.0)
-        state, obs, done, info = sim.step(action)
+        state, done, info = sim.step(action)
 
         assert isinstance(state, VehicleState)
         assert state.velocity > 0.0
