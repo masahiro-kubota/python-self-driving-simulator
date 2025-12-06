@@ -4,15 +4,26 @@
 
 ## パッケージ構成
 
-- **[simulator_core](./simulator_core/README.md)**: 全てのシミュレータの基底クラスと共通ユーティリティ（車両パラメータ、環境定義など）。
+- **[core](./core/README.md)**: 全てのシミュレータの基底クラス、データ構造（`DynamicVehicleState`など）、共通ユーティリティ（ソルバー、マップなど）。
 - **[simulator_kinematic](./simulator_kinematic/README.md)**: 自転車モデルに基づく運動学シミュレータ。
-- **[simulator_dynamic](./simulator_dynamic/README.md)**: 車両動力学を考慮した動的シミュレータ。
+- **[simulator_dynamic](./simulator_dynamic/README.md)**: 車両動力学（横滑り、タイヤ力など）を考慮した動的シミュレータ。
+
+## アーキテクチャの主要な変更点
+
+- **統一された内部状態**:
+  全てのシミュレーターは、内部的に `DynamicVehicleState`（3D位置、姿勢、速度、加速度）を使用して状態を管理します。これにより、シミュレーター間での状態表現の一貫性が保たれます。
+
+- **高精度な数値積分**:
+  シミュレーションのステップ更新には、ルンゲ=クッタ法（RK4）が標準で使用され、オイラー法よりも高い精度と安定性を提供します。
+
+- **外部インターフェース**:
+  外部（プランナーやコントローラー）とのやり取りには、標準の `VehicleState` と `Action` データクラスが使用されます。内部状態との変換は基底クラスで自動的に処理されます。
 
 ## 依存関係
 
 ```mermaid
 graph TD
-    Kinematic[simulator_kinematic] --> Core[simulator_core]
+    Kinematic[simulator_kinematic] --> Core[simulators/core]
     Dynamic[simulator_dynamic] --> Core
     Core --> Base[core]
 ```

@@ -2,7 +2,8 @@
 
 import math
 
-from core.data import VehicleState
+from simulator_core.data import DynamicVehicleState
+
 from core.utils.geometry import normalize_angle
 
 
@@ -19,11 +20,11 @@ class KinematicVehicleModel:
 
     def step(
         self,
-        state: VehicleState,
+        state: DynamicVehicleState,
         steering: float,
         acceleration: float,
         dt: float,
-    ) -> VehicleState:
+    ) -> DynamicVehicleState:
         """1ステップ更新.
 
         Args:
@@ -36,30 +37,54 @@ class KinematicVehicleModel:
             更新された車両状態(新しいインスタンス)
         """
         # Kinematic bicycle model equations
-        # x_dot = v * cos(yaw)
-        # y_dot = v * sin(yaw)
-        # yaw_dot = v / L * tan(delta)
-        # v_dot = a
+        # x_dot = vx * cos(yaw) - vy * sin(yaw)
+        # y_dot = vx * sin(yaw) + vy * cos(yaw)
+        # yaw_dot = vx / L * tan(delta)
+        # vx_dot = ax
 
-        x_next = state.x + state.velocity * math.cos(state.yaw) * dt
-        y_next = state.y + state.velocity * math.sin(state.yaw) * dt
-        yaw_next = state.yaw + state.velocity / self.wheelbase * math.tan(steering) * dt
-        velocity_next = state.velocity + acceleration * dt
+        # キネマティクスモデルでは vy = 0 を維持
+        vx_next = state.vx + acceleration * dt
 
-        # Normalize yaw
-        yaw_next = normalize_angle(yaw_next)
+        # ヨーレートを計算
+        if abs(vx_next) < 0.01:
+            yaw_rate_next = 0.0
+        else:
+            yaw_rate_next = vx_next / self.wheelbase * math.tan(steering)
+
+        # 位置・姿勢の更新
+        x_next = state.x + state.vx * math.cos(state.yaw) * dt
+        y_next = state.y + state.vx * math.sin(state.yaw) * dt
+        yaw_next = normalize_angle(state.yaw + yaw_rate_next * dt)
 
         # Update timestamp if present
         timestamp_next: float | None = None
         if state.timestamp is not None:
             timestamp_next = state.timestamp + dt
 
-        return VehicleState(
+        return DynamicVehicleState(
+            # 位置 (2D更新、z=0維持)
             x=x_next,
             y=y_next,
+            z=0.0,
+            # 姿勢 (yawのみ更新、roll=pitch=0維持)
+            roll=0.0,
+            pitch=0.0,
             yaw=yaw_next,
-            velocity=velocity_next,
-            acceleration=acceleration,
+            # 速度 (vxのみ更新、vy=vz=0維持)
+            vx=vx_next,
+            vy=0.0,
+            vz=0.0,
+            # 角速度 (yaw_rateのみ計算、他は0維持)
+            roll_rate=0.0,
+            pitch_rate=0.0,
+            yaw_rate=yaw_rate_next,
+            # 加速度
+            ax=acceleration,
+            ay=0.0,
+            az=0.0,
+            # 入力
             steering=steering,
+            throttle=0.0,
+            # タイムスタンプ
             timestamp=timestamp_next,
         )

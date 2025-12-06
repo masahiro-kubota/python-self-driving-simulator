@@ -2,12 +2,11 @@
 
 from core.utils.geometry import normalize_angle
 
-from .base import BaseSimulator
-from .integration import euler_step, rk4_step
+from .simulator import BaseSimulator
+from .solver import rk4_step
 
 __all__ = [
     "BaseSimulator",
-    "euler_step",
     "normalize_angle",
     "rk4_step",
 ]

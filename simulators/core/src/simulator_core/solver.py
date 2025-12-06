@@ -7,27 +7,6 @@ StateT = TypeVar("StateT")
 DerivativeFunc = Callable[[StateT], StateT]
 
 
-def euler_step(
-    state: StateT,
-    derivative_func: DerivativeFunc[StateT],
-    dt: float,
-    add_func: Callable[[StateT, StateT, float], StateT],
-) -> StateT:
-    """Euler法による1ステップ積分.
-
-    Args:
-        state: 現在の状態
-        derivative_func: 状態の微分を計算する関数
-        dt: 時間刻み [s]
-        add_func: 状態に微分を加算する関数 (state, derivative, dt) -> new_state
-
-    Returns:
-        更新された状態
-    """
-    derivative = derivative_func(state)
-    return add_func(state, derivative, dt)
-
-
 def rk4_step(
     state: StateT,
     derivative_func: DerivativeFunc[StateT],

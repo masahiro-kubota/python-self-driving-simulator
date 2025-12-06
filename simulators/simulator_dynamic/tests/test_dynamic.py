@@ -1,7 +1,7 @@
 """Tests for Dynamic Simulator."""
 
+from simulator_core.data import DynamicVehicleState
 from simulator_dynamic import DynamicSimulator
-from simulator_dynamic.state import DynamicVehicleState
 from simulator_dynamic.vehicle import DynamicVehicleModel
 
 from core.data import Action, VehicleParameters, VehicleState
@@ -30,7 +30,20 @@ class TestDynamicVehicleModel:
     def test_straight_line_low_speed(self) -> None:
         """Test straight line motion derivative."""
         model = DynamicVehicleModel()
-        state = DynamicVehicleState(x=0.0, y=0.0, yaw=0.0, vx=5.0, vy=0.0, yaw_rate=0.0)
+        state = DynamicVehicleState(
+            x=0.0,
+            y=0.0,
+            z=0.0,
+            roll=0.0,
+            pitch=0.0,
+            yaw=0.0,
+            vx=5.0,
+            vy=0.0,
+            vz=0.0,
+            roll_rate=0.0,
+            pitch_rate=0.0,
+            yaw_rate=0.0,
+        )
 
         # Get derivatives for straight motion
         derivative = model.calculate_derivative(state, steering=0.0, throttle=0.0)
@@ -45,13 +58,79 @@ class TestDynamicVehicleModel:
     def test_acceleration(self) -> None:
         """Test acceleration derivative."""
         model = DynamicVehicleModel()
-        state = DynamicVehicleState(x=0.0, y=0.0, yaw=0.0, vx=0.0, vy=0.0, yaw_rate=0.0)
+        state = DynamicVehicleState(
+            x=0.0,
+            y=0.0,
+            z=0.0,
+            roll=0.0,
+            pitch=0.0,
+            yaw=0.0,
+            vx=0.0,
+            vy=0.0,
+            vz=0.0,
+            roll_rate=0.0,
+            pitch_rate=0.0,
+            yaw_rate=0.0,
+        )
 
         # Apply throttle
         derivative = model.calculate_derivative(state, steering=0.0, throttle=0.5)
 
         # vx_dot should be positive
         assert derivative.vx > 0.0
+
+    def test_lateral_slip(self) -> None:
+        """Test lateral slip generation during turn."""
+        model = DynamicVehicleModel()
+        state = DynamicVehicleState(
+            x=0.0,
+            y=0.0,
+            z=0.0,
+            roll=0.0,
+            pitch=0.0,
+            yaw=0.0,
+            vx=10.0,  # 高速
+            vy=0.0,
+            vz=0.0,
+            roll_rate=0.0,
+            pitch_rate=0.0,
+            yaw_rate=0.0,
+        )
+
+        # 急ハンドル
+        derivative = model.calculate_derivative(state, steering=0.5, throttle=0.0)
+
+        # 横滑り成分(vyの変化率)が発生するはず
+        # 直進状態(vy=0)から操舵すると、タイヤ横力によりayが発生し、vyが変化する
+        assert abs(derivative.vy) > 0.01
+
+    def test_braking(self) -> None:
+        """Test braking (negative throttle)."""
+        model = DynamicVehicleModel()
+        state = DynamicVehicleState(
+            x=0.0,
+            y=0.0,
+            z=0.0,
+            roll=0.0,
+            pitch=0.0,
+            yaw=0.0,
+            vx=10.0,
+            vy=0.0,
+            vz=0.0,
+            roll_rate=0.0,
+            pitch_rate=0.0,
+            yaw_rate=0.0,
+        )
+
+        # Full brake
+        derivative = model.calculate_derivative(state, steering=0.0, throttle=-1.0)
+
+        # 減速するはず(vx_dot < 0)
+        # 抗力もあるので、アクセルオフよりも強く減速するはず
+        derivative_coast = model.calculate_derivative(state, steering=0.0, throttle=0.0)
+
+        assert derivative.vx < 0.0
+        assert derivative.vx < derivative_coast.vx
 
 
 class TestDynamicSimulator:

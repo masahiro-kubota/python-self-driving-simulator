@@ -12,6 +12,7 @@ from core.data import (
     VehicleState,
 )
 from core.interfaces import Simulator
+from simulator_core.data import DynamicVehicleState
 
 if TYPE_CHECKING:
     from core.data import ADComponentLog, Trajectory
@@ -57,7 +58,8 @@ class BaseSimulator(Simulator, ABC):
         else:
             self.initial_state = initial_state
 
-        self._current_state = self.initial_state
+        # 内部状態はDynamicVehicleStateで管理
+        self._current_state = DynamicVehicleState.from_vehicle_state(self.initial_state)
         self.log = SimulationLog()
 
         # マップの読み込み
@@ -65,7 +67,7 @@ class BaseSimulator(Simulator, ABC):
         if map_path:
             import pathlib
 
-            from simulator_core.data.environment import LaneletMap
+            from simulator_core.map import LaneletMap
 
             self.map = LaneletMap(pathlib.Path(map_path))
 
@@ -75,9 +77,9 @@ class BaseSimulator(Simulator, ABC):
         Returns:
             初期車両状態
         """
-        self._current_state = self.initial_state
+        self._current_state = DynamicVehicleState.from_vehicle_state(self.initial_state)
         self.log = SimulationLog()
-        return self._current_state
+        return self.initial_state
 
     def step(self, action: Action) -> tuple[VehicleState, bool, dict[str, Any]]:
         """シミュレーションを1ステップ進める.
@@ -94,37 +96,38 @@ class BaseSimulator(Simulator, ABC):
         # 1. Update state (Subclass responsibility)
         self._current_state = self._update_state(action)
 
-        # 2. Map validation (if map is loaded)
-        if self.map is not None and not self.map.is_drivable(
-            self._current_state.x, self._current_state.y
-        ):
-            self._current_state.off_track = True
+        # 2. Convert to VehicleState for external interface
+        vehicle_state = self._current_state.to_vehicle_state(action)
 
-        # 3. Logging
+        # 3. Map validation (if map is loaded)
+        if self.map is not None and not self.map.is_drivable(vehicle_state.x, vehicle_state.y):
+            vehicle_state.off_track = True
+
+        # 4. Logging
         step_log = SimulationStep(
-            timestamp=self._current_state.timestamp or 0.0,
-            vehicle_state=self._current_state,
+            timestamp=vehicle_state.timestamp or 0.0,
+            vehicle_state=vehicle_state,
             action=action,
-            ad_component_log=self._create_ad_component_log(self._current_state),
+            ad_component_log=self._create_ad_component_log(vehicle_state),
             info=self._create_info(),
         )
         self.log.add_step(step_log)
 
-        # 3. Check done
+        # 5. Check done
         done = self._is_done()
         info = self._create_info()
 
-        return self._current_state, done, info
+        return vehicle_state, done, info
 
     @abstractmethod
-    def _update_state(self, action: Action) -> VehicleState:
+    def _update_state(self, action: Action) -> DynamicVehicleState:
         """車両状態を更新する（サブクラスで実装）.
 
         Args:
             action: 実行するアクション
 
         Returns:
-            更新後の車両状態
+            更新後の車両状態（DynamicVehicleState形式）
         """
         pass
 

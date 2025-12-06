@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from simulator_core.data.environment import LaneletMap
+from simulator_core.map import LaneletMap
 
 
 class TestLaneletMap:

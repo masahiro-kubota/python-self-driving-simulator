@@ -2,9 +2,10 @@
 
 import math
 
+from simulator_core.data import DynamicVehicleState
+
 from core.data import VehicleParameters
 from core.utils.geometry import normalize_angle
-from simulator_dynamic.state import DynamicVehicleState
 from simulator_dynamic.tire_model import LinearTireModel
 
 
@@ -72,15 +73,31 @@ class DynamicVehicleModel:
         yaw_rate_dot = (fyf * p.lf * math.cos(steering) - fyr * p.lr) / p.inertia
 
         return DynamicVehicleState(
+            # 位置の微分 (2D, z_dot=0)
             x=x_dot,
             y=y_dot,
+            z=0.0,
+            # 姿勢の微分 (yawのみ, roll_dot=pitch_dot=0)
+            roll=0.0,
+            pitch=0.0,
             yaw=yaw_dot,
+            # 速度の微分 (2D, vz_dot=0)
             vx=vx_dot,
             vy=vy_dot,
+            vz=0.0,
+            # 角速度の微分 (yaw_rateのみ)
+            roll_rate=0.0,
+            pitch_rate=0.0,
             yaw_rate=yaw_rate_dot,
-            steering=0.0,  # Input derivative is 0
-            throttle=0.0,  # Input derivative is 0
-            timestamp=0.0,  # Time derivative is 1 (conceptually), but here it's added to timestamp
+            # 加速度の微分 (0)
+            ax=0.0,
+            ay=0.0,
+            az=0.0,
+            # 入力の微分 (0)
+            steering=0.0,
+            throttle=0.0,
+            # タイムスタンプの微分
+            timestamp=0.0,
         )
 
     @staticmethod
@@ -106,13 +123,29 @@ class DynamicVehicleModel:
         next_yaw = normalize_angle(state.yaw + derivative.yaw * dt)
 
         return DynamicVehicleState(
+            # 位置
             x=state.x + derivative.x * dt,
             y=state.y + derivative.y * dt,
+            z=state.z + derivative.z * dt,
+            # 姿勢
+            roll=state.roll + derivative.roll * dt,
+            pitch=state.pitch + derivative.pitch * dt,
             yaw=next_yaw,
+            # 速度
             vx=state.vx + derivative.vx * dt,
             vy=state.vy + derivative.vy * dt,
+            vz=state.vz + derivative.vz * dt,
+            # 角速度
+            roll_rate=state.roll_rate + derivative.roll_rate * dt,
+            pitch_rate=state.pitch_rate + derivative.pitch_rate * dt,
             yaw_rate=state.yaw_rate + derivative.yaw_rate * dt,
-            steering=state.steering,  # 入力は維持
-            throttle=state.throttle,  # 入力は維持
+            # 加速度
+            ax=state.ax + derivative.ax * dt,
+            ay=state.ay + derivative.ay * dt,
+            az=state.az + derivative.az * dt,
+            # 入力は維持
+            steering=state.steering,
+            throttle=state.throttle,
+            # タイムスタンプ
             timestamp=next_timestamp,
         )
