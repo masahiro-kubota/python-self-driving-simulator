@@ -1,9 +1,9 @@
 """Kinematic bicycle model simulator implementation."""
 
 from simulator_core.base import BaseSimulator
+from simulator_core.data.environment import LaneletMap
 
 from core.data import Action, VehicleParameters, VehicleState
-from core.data.environment import LaneletMap
 from simulator_kinematic.vehicle import KinematicVehicleModel
 
 

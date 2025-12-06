@@ -3,8 +3,7 @@
 from pathlib import Path
 
 import pytest
-
-from core.data.environment import LaneletMap
+from simulator_core.data.environment import LaneletMap
 
 
 class TestLaneletMap:
@@ -13,9 +12,8 @@ class TestLaneletMap:
     @pytest.fixture
     def map_path(self) -> Path:
         """Get path to the lanelet2 map."""
-        # Assuming test is run from workspace root
-        workspace_root = Path(__file__).parent.parent.parent
-        return workspace_root / "simulators/core/assets/lanelet2_map.osm"
+        # Test is in simulators/core/tests, map is in simulators/core/assets
+        return Path(__file__).parent.parent / "assets/lanelet2_map.osm"
 
     @pytest.fixture
     def lanelet_map(self, map_path: Path) -> LaneletMap:

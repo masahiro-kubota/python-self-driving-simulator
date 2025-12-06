@@ -373,7 +373,6 @@ source = { editable = "core" }
 dependencies = [
     { name = "numpy" },
     { name = "pyyaml" },
-    { name = "shapely" },
 ]
 
 [package.optional-dependencies]
@@ -396,7 +395,6 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "shapely", specifier = ">=2.1.2" },
 ]
 
 [[package]]
@@ -2559,6 +2557,7 @@ version = "0.1.0"
 source = { editable = "simulators/core" }
 dependencies = [
     { name = "core" },
+    { name = "shapely" },
 ]
 
 [package.optional-dependencies]
@@ -2574,6 +2573,7 @@ requires-dist = [
     { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
+    { name = "shapely", specifier = ">=2.1.2" },
 ]
 
 [[package]]

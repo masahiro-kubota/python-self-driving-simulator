@@ -5,6 +5,7 @@ description = "Core utilities and base classes for simulators"
 requires-python = ">=3.12"
 dependencies = [
     "core",
+    "shapely>=2.1.2",
 ]
 
 [tool.uv.sources]
