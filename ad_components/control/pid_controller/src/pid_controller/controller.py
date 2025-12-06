@@ -3,10 +3,10 @@
 import math
 
 from ad_component_core.data import Observation
-from ad_component_core.interfaces import Controller
 
 from core.data import Action, VehicleState
 from core.data.ad_components import Trajectory
+from core.interfaces import Controller
 from core.utils.geometry import distance, normalize_angle
 
 
