@@ -1,6 +1,7 @@
 experiment:
-  name: "pure_pursuit_dynamic"
-  description: "Pure Pursuit controller with dynamic simulator"
+  name: "pure_pursuit_tracking_dynamic"
+  type: "evaluation"
+  description: "Evaluate Pure Pursuit planner with PID controller using Dynamic Simulator"
 
 components:
   perception: null
@@ -18,15 +19,22 @@ components:
 simulator:
   type: "simulator_dynamic.DynamicSimulator"
   params:
-    dt: 0.01  # Smaller dt for RK4 stability
+    dt: 0.01
     initial_state:
       from_track: true
+    map_path: "simulators/core/assets/lanelet2_map.osm"
 
 execution:
-  mode: "inference"
-  max_steps: 20000  # dt=0.01 なので 200秒分のシミュレーション
-  num_runs: 1
+  num_episodes: 1
+  max_steps_per_episode: 2000
   parallel: false
+
+evaluation:
+  metrics:
+    - "lap_time"
+    - "lateral_error"
+    - "comfort"
+  generate_dashboard: true
 
 logging:
   mlflow:

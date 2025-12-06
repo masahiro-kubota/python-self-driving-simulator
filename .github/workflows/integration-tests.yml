@@ -47,16 +47,69 @@ jobs:
         env:
           CI: 'true'
 
-      - name: Copy dashboard
+      - name: Save kinematic dashboard
         if: always()
         run: |
-          if [ -f "/tmp/dashboard.html" ]; then
-            cp /tmp/dashboard.html dashboard.html
+          if [ -f "dashboard.html" ]; then
+            mv dashboard.html dashboard_kinematic.html
+          elif [ -f "/tmp/dashboard.html" ]; then
+            cp /tmp/dashboard.html dashboard_kinematic.html
           else
-            echo "Dashboard not found at /tmp/dashboard.html"
-            # Fallback for artifact upload to not fail completely
-            touch dashboard.html
+            echo "Kinematic dashboard not found"
+            touch dashboard_kinematic.html
           fi
+
+      - name: Run dynamic pure pursuit experiment
+        run: uv run experiment-runner --config experiment/configs/experiments/pure_pursuit_dynamic.yaml
+        env:
+          CI: 'true'
+
+      - name: Save dynamic dashboard
+        if: always()
+        run: |
+          if [ -f "dashboard.html" ]; then
+            mv dashboard.html dashboard_dynamic.html
+          elif [ -f "/tmp/dashboard.html" ]; then
+            cp /tmp/dashboard.html dashboard_dynamic.html
+          else
+            echo "Dynamic dashboard not found"
+            touch dashboard_dynamic.html
+          fi
+
+      - name: Create Dashboard Index
+        if: always()
+        run: |
+          echo '<!DOCTYPE html>
+          <html>
+          <head>
+              <title>Simulation Results</title>
+              <style>
+                  body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+                  h1 { color: #333; }
+                  .result-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
+                  .result-card a { text-decoration: none; color: #0066cc; font-weight: bold; font-size: 1.2em; }
+                  .result-card p { margin: 5px 0 0; color: #666; }
+              </style>
+          </head>
+          <body>
+              <h1>Simulation Results</h1>
+
+              <div class="result-card">
+                  <a href="dashboard_kinematic.html">Kinematic Simulation (Pure Pursuit)</a>
+                  <p>Standard kinematic bicycle model simulation.</p>
+              </div>
+
+              <div class="result-card">
+                  <a href="dashboard_dynamic.html">Dynamic Simulation (Pure Pursuit)</a>
+                  <p>Dynamic bicycle model simulation.</p>
+              </div>
+
+              <div class="result-card">
+                  <a href="docs/index.html">Documentation</a>
+                  <p>Project documentation.</p>
+              </div>
+          </body>
+          </html>' > index.html
 
       - name: Build Documentation
         run: |
@@ -69,6 +122,8 @@ jobs:
         with:
           name: github-pages-content
           path: |
-            dashboard.html
+            index.html
+            dashboard_kinematic.html
+            dashboard_dynamic.html
             docs/build/html/
           retention-days: 7

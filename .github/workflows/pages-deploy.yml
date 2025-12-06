@@ -35,10 +35,8 @@ jobs:
       - name: Prepare Pages content
         run: |
           mkdir _site
-          # Dashboard to root index.html
-          if [ -f "downloaded_content/dashboard.html" ]; then
-            cp downloaded_content/dashboard.html _site/index.html
-          fi
+          # Copy dashboards and index
+          cp downloaded_content/*.html _site/ 2>/dev/null || true
 
           # Docs to /docs
           if [ -d "downloaded_content/docs/build/html" ]; then
