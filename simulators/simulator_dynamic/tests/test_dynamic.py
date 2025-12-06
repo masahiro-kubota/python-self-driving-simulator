@@ -1,6 +1,6 @@
 """Tests for Dynamic Simulator."""
 
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 from simulator_dynamic import DynamicSimulator
 from simulator_dynamic.vehicle import DynamicVehicleModel
 
@@ -30,7 +30,7 @@ class TestDynamicVehicleModel:
     def test_straight_line_low_speed(self) -> None:
         """Test straight line motion derivative."""
         model = DynamicVehicleModel()
-        state = DynamicVehicleState(
+        state = SimulationVehicleState(
             x=0.0,
             y=0.0,
             z=0.0,
@@ -58,7 +58,7 @@ class TestDynamicVehicleModel:
     def test_acceleration(self) -> None:
         """Test acceleration derivative."""
         model = DynamicVehicleModel()
-        state = DynamicVehicleState(
+        state = SimulationVehicleState(
             x=0.0,
             y=0.0,
             z=0.0,
@@ -82,7 +82,7 @@ class TestDynamicVehicleModel:
     def test_lateral_slip(self) -> None:
         """Test lateral slip generation during turn."""
         model = DynamicVehicleModel()
-        state = DynamicVehicleState(
+        state = SimulationVehicleState(
             x=0.0,
             y=0.0,
             z=0.0,
@@ -107,7 +107,7 @@ class TestDynamicVehicleModel:
     def test_braking(self) -> None:
         """Test braking (negative throttle)."""
         model = DynamicVehicleModel()
-        state = DynamicVehicleState(
+        state = SimulationVehicleState(
             x=0.0,
             y=0.0,
             z=0.0,

@@ -2,7 +2,7 @@
 
 import math
 
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 
 from core.data import VehicleParameters
 from core.utils.geometry import normalize_angle
@@ -24,10 +24,10 @@ class DynamicVehicleModel:
 
     def calculate_derivative(
         self,
-        state: DynamicVehicleState,
+        state: SimulationVehicleState,
         steering: float,
         throttle: float,
-    ) -> DynamicVehicleState:
+    ) -> SimulationVehicleState:
         """状態の微分を計算.
 
         Args:
@@ -36,7 +36,7 @@ class DynamicVehicleModel:
             throttle: スロットル入力 [-1.0 to 1.0]
 
         Returns:
-            状態の微分値 (DynamicVehicleState形式)
+            状態の微分値 (SimulationVehicleState形式)
         """
         p = self.params
 
@@ -72,7 +72,7 @@ class DynamicVehicleModel:
         vy_dot = (fyf * math.cos(steering) + fyr) / p.mass - state.vx * state.yaw_rate
         yaw_rate_dot = (fyf * p.lf * math.cos(steering) - fyr * p.lr) / p.inertia
 
-        return DynamicVehicleState(
+        return SimulationVehicleState(
             # 位置の微分 (2D, z_dot=0)
             x=x_dot,
             y=y_dot,
@@ -102,8 +102,8 @@ class DynamicVehicleModel:
 
     @staticmethod
     def add_state(
-        state: DynamicVehicleState, derivative: DynamicVehicleState, dt: float
-    ) -> DynamicVehicleState:
+        state: SimulationVehicleState, derivative: SimulationVehicleState, dt: float
+    ) -> SimulationVehicleState:
         """状態への微分の加算 (integration用).
 
         Args:
@@ -122,7 +122,7 @@ class DynamicVehicleModel:
         # 角度の更新と正規化
         next_yaw = normalize_angle(state.yaw + derivative.yaw * dt)
 
-        return DynamicVehicleState(
+        return SimulationVehicleState(
             # 位置
             x=state.x + derivative.x * dt,
             y=state.y + derivative.y * dt,

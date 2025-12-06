@@ -50,10 +50,6 @@ class TrainingConfig(BaseModel):
     )
     dataset_path: str | None = Field(None, description="Direct S3 dataset path")
 
-    # Legacy options (deprecated)
-    data_dir: str | None = Field(None, description="[Deprecated] Local directory")
-    mlflow_run_id: str | None = Field(None, description="[Deprecated] MLflow run ID")
-
     reference_trajectory_path: str | None = Field(None, description="Path to reference trajectory")
     epochs: int = Field(100, description="Number of training epochs")
     batch_size: int = Field(32, description="Batch size")
@@ -69,12 +65,11 @@ class TrainingConfig(BaseModel):
             self.dataset_project and self.dataset_scenario and self.dataset_version
         )
         has_s3_path = bool(self.dataset_path)
-        has_legacy = bool(self.data_dir or self.mlflow_run_id)
 
-        if not (has_s3_components or has_s3_path or has_legacy):
+        if not (has_s3_components or has_s3_path):
             raise ValueError(
                 "Must specify either (dataset_project + dataset_scenario + dataset_version) "
-                "or dataset_path or data_dir"
+                "or dataset_path"
             )
 
         return self
@@ -83,7 +78,7 @@ class TrainingConfig(BaseModel):
 class DataCollectionConfig(BaseModel):
     """Configuration for data collection."""
 
-    storage_backend: Literal["local", "s3"] = Field("s3", description="Storage backend")
+    storage_backend: Literal["s3"] = Field("s3", description="Storage backend")
 
     # S3 dataset configuration
     project: str | None = Field(None, description="Project name")
@@ -91,19 +86,14 @@ class DataCollectionConfig(BaseModel):
     version: str | None = Field(None, description="Dataset version")
     stage: Literal["raw", "processed", "features"] = Field("raw", description="Data stage")
 
-    # Legacy local storage
-    output_dir: str | None = Field(None, description="[Deprecated] Local output directory")
     format: Literal["json", "mcap"] = Field("json", description="Data format")
     save_frequency: int = Field(1, description="Save every N episodes")
 
     @model_validator(mode="after")
     def validate_storage_config(self) -> "DataCollectionConfig":
         """Validate storage configuration."""
-        if self.storage_backend == "s3":
-            if not (self.project and self.scenario and self.version):
-                raise ValueError("project, scenario, and version are required for S3 storage")
-        elif self.storage_backend == "local" and not self.output_dir:
-            raise ValueError("output_dir is required for local storage")
+        if self.storage_backend == "s3" and not (self.project and self.scenario and self.version):
+            raise ValueError("project, scenario, and version are required for S3 storage")
         return self
 
 

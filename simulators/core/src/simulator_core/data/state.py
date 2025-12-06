@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class DynamicVehicleState:
+class SimulationVehicleState:
     """シミュレーター内部で使用する完全な車両状態.
 
     センサーから取得できるVehicleStateよりも詳細な情報を含む。
@@ -67,14 +67,14 @@ class DynamicVehicleState:
         return math.atan2(self.vy, self.vx)
 
     @classmethod
-    def from_vehicle_state(cls, state: "VehicleState") -> "DynamicVehicleState":
+    def from_vehicle_state(cls, state: "VehicleState") -> "SimulationVehicleState":
         """VehicleStateからインスタンスを生成.
 
         Args:
             state: VehicleState
 
         Returns:
-            DynamicVehicleState
+            SimulationVehicleState
         """
         import math
 

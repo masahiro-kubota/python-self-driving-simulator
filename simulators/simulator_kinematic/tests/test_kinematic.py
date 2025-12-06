@@ -2,7 +2,7 @@
 
 import math
 
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 from simulator_kinematic import KinematicSimulator
 from simulator_kinematic.vehicle import KinematicVehicleModel
 
@@ -15,7 +15,7 @@ class TestKinematicVehicleModel:
     def test_straight_line(self) -> None:
         """Test straight line motion."""
         model = KinematicVehicleModel(wheelbase=2.5)
-        state = DynamicVehicleState(
+        state = SimulationVehicleState(
             x=0.0,
             y=0.0,
             z=0.0,
@@ -43,7 +43,7 @@ class TestKinematicVehicleModel:
     def test_acceleration(self) -> None:
         """Test acceleration."""
         model = KinematicVehicleModel(wheelbase=2.5)
-        state = DynamicVehicleState(
+        state = SimulationVehicleState(
             x=0.0,
             y=0.0,
             z=0.0,
@@ -70,7 +70,7 @@ class TestKinematicVehicleModel:
     def test_turning(self) -> None:
         """Test turning motion."""
         model = KinematicVehicleModel(wheelbase=2.5)
-        state = DynamicVehicleState(
+        state = SimulationVehicleState(
             x=0.0,
             y=0.0,
             z=0.0,
@@ -100,7 +100,7 @@ class TestKinematicVehicleModel:
         """Test backward motion."""
         model = KinematicVehicleModel(wheelbase=2.5)
         # 後退速度
-        state = DynamicVehicleState(
+        state = SimulationVehicleState(
             x=0.0,
             y=0.0,
             z=0.0,

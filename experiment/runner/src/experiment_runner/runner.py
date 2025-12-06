@@ -465,8 +465,6 @@ class ExperimentRunner:
 
                 print("Dataset metadata logged to MLflow")
                 print(f"Dataset path: {s3_base_path}")
-            elif self.config.data_collection.storage_backend == "local":
-                print(f"Data saved locally to: {output_dir}")
 
     def _run_training(self) -> None:
         """Run training mode."""
@@ -493,7 +491,7 @@ class ExperimentRunner:
                 training_config.update(self.config.model.architecture)
 
             # Determine data directory and files
-            data_dir = None
+            # Determine data directory and files
             data_files = []
 
             # Case 1: S3 Dataset (Recommended)
@@ -541,44 +539,13 @@ class ExperimentRunner:
 
                     data_files.append(local_path)
 
-                data_dir = temp_data_dir
-
                 # Log dataset info to MLflow
                 mlflow.log_param("dataset_path", dataset_path)
                 if self.config.training.dataset_version:
                     mlflow.log_param("dataset_version", self.config.training.dataset_version)
 
-            # Case 2: MLflow Artifact (Deprecated)
-            elif self.config.training.mlflow_run_id:
-                print(
-                    f"Downloading training data from MLflow run: {self.config.training.mlflow_run_id}"
-                )
-                client = mlflow.tracking.MlflowClient()
-
-                # Download to temporary directory
-                temp_data_dir = Path("data/raw/mlflow_downloaded")
-                temp_data_dir.mkdir(parents=True, exist_ok=True)
-
-                try:
-                    artifact_path = client.download_artifacts(
-                        self.config.training.mlflow_run_id,
-                        "training_data",
-                        dst_path=str(temp_data_dir),
-                    )
-                    data_dir = Path(artifact_path)
-                    print(f"Downloaded training data to: {data_dir}")
-                    data_files = list(data_dir.glob("*.json"))
-                except Exception as e:
-                    print(f"Error downloading training data from MLflow: {e}")
-                    return
-
-            # Case 3: Local Directory (Legacy)
-            elif self.config.training.data_dir:
-                data_dir = Path(self.config.training.data_dir)
-                if not data_dir.exists():
-                    print(f"Warning: Data directory {data_dir} does not exist")
-                    return
-                data_files = list(data_dir.glob("*.json"))
+                if self.config.training.dataset_version:
+                    mlflow.log_param("dataset_version", self.config.training.dataset_version)
 
             else:
                 raise ValueError("No data source specified")

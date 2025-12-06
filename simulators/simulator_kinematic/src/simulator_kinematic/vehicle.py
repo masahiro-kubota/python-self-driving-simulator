@@ -2,7 +2,7 @@
 
 import math
 
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 
 from core.utils.geometry import normalize_angle
 
@@ -20,11 +20,11 @@ class KinematicVehicleModel:
 
     def step(
         self,
-        state: DynamicVehicleState,
+        state: SimulationVehicleState,
         steering: float,
         acceleration: float,
         dt: float,
-    ) -> DynamicVehicleState:
+    ) -> SimulationVehicleState:
         """1ステップ更新.
 
         Args:
@@ -61,7 +61,7 @@ class KinematicVehicleModel:
         if state.timestamp is not None:
             timestamp_next = state.timestamp + dt
 
-        return DynamicVehicleState(
+        return SimulationVehicleState(
             # 位置 (2D更新、z=0維持)
             x=x_next,
             y=y_next,

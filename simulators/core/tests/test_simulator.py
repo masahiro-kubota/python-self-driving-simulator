@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 from simulator_core.simulator import BaseSimulator
 
 from core.data import Action, SimulationResult, VehicleParameters, VehicleState
@@ -15,11 +15,11 @@ class MockSimulator(BaseSimulator):
         super().__init__(**kwargs)
         self.update_called_with = None
 
-    def _update_state(self, action: Action) -> DynamicVehicleState:
+    def _update_state(self, action: Action) -> SimulationVehicleState:
         self.update_called_with = action
         # Simple update: move 1.0m in x direction
         current = self._current_state
-        return DynamicVehicleState(
+        return SimulationVehicleState(
             x=current.x + 1.0,
             y=current.y,
             z=current.z,

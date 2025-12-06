@@ -12,7 +12,7 @@ from core.data import (
     VehicleState,
 )
 from core.interfaces import Simulator
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 
 if TYPE_CHECKING:
     from core.data import ADComponentLog, Trajectory
@@ -58,8 +58,8 @@ class BaseSimulator(Simulator, ABC):
         else:
             self.initial_state = initial_state
 
-        # 内部状態はDynamicVehicleStateで管理
-        self._current_state = DynamicVehicleState.from_vehicle_state(self.initial_state)
+        # 内部状態はSimulationVehicleStateで管理
+        self._current_state = SimulationVehicleState.from_vehicle_state(self.initial_state)
         self.log = SimulationLog()
 
         # マップの読み込み
@@ -77,7 +77,7 @@ class BaseSimulator(Simulator, ABC):
         Returns:
             初期車両状態
         """
-        self._current_state = DynamicVehicleState.from_vehicle_state(self.initial_state)
+        self._current_state = SimulationVehicleState.from_vehicle_state(self.initial_state)
         self.log = SimulationLog()
         return self.initial_state
 
@@ -120,14 +120,14 @@ class BaseSimulator(Simulator, ABC):
         return vehicle_state, done, info
 
     @abstractmethod
-    def _update_state(self, action: Action) -> DynamicVehicleState:
+    def _update_state(self, action: Action) -> SimulationVehicleState:
         """車両状態を更新する（サブクラスで実装）.
 
         Args:
             action: 実行するアクション
 
         Returns:
-            更新後の車両状態（DynamicVehicleState形式）
+            更新後の車両状態（SimulationVehicleState形式）
         """
         pass
 

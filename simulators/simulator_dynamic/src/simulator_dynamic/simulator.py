@@ -1,6 +1,6 @@
 """Dynamic bicycle model simulator implementation."""
 
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 from simulator_core.simulator import BaseSimulator
 from simulator_core.solver import rk4_step
 
@@ -33,21 +33,21 @@ class DynamicSimulator(BaseSimulator):
 
         self.vehicle_model = DynamicVehicleModel(params=self.vehicle_params)
 
-    def _update_state(self, action: Action) -> DynamicVehicleState:
+    def _update_state(self, action: Action) -> SimulationVehicleState:
         """Update vehicle state using RK4 integration.
 
         Args:
             action: Control action
 
         Returns:
-            Updated vehicle state (DynamicVehicleState)
+            Updated vehicle state (SimulationVehicleState)
         """
         # Convert acceleration to throttle (simplified)
         throttle = action.acceleration / 5.0  # Normalize to [-1, 1] range
         throttle = max(-1.0, min(1.0, throttle))
 
         # Dynamic update using RK4
-        def derivative_func(state: DynamicVehicleState) -> DynamicVehicleState:
+        def derivative_func(state: SimulationVehicleState) -> SimulationVehicleState:
             return self.vehicle_model.calculate_derivative(state, action.steering, throttle)
 
         next_state = rk4_step(

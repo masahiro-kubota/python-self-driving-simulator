@@ -31,13 +31,14 @@ class TestTrainingIntegration:
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
 
-            # 1. Setup dummy data
-            data_dir = tmp_path / "data"
+            # 1. Setup dummy data (simulating S3 content)
+            # data_dir = S3 bucket content
+            data_dir = tmp_path / "s3_data"
             data_dir.mkdir()
             log_path = data_dir / "log_0.json"
             dummy_log_data.save(log_path)
 
-            # 2. Setup config
+            # 2. Setup config use S3 dataset params
             config_dict = {
                 "experiment": {
                     "name": "test_training",
@@ -52,7 +53,9 @@ class TestTrainingIntegration:
                     "epochs": 1,
                     "batch_size": 2,
                     "learning_rate": 0.001,
-                    "data_dir": str(data_dir),
+                    "dataset_project": "test_project",
+                    "dataset_scenario": "test_scenario",
+                    "dataset_version": "v1.0.0",
                 },
                 "logging": {
                     "mlflow": {"enabled": False},
@@ -67,4 +70,4 @@ class TestTrainingIntegration:
             assert config.model is not None
             assert config.model.type == "MLP"
             assert config.training is not None
-            assert config.training.data_dir == str(data_dir)
+            assert config.training.dataset_project == "test_project"

@@ -1,12 +1,12 @@
-"""Tests for DynamicVehicleState."""
+"""Tests for SimulationVehicleState."""
 
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 
 from core.data import Action, VehicleState
 
 
-class TestDynamicVehicleState:
-    """Tests for DynamicVehicleState."""
+class TestSimulationVehicleState:
+    """Tests for SimulationVehicleState."""
 
     def test_from_vehicle_state(self) -> None:
         """Test conversion from VehicleState."""
@@ -20,7 +20,7 @@ class TestDynamicVehicleState:
             timestamp=100.0,
         )
 
-        dynamic_state = DynamicVehicleState.from_vehicle_state(vehicle_state)
+        dynamic_state = SimulationVehicleState.from_vehicle_state(vehicle_state)
 
         assert dynamic_state.x == 10.0
         assert dynamic_state.y == 20.0
@@ -40,7 +40,7 @@ class TestDynamicVehicleState:
 
     def test_to_vehicle_state(self) -> None:
         """Test conversion to VehicleState."""
-        dynamic_state = DynamicVehicleState(
+        dynamic_state = SimulationVehicleState(
             x=10.0,
             y=20.0,
             z=5.0,

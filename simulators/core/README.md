@@ -6,7 +6,7 @@
 
 - **BaseSimulator** (`simulator.py`): 全てのシミュレータの基底クラス。共通のインターフェース、ロギング、ステップ実行フロー、ゴール判定を提供します。
 - **Solver** (`solver.py`): 数値積分（RK4法）のユーティリティ。
-- **DynamicVehicleState** (`data/state.py`): シミュレータ内部で使用される、完全な3D車両状態データ構造。
+- **SimulationVehicleState** (`data/state.py`): シミュレータ内部で使用される、完全な3D車両状態データ構造。
 - **LaneletMap** (`map/lanelet_map.py`): Lanelet2マップの読み込みと判定（走行可能領域、境界チェックなど）を行うユーティリティ。
 
 ## テスト仕様
@@ -27,7 +27,7 @@
 - **ベクトル状態**: 状態変数がリスト/ベクトルである場合の動作確認（単振動など）。
 
 ### 3. 状態変換のテスト (`tests/test_state.py`)
-`DynamicVehicleState` と外部向け `VehicleState` の相互変換を検証します。
+`SimulationVehicleState` と外部向け `VehicleState` の相互変換を検証します。
 - **from_vehicle_state**: 2D状態から3D状態への拡張（不足パラメータのゼロ埋め、速度ベクトルの分解など）。
 - **to_vehicle_state**: 3D状態から2D状態への縮退（アクション適用後のステアリング/加速度の上書き確認）。
 
@@ -42,16 +42,16 @@
 
 ```python
 from simulator_core.simulator import BaseSimulator
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 from core.data import Action, VehicleParameters, VehicleState
 
 class MySimulator(BaseSimulator):
     def __init__(self, vehicle_params=None, initial_state=None, dt=0.1, map_path=None):
         super().__init__(vehicle_params, initial_state, dt, map_path)
 
-    def _update_state(self, action: Action) -> DynamicVehicleState:
+    def _update_state(self, action: Action) -> SimulationVehicleState:
         # ここで状態更新ロジックを実装
-        # self._current_state (DynamicVehicleState) を使用
-        # 新しい DynamicVehicleState を返す
+        # self._current_state (SimulationVehicleState) を使用
+        # 新しい SimulationVehicleState を返す
         pass
 ```

@@ -1,5 +1,5 @@
 """Data structures for simulator core."""
 
-from simulator_core.data.state import DynamicVehicleState
+from simulator_core.data.state import SimulationVehicleState
 
-__all__ = ["DynamicVehicleState"]
+__all__ = ["SimulationVehicleState"]

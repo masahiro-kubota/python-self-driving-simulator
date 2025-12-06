@@ -1,6 +1,6 @@
 """Kinematic bicycle model simulator implementation."""
 
-from simulator_core.data import DynamicVehicleState
+from simulator_core.data import SimulationVehicleState
 from simulator_core.simulator import BaseSimulator
 
 from core.data import Action, VehicleParameters, VehicleState
@@ -32,14 +32,14 @@ class KinematicSimulator(BaseSimulator):
         # self.vehicle_params will be populated by super().__init__ default if None
         self.vehicle_model = KinematicVehicleModel(wheelbase=self.vehicle_params.wheelbase)
 
-    def _update_state(self, action: Action) -> DynamicVehicleState:
+    def _update_state(self, action: Action) -> SimulationVehicleState:
         """Update vehicle state.
 
         Args:
             action: Control action
 
         Returns:
-            Updated vehicle state (DynamicVehicleState)
+            Updated vehicle state (SimulationVehicleState)
         """
         # 車両モデルによる更新
         next_state = self.vehicle_model.step(

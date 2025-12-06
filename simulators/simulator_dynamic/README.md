@@ -7,7 +7,7 @@
 
 - **DynamicVehicleModel**: 運動方程式に基づく車両モデル。
     - 4次のルンゲ=クッタ法（RK4）による高精度な数値積分。
-    - 3次元状態管理（`DynamicVehicleState`）に対応。
+    - 3次元状態管理（`SimulationVehicleState`）に対応。
     - 横滑り角、Yawレートのダイナミクスを計算。
 
 ## テスト仕様
