@@ -5,17 +5,13 @@ description = "Interactive HTML dashboard generator for simulation visualization
 requires-python = ">=3.12"
 dependencies = [
     "core",
-]
-
-[tool.uv.sources]
-core = { workspace = true }
-
-[project.optional-dependencies]
-dev = [
     "ruff>=0.8.0",
     "pyright>=1.1.0",
     "pytest>=8.0.0",
 ]
+
+[tool.uv.sources]
+core = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

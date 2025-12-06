@@ -7,18 +7,14 @@ dependencies = [
     "core",
     "simulator-core",
     "numpy>=2.3.5",
+    "ruff>=0.8.0",
+    "pyright>=1.1.0",
+    "pytest>=8.0.0",
 ]
 
 [tool.uv.sources]
 core = { workspace = true }
 simulator_core = { workspace = true }
-
-[project.optional-dependencies]
-dev = [
-    "ruff>=0.8.0",
-    "pyright>=1.1.0",
-    "pytest>=8.0.0",
-]
 
 [build-system]
 requires = ["hatchling"]

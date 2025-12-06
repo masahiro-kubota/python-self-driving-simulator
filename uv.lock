@@ -371,30 +371,26 @@ name = "core"
 version = "0.1.0"
 source = { editable = "core" }
 dependencies = [
-    { name = "numpy" },
-    { name = "pyyaml" },
-]
-
-[package.optional-dependencies]
-dev = [
     { name = "deptry" },
+    { name = "numpy" },
     { name = "pre-commit" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "deptry", marker = "extra == 'dev'", specifier = ">=0.12.0" },
+    { name = "deptry", specifier = ">=0.12.0" },
     { name = "numpy", specifier = ">=2.3.5" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0.0" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.1.0" },
+    { name = "pre-commit", specifier = ">=3.0.0" },
+    { name = "pyright", specifier = ">=1.1.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
+    { name = "ruff", specifier = ">=0.8.0" },
 ]
 
 [[package]]
@@ -542,10 +538,6 @@ version = "0.1.0"
 source = { editable = "dashboard" }
 dependencies = [
     { name = "core" },
-]
-
-[package.optional-dependencies]
-dev = [
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
@@ -554,9 +546,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "core", editable = "core" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
+    { name = "pyright", specifier = ">=1.1.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "ruff", specifier = ">=0.8.0" },
 ]
 
 [[package]]
@@ -2557,22 +2549,18 @@ version = "0.1.0"
 source = { editable = "simulators/core" }
 dependencies = [
     { name = "core" },
-    { name = "shapely" },
-]
-
-[package.optional-dependencies]
-dev = [
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "shapely" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "core", editable = "core" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
+    { name = "pyright", specifier = ">=1.1.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "ruff", specifier = ">=0.8.0" },
     { name = "shapely", specifier = ">=2.1.2" },
 ]
 
@@ -2583,23 +2571,19 @@ source = { editable = "simulators/simulator_dynamic" }
 dependencies = [
     { name = "core" },
     { name = "numpy" },
-    { name = "simulator-core" },
-]
-
-[package.optional-dependencies]
-dev = [
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "simulator-core" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "core", editable = "core" },
     { name = "numpy", specifier = ">=2.3.5" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
+    { name = "pyright", specifier = ">=1.1.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "ruff", specifier = ">=0.8.0" },
     { name = "simulator-core", editable = "simulators/core" },
 ]
 
@@ -2609,22 +2593,18 @@ version = "0.1.0"
 source = { editable = "simulators/simulator_kinematic" }
 dependencies = [
     { name = "core" },
-    { name = "simulator-core" },
-]
-
-[package.optional-dependencies]
-dev = [
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "simulator-core" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "core", editable = "core" },
-    { name = "pyright", marker = "extra == 'dev'", specifier = ">=1.1.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
+    { name = "pyright", specifier = ">=1.1.0" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "ruff", specifier = ">=0.8.0" },
     { name = "simulator-core", editable = "simulators/core" },
 ]
 
