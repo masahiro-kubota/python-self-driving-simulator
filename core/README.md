@@ -84,9 +84,7 @@
 
 ```python
 from core.interfaces import Planner
-from core.data.ad_components import Trajectory
-from core.data import VehicleState
-from ad_components_core.data import Observation
+from core.data import Trajectory, VehicleState, Observation
 
 class MyPlanner(Planner):
     def plan(self, observation: Observation, vehicle_state: VehicleState) -> Trajectory:
@@ -101,7 +99,7 @@ class MyPlanner(Planner):
 ### データ構造の使用
 
 ```python
-from core.data.ad_components import VehicleState, Action
+from core.data import VehicleState, Action
 
 # 車両状態の作成
 state = VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=5.0)
@@ -116,7 +114,9 @@ action = Action(steering=0.1, acceleration=1.0)
 ### ユーティリティの使用
 
 ```python
-from core.utils import normalize_angle, global_to_local, load_yaml
+from core.utils.geometry import normalize_angle
+from core.utils.transforms import global_to_local
+from core.utils.config import load_yaml
 
 # 角度の正規化
 angle = normalize_angle(3.5)  # -2.78...
