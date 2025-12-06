@@ -159,14 +159,6 @@ uv run experiment-runner --config experiment/configs/experiments/pure_pursuit.ya
 uv run experiment-runner --config experiment/configs/experiments/imitation_learning.yaml
 ```
 
-### 開発・テスト用ツールのセットアップ
-
-```bash
-# 開発用依存関係（pre-commit等）をインストール
-uv sync --extra dev
-uv run pre-commit install
-```
-
 ### テストの実行
 
 ```bash

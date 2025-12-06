@@ -5,10 +5,6 @@ description = "End-to-end AI Challenge Playground"
 requires-python = ">=3.12"
 dependencies = [
     "experiment-runner",
-]
-
-[project.optional-dependencies]
-dev = [
     "deptry>=0.12.0",
     "pre-commit>=3.0.0",
     "pytest>=8.0.0",

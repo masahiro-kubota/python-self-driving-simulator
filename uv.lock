@@ -607,12 +607,8 @@ name = "e2e-aichallenge-playground"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "experiment-runner" },
-]
-
-[package.optional-dependencies]
-dev = [
     { name = "deptry" },
+    { name = "experiment-runner" },
     { name = "lark" },
     { name = "neural-controller" },
     { name = "pid-controller" },
@@ -628,19 +624,19 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "deptry", marker = "extra == 'dev'", specifier = ">=0.12.0" },
+    { name = "deptry", specifier = ">=0.12.0" },
     { name = "experiment-runner", editable = "experiment/runner" },
-    { name = "lark", marker = "extra == 'dev'", specifier = ">=1.0.0" },
-    { name = "neural-controller", marker = "extra == 'dev'", editable = "ad_components/control/neural_controller" },
-    { name = "pid-controller", marker = "extra == 'dev'", editable = "ad_components/control/pid_controller" },
-    { name = "planning-utils", marker = "extra == 'dev'", editable = "ad_components/planning/planning_utils" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.0.0" },
-    { name = "pure-pursuit", marker = "extra == 'dev'", editable = "ad_components/planning/pure_pursuit" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "simulator-core", marker = "extra == 'dev'", editable = "simulators/core" },
-    { name = "simulator-dynamic", marker = "extra == 'dev'", editable = "simulators/simulator_dynamic" },
-    { name = "simulator-kinematic", marker = "extra == 'dev'", editable = "simulators/simulator_kinematic" },
+    { name = "lark", specifier = ">=1.0.0" },
+    { name = "neural-controller", editable = "ad_components/control/neural_controller" },
+    { name = "pid-controller", editable = "ad_components/control/pid_controller" },
+    { name = "planning-utils", editable = "ad_components/planning/planning_utils" },
+    { name = "pre-commit", specifier = ">=3.0.0" },
+    { name = "pure-pursuit", editable = "ad_components/planning/pure_pursuit" },
+    { name = "pytest", specifier = ">=8.0.0" },
+    { name = "ruff", specifier = ">=0.8.0" },
+    { name = "simulator-core", editable = "simulators/core" },
+    { name = "simulator-dynamic", editable = "simulators/simulator_dynamic" },
+    { name = "simulator-kinematic", editable = "simulators/simulator_kinematic" },
 ]
 
 [[package]]
