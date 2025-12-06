@@ -40,7 +40,7 @@ for obstacle in scene.obstacles:
 ### シミュレータの実装
 
 ```python
-from simulators_core.base import BaseSimulator
+from simulator_core.base import BaseSimulator
 from core.data import VehicleParameters, Scene
 
 class MySimulator(BaseSimulator):

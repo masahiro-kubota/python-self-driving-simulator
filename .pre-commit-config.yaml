@@ -9,6 +9,12 @@ repos:
       - id: check-toml
       - id: check-added-large-files
         args: ['--maxkb=5000']
+      - id: debug-statements
+      - id: check-merge-conflict
+      - id: check-json
+        exclude: tsconfig.*\.json
+
+      - id: mixed-line-ending
 
   # Ruff linter and formatter
   - repo: https://github.com/astral-sh/ruff-pre-commit
@@ -33,6 +39,85 @@ repos:
         language: system
         pass_filenames: false
         files: ^experiment/runner/
+      - id: deptry-training
+        name: deptry (experiment/training)
+        entry: uv run --directory experiment/training deptry .
+        language: system
+        pass_filenames: false
+        files: ^experiment/training/
+      - id: deptry-ad-components-core
+        name: deptry (ad_components/core)
+        entry: uv run --directory ad_components/core deptry .
+        language: system
+        pass_filenames: false
+        files: ^ad_components/core/
+      - id: deptry-pure-pursuit
+        name: deptry (planning/pure_pursuit)
+        entry: uv run --directory ad_components/planning/pure_pursuit deptry .
+        language: system
+        pass_filenames: false
+        files: ^ad_components/planning/pure_pursuit/
+      - id: deptry-planning-utils
+        name: deptry (planning/planning_utils)
+        entry: uv run --directory ad_components/planning/planning_utils deptry .
+        language: system
+        pass_filenames: false
+        files: ^ad_components/planning/planning_utils/
+      - id: deptry-pid-controller
+        name: deptry (control/pid_controller)
+        entry: uv run --directory ad_components/control/pid_controller deptry .
+        language: system
+        pass_filenames: false
+        files: ^ad_components/control/pid_controller/
+      - id: deptry-neural-controller
+        name: deptry (control/neural_controller)
+        entry: uv run --directory ad_components/control/neural_controller deptry .
+        language: system
+        pass_filenames: false
+        files: ^ad_components/control/neural_controller/
+      - id: deptry-simulators-core
+        name: deptry (simulators/core)
+        entry: uv run --directory simulators/core deptry .
+        language: system
+        pass_filenames: false
+        files: ^simulators/core/
+      - id: deptry-simulator-kinematic
+        name: deptry (simulators/simulator_kinematic)
+        entry: uv run --directory simulators/simulator_kinematic deptry .
+        language: system
+        pass_filenames: false
+        files: ^simulators/simulator_kinematic/
+      - id: deptry-simulator-dynamic
+        name: deptry (simulators/simulator_dynamic)
+        entry: uv run --directory simulators/simulator_dynamic deptry .
+        language: system
+        pass_filenames: false
+        files: ^simulators/simulator_dynamic/
+      - id: deptry-dashboard
+        name: deptry (dashboard)
+        entry: uv run --directory dashboard deptry .
+        language: system
+        pass_filenames: false
+        files: ^dashboard/
+
+
+
+  # Security & Quality
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args: [--write-changes, --ignore-words-list, "nd,ue"]
+        exclude: \.osm$|package-lock\.json$
+        additional_dependencies:
+          - toml
+
+
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.10.0
+    hooks:
+      - id: shellcheck
+
 
   # React Dashboard linter and formatter
   - repo: local

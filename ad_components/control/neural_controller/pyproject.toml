@@ -5,9 +5,9 @@ description = "Neural Network controller"
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=1.26.0",
-    "torch>=2.0.0",
+    "torch>=2.2.0",
     "core",
-    "ad-components-core",
+    "ad-component-core",
 ]
 
 [build-system]
@@ -19,4 +19,10 @@ packages = ["src/neural_controller"]
 
 [tool.uv.sources]
 core = { workspace = true }
-ad-components-core = { workspace = true }
+ad-component-core = { workspace = true }
+
+[tool.deptry]
+ignore_notebooks = true
+
+[tool.deptry.per_rule_ignores]
+DEP003 = ["neural_controller"]

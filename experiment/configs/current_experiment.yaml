@@ -1,23 +1,24 @@
 experiment:
   name: "pure_pursuit_tracking"
+  type: "evaluation"
   description: "Pure Pursuit controller tracking AWSIM raceline"
 
 components:
   perception: null
   planning:
-    type: "PurePursuitPlanner"
+    type: "pure_pursuit.planner.PurePursuitPlanner"
     params:
       lookahead_distance: 5.0
-      track_path: "component_packages/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
+      track_path: "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
   control:
-    type: "PIDController"
+    type: "pid_controller.controller.PIDController"
     params:
       kp: 1.0
       ki: 0.1
       kd: 0.05
 
 simulator:
-  type: "KinematicSimulator"
+  type: "simulator_kinematic.simulator.KinematicSimulator"
   params:
     dt: 0.1
     initial_state:

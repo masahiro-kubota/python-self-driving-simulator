@@ -100,12 +100,8 @@ e2e_aichallenge_playground/
 graph TD
     %% Core Framework
     Core[core<br/>プロジェクト基盤]
-    ADCompCore[ad_components_core<br/>コンポーネント共通]
-    SimCore[simulators_core<br/>シミュレータ基底]
-
-    %% Core dependencies
-    ADCompCore --> Core
-    SimCore --> Core
+    ADCompCore[ad_component_core<br/>コンポーネント共通]
+    SimCore[simulator_core<br/>シミュレータ基底]
 
     %% Simulators
     SimKin[simulator_kinematic] --> SimCore

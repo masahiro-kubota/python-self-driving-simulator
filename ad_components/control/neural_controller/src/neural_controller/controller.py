@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from ad_components_core import Controller
-from ad_components_core.data import Observation
+from ad_component_core.data import Observation
+from ad_component_core.interfaces import Controller
 
 from core.data import Action, VehicleState
 from core.data.ad_components import Trajectory

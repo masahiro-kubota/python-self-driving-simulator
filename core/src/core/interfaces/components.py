@@ -3,9 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ad_components_core.data import Observation
-
-from core.data import Action, VehicleState
+from core.data import Action, Observation, VehicleState
 from core.data.ad_components import Trajectory
 
 

@@ -3,7 +3,7 @@
 import math
 from typing import TYPE_CHECKING, Any
 
-from simulators_core.base import BaseSimulator
+from simulator_core.base import BaseSimulator
 
 from core.data import Action, VehicleParameters, VehicleState
 from simulator_dynamic.state import DynamicVehicleState

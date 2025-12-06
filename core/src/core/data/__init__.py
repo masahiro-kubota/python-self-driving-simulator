@@ -13,6 +13,7 @@ from core.data.ad_components import (
 )
 from core.data.environment import Obstacle, ObstacleType, Scene, TrackBoundary
 from core.data.experiment import ExperimentConfig, ExperimentResult, ExperimentType
+from core.data.observation import Observation
 from core.data.simulation import SimulationConfig, SimulationLog, SimulationResult, SimulationStep
 from core.data.vehicle import VehicleParameters
 
@@ -25,6 +26,7 @@ __all__ = [
     "ExperimentConfig",
     "ExperimentResult",
     "ExperimentType",
+    "Observation",
     "Obstacle",
     "ObstacleType",
     "Scene",

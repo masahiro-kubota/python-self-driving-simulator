@@ -17,6 +17,8 @@ dependencies = [
     "simulator-core",
     "simulator-kinematic",
     "simulator-dynamic",
+    "core",
+    "ad-component-core",
 ]
 
 [tool.uv]
@@ -24,7 +26,8 @@ managed = true
 
 [tool.uv.sources]
 experiment-runner = { workspace = true }
-ad-components-core = { workspace = true }
+core = { workspace = true }
+ad-component-core = { workspace = true }
 pure-pursuit = { workspace = true }
 planning-utils = { workspace = true }
 pid-controller = { workspace = true }
@@ -36,17 +39,17 @@ simulator-dynamic = { workspace = true }
 [tool.uv.workspace]
 members = [
     "core",
-    "dashboard",
-    "experiment/runner",
-    "simulators/core",
-    "simulators/simulator_kinematic",
-    "simulators/simulator_dynamic",
     "ad_components/core",
     "ad_components/planning/pure_pursuit",
     "ad_components/planning/planning_utils",
     "ad_components/control/pid_controller",
     "ad_components/control/neural_controller",
+    "simulators/core",
+    "simulators/simulator_kinematic",
+    "simulators/simulator_dynamic",
+    "experiment/runner",
     "experiment/training",
+    "dashboard",
 ]
 
 [tool.ruff]
@@ -76,3 +79,10 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["SLF001"]  # Allow private access in tests
 "core/src/core/data/**" = ["ERA001"]  # Allow Japanese section comments
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false # Start lenient
+ignore_missing_imports = true

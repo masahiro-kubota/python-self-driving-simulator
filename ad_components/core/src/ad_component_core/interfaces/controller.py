@@ -2,8 +2,8 @@
 
 from abc import ABC, abstractmethod
 
-# Import from ad_components_core.data instead ofrom abc import ABC, abstractmethod
-from ad_components_core.data import Observation
+# Import from ad_components_core.data instead from abc import ABC, abstractmethod
+from ad_component_core.data import Observation
 from core.data import Action, VehicleState
 from core.data.ad_components import Trajectory
 

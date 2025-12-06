@@ -4,10 +4,8 @@ version = "0.1.0"
 description = "Pure Pursuit path tracking algorithm"
 requires-python = ">=3.12"
 dependencies = [
-    "numpy>=1.26.0",
     "core",
-    "ad-components-core",
-    "planning-utils",
+    "ad-component-core",
 ]
 
 [build-system]
@@ -19,5 +17,10 @@ packages = ["src/pure_pursuit"]
 
 [tool.uv.sources]
 core = { workspace = true }
-ad-components-core = { workspace = true }
-planning-utils = { workspace = true }
+ad-component-core = { workspace = true }
+
+[tool.deptry]
+ignore_notebooks = true
+
+[tool.deptry.per_rule_ignores]
+DEP003 = ["pure_pursuit"]

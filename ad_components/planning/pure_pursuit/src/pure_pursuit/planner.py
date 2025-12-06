@@ -1,7 +1,7 @@
 """Pure Pursuit Planner implementation."""
 
-from ad_components_core import Planner
-from ad_components_core.data import Observation
+from ad_component_core.data import Observation
+from ad_component_core.interfaces import Planner
 
 from core.data import VehicleState
 from core.data.ad_components import Trajectory, TrajectoryPoint
