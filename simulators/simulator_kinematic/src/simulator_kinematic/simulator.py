@@ -15,7 +15,6 @@ class KinematicSimulator(BaseSimulator):
         vehicle_params: "VehicleParameters | None" = None,
         initial_state: VehicleState | None = None,
         dt: float = 0.1,
-        wheelbase: float | None = None,  # 後方互換性のため
         map_path: str | None = None,
     ) -> None:
         """初期化.
@@ -24,12 +23,8 @@ class KinematicSimulator(BaseSimulator):
             vehicle_params: 車両パラメータ(Noneの場合はデフォルト値を使用)
             initial_state: 初期車両状態
             dt: シミュレーション時間刻み [s]
-            wheelbase: ホイールベース [m](後方互換性のため、vehicle_paramsより優先)
             map_path: Lanelet2マップファイルへのパス
         """
-        # 後方互換性: wheelbaseが指定されている場合はVehicleParametersを作成
-        if wheelbase is not None and vehicle_params is None:
-            vehicle_params = VehicleParameters(wheelbase=wheelbase)
 
         super().__init__(
             vehicle_params=vehicle_params, initial_state=initial_state, dt=dt, map_path=map_path

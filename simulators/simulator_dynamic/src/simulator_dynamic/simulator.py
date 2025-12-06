@@ -1,7 +1,5 @@
 """Dynamic bicycle model simulator implementation."""
 
-from typing import Any
-
 from simulator_core.data import DynamicVehicleState
 from simulator_core.simulator import BaseSimulator
 from simulator_core.solver import rk4_step
@@ -18,7 +16,6 @@ class DynamicSimulator(BaseSimulator):
         vehicle_params: "VehicleParameters | None" = None,
         initial_state: VehicleState | None = None,
         dt: float = 0.01,  # Smaller dt for RK4 stability
-        params: Any | None = None,  # 後方互換性のため
         map_path: str | None = None,
     ) -> None:
         """初期化.
@@ -27,12 +24,8 @@ class DynamicSimulator(BaseSimulator):
             vehicle_params: 車両パラメータ
             initial_state: 初期車両状態(キネマティクス形式)
             dt: シミュレーション時間刻み [s]
-            params: レガシーパラメータ(非推奨)
             map_path: Lanelet2マップファイルへのパス
         """
-        # 後方互換性: paramsが指定されている場合はvehicle_paramsとして扱う
-        if params is not None and vehicle_params is None:
-            vehicle_params = params
 
         super().__init__(
             vehicle_params=vehicle_params, initial_state=initial_state, dt=dt, map_path=map_path
