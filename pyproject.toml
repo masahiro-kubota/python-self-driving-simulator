@@ -96,6 +96,7 @@ testpaths = [
     "experiment/runner/tests",
     "simulators/simulator_kinematic/tests",
     "simulators/simulator_dynamic/tests",
+    "simulators/core/tests",
 ]
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
