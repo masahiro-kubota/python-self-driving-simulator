@@ -99,50 +99,71 @@ e2e_aichallenge_playground/
 
 ### アーキテクチャ概要
 
+<!-- ARCHITECTURE_DIAGRAM_START -->
 ```mermaid
 graph TD
-    %% Core Framework
-    Core[core<br/>プロジェクト基盤]
-    ADCompCore[ad_component_core<br/>コンポーネント共通]
-    SimCore[simulator_core<br/>シミュレータ基底]
-
-    %% Simulators
-    SimKin[simulator_kinematic] --> SimCore
-    SimDyn[simulator_dynamic] --> SimCore
-
-    %% Components
-    Planning[planning/*] --> ADCompCore
-    Control[control/*] --> ADCompCore
-
-    %% Dashboard
-    Dash[dashboard] --> Core
-
-    %% Training
-    Train[experiment/training] --> Core
-    Train --> Control
-
-    %% Experiment Runner
-    Runner[experiment/runner] --> Core
-    Runner --> ADCompCore
-    Runner --> SimCore
-    Runner -.-> SimKin
-    Runner -.-> SimDyn
-    Runner -.-> Planning
-    Runner -.-> Control
-    Runner --> Dash
-    Runner --> Train
-
     %% Styling
     classDef core fill:#f9f,stroke:#333,stroke-width:2px;
     classDef base fill:#fbb,stroke:#333,stroke-width:2px;
     classDef impl fill:#bbf,stroke:#333,stroke-width:2px;
     classDef app fill:#bfb,stroke:#333,stroke-width:2px;
-
-    class Core core;
-    class ADCompCore,SimCore base;
-    class SimKin,SimDyn,Planning,Control,Dash,Train impl;
-    class Runner app;
+    classDef default fill:#fff,stroke:#333,stroke-width:1px;
+    subgraph core
+        core["core<br/>Core data structures.."]
+        class core core;
+    end
+    subgraph dashboard
+        dashboard["dashboard<br/>Interactive HTML das.."]
+        class dashboard impl;
+    end
+    subgraph ad_components
+        ad_component_core["ad-component-core<br/>Core interfaces and .."]
+        class ad_component_core base;
+        pure_pursuit["pure-pursuit<br/>Pure Pursuit path tr.."]
+        class pure_pursuit impl;
+        planning_utils["planning-utils<br/>Planning utilities"]
+        class planning_utils impl;
+        pid_controller["pid-controller<br/>PID controller"]
+        class pid_controller impl;
+        neural_controller["neural-controller<br/>Neural Network contr.."]
+        class neural_controller impl;
+    end
+    subgraph experiment
+        experiment_runner["experiment_runner<br/>Unified experiment e.."]
+        class experiment_runner app;
+        experiment_training["experiment-training<br/>Training logic for E.."]
+        class experiment_training impl;
+    end
+    subgraph simulators
+        simulator_core["simulator-core<br/>Core utilities and b.."]
+        class simulator_core base;
+        simulator_dynamic["simulator_dynamic<br/>Dynamic bicycle mode.."]
+        class simulator_dynamic impl;
+        simulator_kinematic["simulator_kinematic<br/>Kinematic bicycle mo.."]
+        class simulator_kinematic impl;
+    end
+    %% Dependencies
+    dashboard --> core
+    ad_component_core --> core
+    pure_pursuit --> core
+    pure_pursuit --> ad_component_core
+    planning_utils --> core
+    pid_controller --> core
+    pid_controller --> ad_component_core
+    neural_controller --> core
+    neural_controller --> ad_component_core
+    experiment_runner --> core
+    experiment_runner --> dashboard
+    experiment_runner --> experiment_training
+    experiment_training --> core
+    experiment_training --> neural_controller
+    simulator_core --> core
+    simulator_dynamic --> core
+    simulator_dynamic --> simulator_core
+    simulator_kinematic --> core
+    simulator_kinematic --> simulator_core
 ```
+<!-- ARCHITECTURE_DIAGRAM_END -->
 
 ---
 
