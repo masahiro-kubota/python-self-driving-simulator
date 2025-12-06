@@ -16,9 +16,12 @@ class VehicleState:
     acceleration: float | None = None  # 加速度 [m/s^2]
     steering: float | None = None  # ステアリング角 [rad]
     timestamp: float | None = None  # タイムスタンプ [s]
+    off_track: bool = False  # コース外判定フラグ
 
     def to_array(self) -> np.ndarray:
         """numpy配列に変換."""
+        # Note: off_track is not included in the array representation for now
+        # to maintain compatibility with controllers/planners that expect specific size
         return np.array([self.x, self.y, self.yaw, self.velocity])
 
     @classmethod

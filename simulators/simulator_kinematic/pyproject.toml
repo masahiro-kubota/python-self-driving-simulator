@@ -6,7 +6,6 @@ requires-python = ">=3.12"
 dependencies = [
     "core",
     "simulator-core",
-    "numpy>=2.3.5",
 ]
 
 [tool.uv.sources]
@@ -72,4 +71,4 @@ ignore_notebooks = true
 
 [tool.deptry.per_rule_ignores]
 DEP003 = ["simulator_kinematic"]
-DEP002 = ["ruff", "pyright", "pytest", "simulator-core", "numpy"]
+DEP002 = ["ruff", "pyright", "pytest", "simulator-core"]

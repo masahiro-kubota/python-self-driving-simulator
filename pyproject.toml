@@ -90,7 +90,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 # Disable ROS pytest plugins that interfere with standard pytest
-addopts = "-p no:launch_testing -p no:launch_testing_ros"
+addopts = "-p no:launch_testing -p no:launch_testing_ros -p no:launch_testing_ros_pytest_entrypoint"
 testpaths = [
     "core/tests",
     "experiment/runner/tests",

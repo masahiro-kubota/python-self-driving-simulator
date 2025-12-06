@@ -138,9 +138,19 @@ class ExperimentRunner:
 
             sim_params["vehicle_params"] = VehicleParameters.from_yaml(full_path)
 
-        # Ignore scene configuration (deprecated)
         if "scene_config" in sim_params:
             sim_params.pop("scene_config")
+
+        # Pass map_path if available (either from config or default)
+        if "map_path" in sim_params:
+            # Already in params, resolve path
+            config_path = sim_params.pop("map_path")
+            workspace_root = Path(__file__).parent.parent.parent.parent.parent
+            sim_params["map_path"] = str(workspace_root / config_path)
+        elif self.track_path is not None:
+            # Fallback: try to infer from track path if possible, but lanelet map is different from CSV track
+            # For now, we rely on explicit map_path in config
+            pass
 
         self.simulator = self._instantiate_component(sim_type, sim_params)
 
