@@ -3,8 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from ad_component_core.data import Observation
-from core.data import VehicleState
+from core.data import Observation, VehicleState
 
 
 class Perception(ABC):

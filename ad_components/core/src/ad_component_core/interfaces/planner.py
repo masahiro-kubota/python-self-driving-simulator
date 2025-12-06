@@ -3,8 +3,7 @@
 from abc import ABC, abstractmethod
 
 # Import from ad_components_core.data instead from abc import ABC, abstractmethod
-from ad_component_core.data import Observation
-from core.data import VehicleState
+from core.data import Observation, VehicleState
 from core.data.ad_components import Trajectory
 
 

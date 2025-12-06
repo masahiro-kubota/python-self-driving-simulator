@@ -1,7 +1,8 @@
 """Component core package."""
 
-from ad_component_core.interfaces import Controller, Perception, Planner
 from core.data import Observation
+
+from .interfaces import Controller, Perception, Planner
 
 __all__ = [
     "Controller",

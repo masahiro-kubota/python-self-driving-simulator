@@ -42,8 +42,4 @@ exclude = ["**/__pycache__", "**/.pytest_cache"]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
 
-[tool.deptry]
-ignore_notebooks = true
-
 [tool.deptry.per_rule_ignores]
-DEP003 = ["ad_component_core"]
