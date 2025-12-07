@@ -16,10 +16,11 @@ system:
     type: "KinematicSimulator"
     params:
       dt: 0.1
+      map_path: "dashboard/assets/lanelet2_map.osm"
       initial_state:
-        x: 0.0
-        y: 0.0
-        yaw: 0.0
+        x: 89630.067
+        y: 43130.695
+        yaw: 2.2
         velocity: 0.0
 
   runtime:

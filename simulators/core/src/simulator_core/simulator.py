@@ -66,6 +66,7 @@ class BaseSimulator(Simulator, ABC):
 
         # 内部状態はSimulationVehicleStateで管理
         self._current_state = SimulationVehicleState.from_vehicle_state(self.initial_state)
+        self.current_time = 0.0  # シミュレーション時刻の追跡
         self.log = SimulationLog(steps=[], metadata={})
 
         # マップの読み込み
@@ -84,6 +85,7 @@ class BaseSimulator(Simulator, ABC):
             初期車両状態
         """
         self._current_state = SimulationVehicleState.from_vehicle_state(self.initial_state)
+        self.current_time = 0.0
         self.log = SimulationLog(steps=[], metadata={})
         return self.initial_state
 
@@ -101,6 +103,8 @@ class BaseSimulator(Simulator, ABC):
         """
         # 1. Update state (Subclass responsibility)
         self._current_state = self._update_state(action)
+        self.current_time += self.dt  # 時刻を進める
+        self._current_state.timestamp = self.current_time  # 状態のタイムスタンプ更新
 
         # 2. Convert to VehicleState for external interface
         vehicle_state = self._current_state.to_vehicle_state(action)
@@ -124,7 +128,7 @@ class BaseSimulator(Simulator, ABC):
 
         # 4. Logging
         step_log = SimulationStep(
-            timestamp=vehicle_state.timestamp or 0.0,
+            timestamp=self.current_time,
             vehicle_state=vehicle_state,
             action=action,
             ad_component_log=self._create_ad_component_log(),

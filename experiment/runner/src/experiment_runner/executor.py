@@ -22,6 +22,7 @@ class SingleProcessExecutor:
     def run(self, duration: float, dt: float = 0.01) -> SimulationResult:
         """Run the simulation loop."""
         sim_time = 0.0
+        step_count = 0
 
         # Get simulator from PhysicsNode for final log retrieval
         physics_node = next((n for n in self.nodes if isinstance(n, PhysicsNode)), None)
@@ -40,6 +41,7 @@ class SingleProcessExecutor:
                     node.next_time += node.period
 
             sim_time += dt
+            step_count += 1
 
         return SimulationResult(
             success=self.context.success,

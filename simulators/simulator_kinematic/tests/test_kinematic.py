@@ -62,9 +62,9 @@ class TestKinematicVehicleModel:
         new_state = model.step(state, steering=0.0, acceleration=2.0, dt=1.0)
 
         assert abs(new_state.vx - 2.0) < 1e-10
-        # Euler: x_next = x + vx * dt = 0 + 0 * 1 = 0
+        # Trapezoidal rule: x_next = x + vx_avg * dt = 0 + (0 + 2) / 2 * 1 = 1.0
         # vx_next = vx + a * dt = 0 + 2 * 1 = 2
-        assert abs(new_state.x - 0.0) < 1e-10
+        assert abs(new_state.x - 1.0) < 1e-10
         assert abs(new_state.vy) < 1e-10
 
     def test_turning(self) -> None:

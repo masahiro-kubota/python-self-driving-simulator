@@ -45,15 +45,18 @@ class KinematicVehicleModel:
         # キネマティクスモデルでは vy = 0 を維持
         vx_next = state.vx + acceleration * dt
 
-        # ヨーレートを計算
-        if abs(vx_next) < 0.01:
+        # 平均速度を使用して位置を更新(より正確な積分)
+        vx_avg = (state.vx + vx_next) / 2.0
+
+        # ヨーレートを計算(平均速度を使用)
+        if abs(vx_avg) < 0.01:
             yaw_rate_next = 0.0
         else:
-            yaw_rate_next = vx_next / self.wheelbase * math.tan(steering)
+            yaw_rate_next = vx_avg / self.wheelbase * math.tan(steering)
 
-        # 位置・姿勢の更新
-        x_next = state.x + state.vx * math.cos(state.yaw) * dt
-        y_next = state.y + state.vx * math.sin(state.yaw) * dt
+        # 位置・姿勢の更新(平均速度を使用)
+        x_next = state.x + vx_avg * math.cos(state.yaw) * dt
+        y_next = state.y + vx_avg * math.sin(state.yaw) * dt
         yaw_next = normalize_angle(state.yaw + yaw_rate_next * dt)
 
         # Update timestamp if present

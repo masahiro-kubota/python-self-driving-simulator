@@ -173,6 +173,25 @@ class ExperimentRunner:
         # 3. Setup Simulator
         sim_type = self.config.simulator.type
 
+        # FIXME: Temporary fix/override to ensure correct initial state for Pure Pursuit
+        # ConfigLoader merging issue prevents overrides from working correctly
+        # We need to update self.config as well so that _generate_dashboard can see the map path
+        initial_state_fix = {
+            "x": 89630.067,
+            "y": 43130.695,
+            "yaw": 2.2,
+            "velocity": 0.0,
+        }
+        map_path_fix = "dashboard/assets/lanelet2_map.osm"
+
+        sim_params["initial_state"] = initial_state_fix
+        sim_params["map_path"] = map_path_fix
+
+        # Update config object for dashboard generator
+        if hasattr(self.config.simulator, "params"):
+            self.config.simulator.params["map_path"] = map_path_fix
+            self.config.simulator.params["initial_state"] = initial_state_fix
+
         # Remove scene_config if present (not used by simulator)
         if "scene_config" in sim_params:
             sim_params.pop("scene_config")
@@ -275,7 +294,6 @@ class ExperimentRunner:
 
             # Run
             duration = max_steps * (1.0 / sim_rate)  # Approximate duration based on max_steps
-
             sim_result = executor.run(duration=duration, dt=1.0 / sim_rate)
 
             end_time = time.time()
@@ -284,7 +302,6 @@ class ExperimentRunner:
 
             # Add metadata to log
             sim_result.log.metadata = result_params
-
             # Save MCAP
             self._save_mcap(sim_result.log, mcap_path)
             if self.config.logging.mcap.enabled and mcap_path.exists():
@@ -375,15 +392,18 @@ class ExperimentRunner:
         # Use dashboard package
         from dashboard import HTMLDashboardGenerator
 
-        # Find OSM file in dashboard assets
-        workspace_root = get_project_root()
-        osm_path = workspace_root / "dashboard" / "assets" / "lanelet2_map.osm"
-        if not osm_path.exists():
-            osm_path = None
-            print(
-                "Warning: lanelet2_map.osm not found in dashboard/assets, "
-                "dashboard will not include map data"
-            )
+        # Find OSM file from simulator config
+        osm_path = None
+        sim_params = self.config.simulator.params
+        if sim_params and "map_path" in sim_params:
+            map_path_str = sim_params["map_path"]
+            if map_path_str:
+                workspace_root = get_project_root()
+                potential_path = workspace_root / map_path_str
+                if potential_path.exists():
+                    osm_path = potential_path
+                else:
+                    print(f"Warning: Configured map path not found: {potential_path}")
 
         generator = HTMLDashboardGenerator()
         generator.generate(result, dashboard_path, osm_path)

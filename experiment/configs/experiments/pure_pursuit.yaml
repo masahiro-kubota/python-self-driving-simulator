@@ -6,21 +6,21 @@ experiment:
 system: "experiment/configs/systems/kart_default_track.yaml"
 
 overrides:
-  components:
-    ad_component:
-      params:
-        planning:
-          params:
-            lookahead_distance: 5.0
-        control:
-          params:
-            kp: 1.0
-            ki: 0.1
-            kd: 0.05
+  # FlexibleADComponentのノード構成に対するオーバーライド
+  # 必要に応じてノードごとのパラメータを上書き可能
+  # 現在はデフォルト値を使用するため、オーバーライドなし
 
   execution:
     num_episodes: 1
     max_steps_per_episode: 2000
+
+  simulator:
+    params:
+      map_path: "dashboard/assets/lanelet2_map.osm"
+      initial_state:
+        x: 89630.067
+        y: 43130.695
+        yaw: 2.2
 
   logging:
     mlflow:
