@@ -27,9 +27,11 @@ def test_pure_pursuit_experiment() -> None:
 
     # Verify configuration
     assert config.experiment.name == "pure_pursuit"
-    assert config.components.ad_component.type == "core.data.ad_components.stack.ADComponentStack"
-    # The ADComponentStack params are deeply nested: { planner: { type: ..., params: ... }, controller: ... }
-    planner_config = config.components.ad_component.params["planner"]
+    assert (
+        config.components.ad_component.type == "experiment_runner.ad_components.StandardADComponent"
+    )
+    # The StandardADComponent params are: { planning: { type: ..., params: ... }, control: ... }
+    planner_config = config.components.ad_component.params["planning"]
     assert "PurePursuitPlanner" in planner_config["type"]
     assert planner_config["params"]["lookahead_distance"] == 5.0
 
@@ -51,13 +53,15 @@ def test_config_loading() -> None:
 
     # Verify structure
     assert config.experiment.name == "pure_pursuit"
-    assert config.components.ad_component.type == "core.data.ad_components.stack.ADComponentStack"
+    assert (
+        config.components.ad_component.type == "experiment_runner.ad_components.StandardADComponent"
+    )
 
-    planner_config = config.components.ad_component.params["planner"]
+    planner_config = config.components.ad_component.params["planning"]
     assert "PurePursuitPlanner" in planner_config["type"]
     assert planner_config["params"]["lookahead_distance"] == 5.0
 
-    controller_config = config.components.ad_component.params["controller"]
+    controller_config = config.components.ad_component.params["control"]
     assert "PIDController" in controller_config["type"]
     assert controller_config["params"]["kp"] == 1.0
 
@@ -96,8 +100,10 @@ def test_custom_track_loading(_setup_mlflow_env: None) -> None:
 
     try:
         # Modify to use custom track
-        # Since we use ADComponentStack, we need to inject into planner params
-        config.components.ad_component.params["planner"]["params"]["track_path"] = custom_track_path
+        # Since we use StandardADComponent, we need to inject into planning params
+        config.components.ad_component.params["planning"]["params"]["track_path"] = (
+            custom_track_path
+        )
 
         # Run experiment setup
         runner = ExperimentRunner(config)

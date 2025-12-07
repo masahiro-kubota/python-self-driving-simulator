@@ -2,22 +2,25 @@ module:
   name: "pure_pursuit_pid"
 
   components:
-    perception: null
-
-    planning:
-      type: "PurePursuitPlanner"
+    ad_component:
+      type: "experiment_runner.ad_components.StandardADComponent"
       params:
-        # Defaults used: lookahead=5.0, min=2.0, max=15.0
-        track_path: "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
-
-    control:
-      type: "PIDController"
-      params:
-        kp: 1.0
-        ki: 0.1
-        kd: 0.05
-        u_min: -1.0
-        u_max: 1.0
+        updates:
+          planning_hz: 10.0
+          control_hz: 30.0
+        planning:
+          type: "PurePursuitPlanner"
+          params:
+            # Defaults used: lookahead=5.0, min=2.0, max=15.0
+            track_path: "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
+        control:
+          type: "PIDController"
+          params:
+            kp: 1.0
+            ki: 0.1
+            kd: 0.05
+            u_min: -1.0
+            u_max: 1.0
 
     simulator:
       type: "KinematicSimulator"

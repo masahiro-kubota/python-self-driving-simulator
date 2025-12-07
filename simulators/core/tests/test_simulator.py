@@ -109,17 +109,14 @@ class TestBaseSimulator:
         """Test run method loop."""
         sim = MockSimulator()
 
-        # Mock planner and controller
-        planner = MagicMock()
-        planner.plan.return_value = []
+        # Mock ADComponent
+        from core.interfaces import ADComponent
 
-        controller = MagicMock()
-        controller.control.return_value = Action(steering=0.0, acceleration=0.0)
-
-        # Create ADComponentStack
-        from core.data.ad_components import ADComponentStack
-
-        ad_component = ADComponentStack(planner=planner, controller=controller)
+        ad_component = MagicMock(spec=ADComponent)
+        ad_component.planner = MagicMock()
+        ad_component.planner.plan.return_value = []
+        ad_component.controller = MagicMock()
+        ad_component.controller.control.return_value = Action(steering=0.0, acceleration=0.0)
 
         # Run for 5 steps
         result = sim.run(ad_component, max_steps=5)
@@ -130,32 +127,20 @@ class TestBaseSimulator:
         assert len(result.log.steps) == 5
 
         # Check interaction counts
-        assert planner.plan.call_count == 5
-        assert controller.control.call_count == 5
+        assert ad_component.planner.plan.call_count == 5
+        assert ad_component.controller.control.call_count == 5
 
     def test_goal_check(self) -> None:
         """Test goal checking logic in run method."""
         sim = MockSimulator()
 
-        # Mock planner/controller to do nothing
-        planner = MagicMock()
-        controller = MagicMock()
-        controller.control.return_value = Action(steering=0.0, acceleration=0.0)
+        # Mock ADComponent
+        from core.interfaces import ADComponent
 
-        # Define a goal trajectory near the starting point + movement
-        from core.data.ad_components import ADComponentStack
-
-        # Goal at x=3.0 (reached after 3 steps)
-        # Goal at x=3.0 (reached after 3 steps)
-
-        # Create ADComponentStack
-        ad_component = ADComponentStack(planner=planner, controller=controller)
-
-        # Run with sufficient steps but short validation time
-        # MockSimulator moves +1.0 x per step.
-        # Step 1: x=1.0
-        # Step 2: x=2.0
-        # Step 3: x=3.0 (Goal reached)
+        ad_component = MagicMock(spec=ADComponent)
+        ad_component.planner = MagicMock()
+        ad_component.controller = MagicMock()
+        ad_component.controller.control.return_value = Action(steering=0.0, acceleration=0.0)
 
         # Set goal in simulator
         sim.goal_x = 3.0

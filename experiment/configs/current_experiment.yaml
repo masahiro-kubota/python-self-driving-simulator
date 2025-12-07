@@ -4,23 +4,31 @@ experiment:
   description: "Pure Pursuit controller tracking AWSIM raceline"
 
 components:
-  perception: null
-  planning:
-    type: "pure_pursuit.planner.PurePursuitPlanner"
+  ad_component:
+    type: "experiment_runner.ad_components.StandardADComponent"
     params:
-      lookahead_distance: 5.0
-      track_path: "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
-  control:
-    type: "pid_controller.controller.PIDController"
-    params:
-      kp: 1.0
-      ki: 0.1
-      kd: 0.05
+      updates:
+        planning_hz: 10.0
+        control_hz: 30.0
+        perception_hz: 50.0
+      planning:
+        type: "pure_pursuit.planner.PurePursuitPlanner"
+        params:
+           lookahead_distance: 5.0
+           track_path: "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
+      control:
+        type: "pid_controller.controller.PIDController"
+        params:
+           kp: 1.0
+           ki: 0.1
+           kd: 0.05
 
 simulator:
   type: "simulator_kinematic.simulator.KinematicSimulator"
+  rate_hz: 100.0  # Physics at 100Hz
   params:
-    dt: 0.1
+    dt: 0.1  # Note: dt in params might be redundant or used for integration step size
+
     initial_state:
       from_track: true
 

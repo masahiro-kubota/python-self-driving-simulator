@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from core.data.experiment import ExperimentResult
 
 
-class ExperimentRunner(ABC):
+class ExperimentLogger(ABC):
     """実験実行のインターフェース."""
 
     @abstractmethod

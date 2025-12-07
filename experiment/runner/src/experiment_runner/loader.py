@@ -128,79 +128,42 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
     # Let's start with an empty dict for the resolved config and build it up.
 
     # --- Components (AD Component) ---
-    # In the current Runner, ADComponent is instantiated with type & params.
-    # But usually ADComponent is a generic container (e.g. "core.ad_components.stack.ADComponentStack")
-    # that takes planner, controller, etc. as arguments?
-    # Let's check `runner.py`'s existing logic.
-    # It does: `ad_component_type = self.config.components.ad_component.type`
-    # And `ad_component = self._instantiate_component(type, params)`
-    # Map module components to ADComponentStack params
-
-    # Assumption: The default ADComponent type is `core.ad_components.stack.ADComponentStack`.
-    # And `module.components` (excluding simulator) becomes its `params`.
+    # If module defines ad_component directly, use it
+    # Otherwise fail (no legacy support)
 
     from importlib import metadata
 
     from core.utils.param_loader import load_component_defaults
 
-    ad_params = {}
+    if "ad_component" in module_layer.components:
+        # Direct ad_component definition
+        resolved_components = {"ad_component": module_layer.components["ad_component"]}
 
-    # Map module component keys to ADComponentStack arguments
-    # planning -> planner
-    # control -> controller
-    # Also load defaults!
+        # Load defaults for the ad_component type
+        ad_comp_type = resolved_components["ad_component"]["type"]
+        ad_package = None
 
-    for key, role in [("planning", "planner"), ("control", "controller")]:
-        if key in module_layer.components:
-            comp_config = module_layer.components[key]
-            if not comp_config:
-                continue
+        if "." not in ad_comp_type:
+            # Entry point lookup
+            for group in ["ad_components", "simulators"]:
+                eps = metadata.entry_points(group=group)
+                matches = [ep for ep in eps if ep.name == ad_comp_type]
+                if matches:
+                    ad_package = matches[0].value.split(":")[0].split(".")[0]
+                    break
+        else:
+            ad_package = ad_comp_type.split(".")[0]
 
-            # 1. Determine package name
-            package_name = None
-            type_str = comp_config["type"]
+        ad_defaults = {}
+        if ad_package:
+            ad_defaults = load_component_defaults(ad_package)
 
-            if "." not in type_str:
-                # Entry point lookup
-                for group in ["ad_components", "simulators"]:
-                    eps = metadata.entry_points(group=group)
-                    matches = [ep for ep in eps if ep.name == type_str]
-                    if matches:
-                        # ep.value is "module:Class"
-                        package_name = matches[0].value.split(":")[0].split(".")[0]
-                        break
-            else:
-                package_name = type_str.split(".")[0]
-
-            # 2. Load defaults
-            defaults = {}
-            if package_name:
-                defaults = load_component_defaults(package_name)
-
-            # 3. Merge defaults -> explicit params
-            # comp_config["params"] might be None? Validated as ComponentConfig?
-            # Assuming Pydantic model ensures it is a dict or we handle it.
-            # CompConfig in config.py uses: type: str, params: dict[str, Any] = {}
-
-            user_params = comp_config.get("params", {}) or {}
-            merged_params = _recursive_merge(defaults, user_params)
-
-            # Update the config object with merged params so subsequent overrides work on full set
-            # Or just use merged_params for ad_params
-
-            ad_params[role] = {"type": type_str, "params": merged_params}
-
-    # Defaults if missing
-    if module_layer.components.get("perception"):
-        # Warn or TODO: ADComponentStack doesn't support perception yet
-        pass
-
-    resolved_components = {
-        "ad_component": {
-            "type": "core.data.ad_components.stack.ADComponentStack",  # Default wrapper
-            "params": ad_params,
-        }
-    }
+        ad_user_params = resolved_components["ad_component"].get("params", {}) or {}
+        resolved_components["ad_component"]["params"] = _recursive_merge(
+            ad_defaults, ad_user_params
+        )
+    else:
+        raise ValueError("Module must define 'ad_component' in components")
 
     # --- Simulator ---
     if "simulator" in module_layer.components:
@@ -325,26 +288,20 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
     # Start merging
     final_dict = base_config
 
-    # 6.1 Handle Component Overrides (Logical -> Physical Mapping)
+    # 6.1 Handle Component Overrides
     if "components" in overrides:
         comp_ops = overrides.pop("components")
 
-        # Remap keys in overrides to match ADComponentStack
-        remapped_ops = {}
-        for k, v in comp_ops.items():
-            if k == "planning":
-                remapped_ops["planner"] = v
-            elif k == "control":
-                remapped_ops["controller"] = v
-            else:
-                remapped_ops[k] = v
-
-        target_dict = final_dict["components"]["ad_component"]["params"]
-
-        # Merge each sub-component
-        target_dict = _recursive_merge(target_dict, remapped_ops)
-
-        final_dict["components"]["ad_component"]["params"] = target_dict
+        # Merge ad_component overrides directly
+        if "ad_component" in comp_ops:
+            final_dict["components"]["ad_component"] = _recursive_merge(
+                final_dict["components"]["ad_component"], comp_ops["ad_component"]
+            )
+        else:
+            raise ValueError(
+                "Component overrides must be nested under 'ad_component' key. "
+                "Legacy top-level component keys are no longer supported."
+            )
 
     # 6.2 Handle other overrides (Execution, Logging, etc.)
     # execution, evaluation, logging can satisfy direct merge if structure matches.

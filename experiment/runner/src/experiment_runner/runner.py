@@ -12,8 +12,13 @@ from core.data import VehicleParameters, VehicleState
 from core.data.experiment import Artifact, ExperimentResult
 from core.data.simulator import SimulationLog
 from core.interfaces import ADComponent, Simulator
+from core.nodes import PhysicsNode
 from core.utils import get_project_root
-from experiment_runner.config import ExperimentType, ResolvedExperimentConfig
+from experiment_runner.config import ExperimentConfig, ExperimentType
+from experiment_runner.executor import (
+    SimulationContext,
+    SingleProcessExecutor,
+)
 from experiment_runner.mcap_logger import MCAPLogger
 from experiment_runner.metrics import EvaluationMetrics, MetricsCalculator
 from experiment_runner.mlflow_logger import MLflowExperimentLogger
@@ -22,9 +27,7 @@ from experiment_runner.mlflow_logger import MLflowExperimentLogger
 class ExperimentRunner:
     """Unified experiment runner."""
 
-    def __init__(
-        self, config: ResolvedExperimentConfig, config_path: str | Path | None = None
-    ) -> None:
+    def __init__(self, config: ExperimentConfig, config_path: str | Path | None = None) -> None:
         """Initialize experiment runner.
 
         Args:
@@ -159,8 +162,9 @@ class ExperimentRunner:
                 sim_params["vehicle_params"] = self.vehicle_params
 
         # 2. Setup ADComponent
-        ad_component_type = self.config.components.ad_component.type
-        ad_component_params = self.config.components.ad_component.params.copy()
+        comp_config = self.config.components
+        ad_component_type = comp_config.ad_component.type
+        ad_component_params = comp_config.ad_component.params.copy()
 
         # Instantiate ADComponent with vehicle_params
         ad_component_params["vehicle_params"] = self.vehicle_params
@@ -171,7 +175,12 @@ class ExperimentRunner:
 
         # Handle initial_state from track if specified
         if sim_params.get("initial_state", {}).get("from_track"):
-            if hasattr(self.ad_component.planner, "reference_trajectory"):
+            # We cannot easily check for reference_trajectory on generic ADComponent
+            # unless we add that property to interface or check planner specifically.
+            # For now, let's assume if the component has a planner attribute with ref traj
+            if hasattr(self.ad_component, "planner") and hasattr(
+                self.ad_component.planner, "reference_trajectory"
+            ):
                 track = self.ad_component.planner.reference_trajectory  # type: ignore
                 sim_params["initial_state"] = VehicleState(
                     x=track[0].x,
@@ -180,11 +189,21 @@ class ExperimentRunner:
                     velocity=0.0,
                     timestamp=0.0,
                 )
-                # Also set goal to the end of the track
-                sim_params["goal_x"] = track[-1].x
-                sim_params["goal_y"] = track[-1].y
+            # Or if it IS the standard component
+            elif hasattr(self.ad_component, "reference_trajectory"):
+                track = self.ad_component.reference_trajectory  # type: ignore
+                sim_params["initial_state"] = VehicleState(
+                    x=track[0].x,
+                    y=track[0].y,
+                    yaw=track[0].yaw,
+                    velocity=0.0,
+                    timestamp=0.0,
+                )
             else:
-                raise ValueError("Planner does not have reference_trajectory")
+                raise ValueError("ADComponent or its planner does not have reference_trajectory")
+            # Also set goal to the end of the track
+            sim_params["goal_x"] = track[-1].x
+            sim_params["goal_y"] = track[-1].y
 
         if "scene_config" in sim_params:
             sim_params.pop("scene_config")
@@ -225,8 +244,6 @@ class ExperimentRunner:
         """Run evaluation mode."""
         assert self.simulator is not None
         assert self.ad_component is not None
-        assert self.ad_component.planner is not None
-        assert self.ad_component.controller is not None
 
         # Check if running in CI environment
         is_ci = bool(os.getenv("CI"))
@@ -260,17 +277,32 @@ class ExperimentRunner:
             max_steps = (
                 self.config.execution.max_steps_per_episode if self.config.execution else 2000
             )
-            # Prepare stack
-            ad_stack = (
-                self.ad_component.to_stack()
-                if hasattr(self.ad_component, "to_stack")
-                else self.ad_component
+
+            # Setup Executor
+            sim_rate = self.config.simulator.rate_hz
+
+            # Create Context & Reset simulator
+            initial_state = self.simulator.reset()
+            context = SimulationContext(
+                current_time=0.0,
+                sim_state=initial_state,
+                vehicle_state=initial_state,  # Initialize perceived state
             )
 
-            sim_result = self.simulator.run(
-                ad_component=ad_stack,
-                max_steps=max_steps,
-            )
+            # Collect Nodes
+            nodes = []
+            # 1. Physics
+            nodes.append(PhysicsNode(self.simulator, rate_hz=sim_rate))
+
+            # 2. ADComponent Nodes
+            nodes.extend(self.ad_component.get_schedulable_nodes())
+
+            executor = SingleProcessExecutor(nodes, context)
+
+            # Run
+            duration = max_steps * (1.0 / sim_rate)  # Approximate duration based on max_steps
+
+            sim_result = executor.run(duration=duration, dt=1.0 / sim_rate)
 
             end_time = time.time()
             print(f"Simulation finished in {end_time - start_time:.2f}s")

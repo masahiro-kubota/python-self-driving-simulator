@@ -11,7 +11,6 @@ from core.data import (
     VehicleParameters,
     VehicleState,
 )
-from core.data.ad_components import ADComponentStack
 from core.interfaces import Simulator
 from simulator_core.data import SimulationVehicleState
 
@@ -19,6 +18,7 @@ if TYPE_CHECKING:
     from shapely.geometry import Polygon
 
     from core.data import ADComponentLog
+    from core.interfaces import ADComponent
 
 
 class BaseSimulator(Simulator, ABC):
@@ -151,7 +151,7 @@ class BaseSimulator(Simulator, ABC):
 
     def run(
         self,
-        ad_component: "ADComponentStack",
+        ad_component: "ADComponent",
         max_steps: int = 1000,
         goal_threshold: float = 5.0,
         min_elapsed_time: float = 20.0,

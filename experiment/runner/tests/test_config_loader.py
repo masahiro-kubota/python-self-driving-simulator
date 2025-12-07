@@ -34,7 +34,9 @@ def test_load_experiment_config(mock_project_root, mock_load_yaml):
             "name": "test_exp",
             "type": "evaluation",
             "system": "systems/test_system.yaml",
-            "overrides": {"components": {"planning": {"lookahead": 10.0}}},
+            "overrides": {
+                "components": {"ad_component": {"params": {"planning": {"lookahead": 10.0}}}}
+            },
         }
     }
 
@@ -51,8 +53,13 @@ def test_load_experiment_config(mock_project_root, mock_load_yaml):
         "module": {
             "name": "test_module",
             "components": {
-                "planning": {"type": "p", "params": {"lookahead": 5.0}},
-                "control": {"type": "c", "params": {}},
+                "ad_component": {
+                    "type": "experiment_runner.ad_components.StandardADComponent",
+                    "params": {
+                        "planning": {"type": "p", "params": {"lookahead": 5.0}},
+                        "control": {"type": "c", "params": {}},
+                    },
+                },
                 "simulator": {"type": "s", "params": {"dt": 0.1}},
             },
         }
@@ -78,8 +85,7 @@ def test_load_experiment_config(mock_project_root, mock_load_yaml):
     assert config.runtime["mode"] == "singleprocess"
     # Check simulator override injection
     assert config.simulator.params["dt"] == 0.05
-    # Check component mapping planning -> planner
-    assert "planner" in config.components.ad_component.params
+    # Check component structure
+    assert "planning" in config.components.ad_component.params
     # Check override application (lookahead 10.0 overrides 5.0)
-    # The override uses "planning" key, but it should be mapped to "planner" in loader
-    assert config.components.ad_component.params["planner"]["lookahead"] == 10.0
+    assert config.components.ad_component.params["planning"]["lookahead"] == 10.0

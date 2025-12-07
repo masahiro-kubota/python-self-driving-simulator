@@ -18,6 +18,7 @@ class ComponentConfig(BaseModel):
     """Configuration for a component."""
 
     type: str = Field(..., description="Component class name")
+    rate_hz: float = Field(10.0, description="Execution frequency in Hz")
     params: dict[str, Any] = Field(default_factory=dict, description="Component parameters")
 
 
@@ -25,6 +26,7 @@ class SimulatorConfig(BaseModel):
     """Configuration for simulator."""
 
     type: str = Field(..., description="Simulator class name")
+    rate_hz: float = Field(100.0, description="Physics frequency in Hz")
     params: dict[str, Any] = Field(default_factory=dict, description="Simulator parameters")
 
 
@@ -240,3 +242,7 @@ class ResolvedExperimentConfig(BaseModel):
                 raise ValueError("simulator is required for evaluation experiments")
 
         return self
+
+
+# Alias for backward compatibility
+ExperimentConfig = ResolvedExperimentConfig

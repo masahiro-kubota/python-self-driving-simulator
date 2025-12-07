@@ -8,7 +8,7 @@ from core.data.ad_components import Trajectory
 from core.data.ad_components.sensing import Sensing
 
 if TYPE_CHECKING:
-    from core.data.ad_components import ADComponentStack
+    from core.interfaces.node import Node
 
 
 class ADComponent(ABC):
@@ -75,15 +75,13 @@ class ADComponent(ABC):
         self.planner.reset()
         self.controller.reset()
 
-    def to_stack(self) -> "ADComponentStack":
-        """Convert to ADComponentStack for simulation.
+    @abstractmethod
+    def get_schedulable_nodes(self) -> list["Node"]:
+        """Get list of schedulable nodes for this component.
 
         Returns:
-            ADComponentStack with planner and controller
+            List of Nodes to be executed by the executor.
         """
-        from core.data.ad_components import ADComponentStack
-
-        return ADComponentStack(planner=self.planner, controller=self.controller)
 
 
 class Perception(ABC):

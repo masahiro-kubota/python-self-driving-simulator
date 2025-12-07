@@ -7,14 +7,16 @@ system: "experiment/configs/systems/kart_default_track.yaml"
 
 overrides:
   components:
-    planning:
+    ad_component:
       params:
-        lookahead_distance: 5.0
-    control:
-      params:
-        kp: 1.0
-        ki: 0.1
-        kd: 0.05
+        planning:
+          params:
+            lookahead_distance: 5.0
+        control:
+          params:
+            kp: 1.0
+            ki: 0.1
+            kd: 0.05
 
   execution:
     num_episodes: 1
