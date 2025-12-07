@@ -83,8 +83,7 @@ e2e_aichallenge_playground/
 │       └── neural_controller/
 ├── simulators/                    # シミュレータ実装
 │   ├── core/                     # シミュレータ基底クラス (simulators_core)
-│   ├── simulator_kinematic/      # 運動学シミュレータ
-│   └── simulator_dynamic/        # 動力学シミュレータ
+│   └── simulator_kinematic/      # 運動学シミュレータ
 ├── experiment/
 │   ├── runner/                   # 統一実験実行フレームワーク
 │   ├── training/                 # 学習機能（Dataset, Trainer）
@@ -140,8 +139,6 @@ graph TD
     subgraph group_simulators [simulators]
         simulator_core["simulator-core<br/>Core utilities and b.."]
         class simulator_core base;
-        simulator_dynamic["simulator_dynamic<br/>Dynamic bicycle mode.."]
-        class simulator_dynamic impl;
         simulator_kinematic["simulator_kinematic<br/>Kinematic bicycle mo.."]
         class simulator_kinematic impl;
     end
@@ -163,8 +160,6 @@ graph TD
     experiment_training --> core
     experiment_training --> simulator_core
     simulator_core --> core
-    simulator_dynamic --> core
-    simulator_dynamic --> simulator_core
     simulator_kinematic --> core
     simulator_kinematic --> simulator_core
 ```

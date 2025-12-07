@@ -26,23 +26,23 @@ class VehicleParameters:
     max_velocity: float = 20.0  # 最大速度 [m/s]
     max_acceleration: float = 3.0  # 最大加速度 [m/s^2]
 
-    # 動力学パラメータ(DynamicSimulator用、オプション)
+    # 動力学パラメータ(オプション)
     mass: float = 1500.0  # 質量 [kg]
     inertia: float = 2500.0  # ヨー慣性モーメント [kg*m^2]
 
-    # NOTE: 以下は重心位置パラメータ (DynamicSimulator用)
+    # NOTE: 以下は重心位置パラメータ
     lf: float = 1.2  # 重心から前軸までの距離 [m]
     lr: float = 1.3  # 重心から後軸までの距離 [m]
 
-    # NOTE: 以下はタイヤ特性パラメータ (DynamicSimulator用)
+    # NOTE: 以下はタイヤ特性パラメータ
     cf: float = 80000.0  # 前輪コーナリング剛性 [N/rad]
     cr: float = 80000.0  # 後輪コーナリング剛性 [N/rad]
 
-    # NOTE: 以下は抵抗係数パラメータ (DynamicSimulator用)
+    # NOTE: 以下は抵抗係数パラメータ
     c_drag: float = 0.3  # 空気抵抗係数
     c_roll: float = 0.015  # 転がり抵抗係数
 
-    # NOTE: 以下は駆動力パラメータ (DynamicSimulator用)
+    # NOTE: 以下は駆動力パラメータ
     max_drive_force: float = 5000.0  # 最大駆動力 [N]
     max_brake_force: float = 8000.0  # 最大制動力 [N]
 

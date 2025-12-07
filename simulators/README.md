@@ -6,7 +6,6 @@
 
 - **[core](./core/README.md)**: 全てのシミュレータの基底クラス、データ構造（`SimulationVehicleState`など）、共通ユーティリティ（ソルバー、マップなど）。
 - **[simulator_kinematic](./simulator_kinematic/README.md)**: 自転車モデルに基づく運動学シミュレータ。
-- **[simulator_dynamic](./simulator_dynamic/README.md)**: 車両動力学（横滑り、タイヤ力など）を考慮した動的シミュレータ。
 
 ## アーキテクチャの主要な変更点
 
@@ -24,6 +23,5 @@
 ```mermaid
 graph TD
     Kinematic[simulator_kinematic] --> Core[simulators/core]
-    Dynamic[simulator_dynamic] --> Core
     Core --> Base[core]
 ```

@@ -59,23 +59,6 @@ jobs:
             touch dashboard_kinematic.html
           fi
 
-      - name: Run dynamic pure pursuit experiment
-        run: uv run experiment-runner --config experiment/configs/experiments/pure_pursuit_dynamic.yaml
-        env:
-          CI: 'true'
-
-      - name: Save dynamic dashboard
-        if: always()
-        run: |
-          if [ -f "dashboard.html" ]; then
-            mv dashboard.html dashboard_dynamic.html
-          elif [ -f "/tmp/dashboard.html" ]; then
-            cp /tmp/dashboard.html dashboard_dynamic.html
-          else
-            echo "Dynamic dashboard not found"
-            touch dashboard_dynamic.html
-          fi
-
       - name: Create Dashboard Index
         if: always()
         run: |
@@ -100,11 +83,6 @@ jobs:
               </div>
 
               <div class="result-card">
-                  <a href="dashboard_dynamic.html">Dynamic Simulation (Pure Pursuit)</a>
-                  <p>Dynamic bicycle model simulation.</p>
-              </div>
-
-              <div class="result-card">
                   <a href="docs/index.html">Documentation</a>
                   <p>Project documentation.</p>
               </div>
@@ -124,6 +102,5 @@ jobs:
           path: |
             index.html
             dashboard_kinematic.html
-            dashboard_dynamic.html
             docs/build/html/
           retention-days: 7

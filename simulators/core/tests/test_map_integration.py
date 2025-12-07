@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from simulator_dynamic import DynamicSimulator
 from simulator_kinematic import KinematicSimulator
 
 from core.data import Action, VehicleState
@@ -52,36 +51,13 @@ def test_kinematic_simulator_with_map(simple_map_file):
     # Note: Actual drivability depends on map implementation
 
 
-def test_dynamic_simulator_with_map(simple_map_file):
-    """Test DynamicSimulator with map validation."""
-    sim = DynamicSimulator(map_path=str(simple_map_file))
-    assert sim.map is not None
-
-    # Start inside map
-    initial_state = VehicleState(x=5.0, y=5.0, yaw=0.0, velocity=1.0)
-    sim = DynamicSimulator(initial_state=initial_state, map_path=str(simple_map_file))
-    sim.reset()
-
-    action = Action(steering=0.0, acceleration=0.0)
-    state, _, _ = sim.step(action)
-
-    # Should be inside map (coordinates are within bounds)
-    # Note: Actual drivability depends on map implementation
-
-
-def test_both_simulators_without_map():
-    """Test that both simulators work without map."""
+def test_simulator_without_map():
+    """Test that simulator works without map."""
     kinematic_sim = KinematicSimulator(dt=0.1)
     assert kinematic_sim.map is None
 
-    dynamic_sim = DynamicSimulator()
-    assert dynamic_sim.map is None
-
-    # Both should work without map
+    # Should work without map
     action = Action(steering=0.0, acceleration=1.0)
 
     k_state, _, _ = kinematic_sim.step(action)
     assert k_state is not None
-
-    d_state, _, _ = dynamic_sim.step(action)
-    assert d_state is not None

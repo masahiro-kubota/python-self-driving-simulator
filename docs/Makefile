@@ -12,7 +12,6 @@ BUILDDIR      = build
 PACKAGES = ../core/src/core \
            ../simulators/core/src/simulator_core \
            ../simulators/simulator_kinematic/src/simulator_kinematic \
-           ../simulators/simulator_dynamic/src/simulator_dynamic \
            ../experiment/runner/src/experiment_runner \
            ../experiment/training/src/experiment_training \
            ../ad_components/core/src/ad_component_core \

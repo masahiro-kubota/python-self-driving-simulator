@@ -16,7 +16,6 @@ dependencies = [
     "pid-controller",
     "simulator-core",
     "simulator-kinematic",
-    "simulator-dynamic",
     "core",
     "ad-component-core",
 ]
@@ -33,7 +32,6 @@ planning-utils = { workspace = true }
 pid-controller = { workspace = true }
 simulator-core = { workspace = true }
 simulator-kinematic = { workspace = true }
-simulator-dynamic = { workspace = true }
 
 [tool.uv.workspace]
 members = [
@@ -44,7 +42,6 @@ members = [
     "ad_components/control/pid_controller",
     "simulators/core",
     "simulators/simulator_kinematic",
-    "simulators/simulator_dynamic",
     "experiment/runner",
     "experiment/training",
     "dashboard",
@@ -91,10 +88,9 @@ ignore_missing_imports = true
 addopts = "-p no:launch_testing -p no:launch_testing_ros -p no:launch_testing_ros_pytest_entrypoint"
 testpaths = [
     "core/tests",
-    "experiment/runner/tests",
-    "simulators/simulator_kinematic/tests",
-    "simulators/simulator_dynamic/tests",
     "simulators/core/tests",
+    "simulators/simulator_kinematic/tests",
+    "ad_components/core/tests",
 ]
 markers = [
     "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
