@@ -1,22 +1,18 @@
 import numpy as np
 
-from core.data import SimulationLog, Trajectory
+from core.data import SimulationLog
 from core.data.experiment import EvaluationMetrics
 
 
 class MetricsCalculator:
     """Calculate metrics from simulation log."""
 
-    def __init__(
-        self, reference_trajectory: Trajectory | None = None, wheelbase: float = 2.5
-    ) -> None:
+    def __init__(self, wheelbase: float = 2.5) -> None:
         """Initialize metrics calculator.
 
         Args:
-            reference_trajectory: Reference trajectory for error calculation
             wheelbase: Vehicle wheelbase [m]
         """
-        self.reference_trajectory = reference_trajectory
         self.wheelbase = wheelbase
 
     def calculate(self, log: SimulationLog) -> EvaluationMetrics:
@@ -40,14 +36,9 @@ class MetricsCalculator:
             float(np.max(np.abs(lateral_accels))) if len(lateral_accels) > 0 else 0.0
         )
 
-        # Lateral error (if reference trajectory available)
-        if self.reference_trajectory:
-            lateral_errors = self._calculate_lateral_errors(log)
-            avg_lateral_error = float(np.mean(np.abs(lateral_errors)))
-            max_lateral_error = float(np.max(np.abs(lateral_errors)))
-        else:
-            avg_lateral_error = 0.0
-            max_lateral_error = 0.0
+        # Lateral error (Removed)
+        avg_lateral_error = 0.0
+        max_lateral_error = 0.0
 
         # Comfort score (inverse of jerk)
         comfort_score = self._calculate_comfort_score(log)
@@ -56,8 +47,8 @@ class MetricsCalculator:
         velocities = [s.vehicle_state.velocity for s in log.steps]
         avg_velocity = float(np.mean(velocities)) if velocities else 0.0
 
-        # Success (reached goal)
-        success = 1 if self._check_success(log) else 0
+        # Success (Placeholder, to be set by caller)
+        success = 0
 
         # Collision & lane departure (collision is placeholder)
         collision_count = 0
@@ -88,28 +79,6 @@ class MetricsCalculator:
                 accels.append(lateral_accel)
         return accels
 
-    def _calculate_lateral_errors(self, log: SimulationLog) -> list[float]:
-        """Calculate lateral errors from reference trajectory."""
-        if not self.reference_trajectory:
-            return []
-
-        # Use NeuralController's error calculation logic
-        try:
-            from components.control.neural_controller import NeuralController
-
-            controller = NeuralController("dummy", "dummy")
-            controller.set_reference_trajectory(self.reference_trajectory)
-
-            errors = []
-            for step in log.steps:
-                e_lat, _, _ = controller.calculate_errors(step.vehicle_state)
-                errors.append(e_lat)
-        except ImportError:
-            # Fallback: simple nearest point distance
-            return [0.0] * len(log.steps)
-        else:
-            return errors
-
     def _calculate_comfort_score(self, log: SimulationLog) -> float:
         """Calculate comfort score (0-1, higher is better)."""
         if len(log.steps) < 3:
@@ -132,18 +101,6 @@ class MetricsCalculator:
         # Normalize: lower jerk = higher score
         avg_jerk = float(np.mean(jerks))
         return max(0.0, 1.0 - avg_jerk / 10.0)  # Assuming jerk < 10 is comfortable
-
-    def _check_success(self, log: SimulationLog) -> bool:
-        """Check if simulation succeeded (reached goal)."""
-        if not log.steps or not self.reference_trajectory:
-            return False
-
-        final_state = log.steps[-1].vehicle_state
-        goal = self.reference_trajectory[-1]
-
-        dist = np.sqrt((final_state.x - goal.x) ** 2 + (final_state.y - goal.y) ** 2)
-
-        return bool(dist < 5.0)  # Within 5m of goal
 
     def _calculate_lane_departure_rate(self, log: SimulationLog) -> float:
         """Calculate lane departure rate (fraction of time off-track)."""

@@ -4,8 +4,11 @@ This module provides utilities to generate test simulation data.
 """
 
 import math
+from datetime import datetime
 
 from core.data import Action, SimulationLog, SimulationStep, VehicleState
+from core.data.experiment import ExperimentResult
+from core.data.simulator import SimulationResult
 
 
 def generate_circular_trajectory(
@@ -118,4 +121,45 @@ def generate_figure_eight_trajectory(
     return log
 
 
-__all__ = ["generate_circular_trajectory", "generate_figure_eight_trajectory"]
+def create_experiment_result_from_log(
+    log: SimulationLog,
+    experiment_name: str = "Test Experiment",
+    experiment_type: str = "evaluation",
+) -> ExperimentResult:
+    """Create an ExperimentResult from a SimulationLog for testing.
+
+    Args:
+        log: Simulation log to wrap
+        experiment_name: Name of the experiment
+        experiment_type: Type of the experiment
+
+    Returns:
+        ExperimentResult containing the simulation log
+    """
+    # Get final state from last step
+    final_state = (
+        log.steps[-1].vehicle_state
+        if log.steps
+        else VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=0.0)
+    )
+
+    sim_result = SimulationResult(
+        log=log,
+        success=True,
+        reason="Test completed successfully",
+        final_state=final_state,
+    )
+
+    return ExperimentResult(
+        experiment_name=experiment_name,
+        experiment_type=experiment_type,
+        execution_time=datetime.now(),
+        simulation_results=[sim_result],
+    )
+
+
+__all__ = [
+    "create_experiment_result_from_log",
+    "generate_circular_trajectory",
+    "generate_figure_eight_trajectory",
+]

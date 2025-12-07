@@ -19,6 +19,8 @@ class SimulationConfig:
         ad_component_config: 自動運転コンポーネント設定
         dt: タイムステップ（秒）
         simulator_type: シミュレータタイプ（kinematic / dynamic）
+        goal_x: ゴール位置のX座標 [m]（Noneの場合はゴール判定なし）
+        goal_y: ゴール位置のY座標 [m]（Noneの場合はゴール判定なし）
     """
 
     scene: Scene
@@ -27,3 +29,5 @@ class SimulationConfig:
     ad_component_config: ADComponentConfig
     dt: float = 0.1
     simulator_type: str = "kinematic"
+    goal_x: float | None = None
+    goal_y: float | None = None

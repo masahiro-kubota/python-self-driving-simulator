@@ -73,18 +73,22 @@ from pathlib import Path
 import sys
 sys.path.insert(0, '$DASHBOARD_DIR/tests')
 
-from dummy_data import generate_circular_trajectory
+from dummy_data import generate_circular_trajectory, create_experiment_result_from_log
 from dashboard.generator import HTMLDashboardGenerator
 
 # Generate test data
 print('  → Generating circular trajectory...')
 log = generate_circular_trajectory(num_steps=100, radius=50.0)
 
+# Create ExperimentResult from log
+print('  → Creating experiment result...')
+result = create_experiment_result_from_log(log, experiment_name='Test Dashboard')
+
 # Generate dashboard
 output_path = Path('$OUTPUT_FILE')
 print(f'  → Creating dashboard HTML...')
 generator = HTMLDashboardGenerator()
-generator.generate(log, output_path)
+generator.generate(result, output_path)
 
 print(f'  → Dashboard saved to: {output_path}')
 "

@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from core.data import SimulationLog
+from core.data.experiment import ExperimentResult
 from core.interfaces import DashboardGenerator
 from dashboard.injector import inject_simulation_data
 
@@ -15,32 +15,41 @@ class HTMLDashboardGenerator(DashboardGenerator):
     """HTML dashboard generator using React template.
 
     This class implements the DashboardGenerator interface and generates
-    interactive HTML dashboards from simulation logs using a pre-built
+    interactive HTML dashboards from experiment results using a pre-built
     React template.
     """
 
     def generate(
         self,
-        log: SimulationLog,
+        result: ExperimentResult,
         output_path: Path,
         osm_path: Path | None = None,
     ) -> None:
         """Generate interactive HTML dashboard.
 
         Args:
-            log: Simulation log containing trajectory and metadata
+            result: Experiment result containing simulation results and metadata
             output_path: Path where the generated HTML dashboard will be saved
             osm_path: Optional path to OSM map file for map visualization
 
         Raises:
             FileNotFoundError: If template file not found
-            ValueError: If log data is invalid
+            ValueError: If result data is invalid or contains no simulation results
         """
+        # For now, use the first simulation result
+        # TODO: Support multiple simulation results display
+        if not result.simulation_results:
+            raise ValueError("ExperimentResult contains no simulation results")
+
+        log = result.simulation_results[0].log
+
         # Prepare data in the format expected by the dashboard
         data: dict[str, Any] = {
             "metadata": {
+                "experiment_name": result.experiment_name,
+                "experiment_type": result.experiment_type,
+                "execution_time": result.execution_time.isoformat(),
                 "controller": log.metadata.get("controller", "Unknown Controller"),
-                "execution_time": log.metadata.get("execution_time", "Unknown Time"),
                 **log.metadata,
             },
             "steps": [],

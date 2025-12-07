@@ -143,11 +143,10 @@ class TestBaseSimulator:
         controller.control.return_value = Action(steering=0.0, acceleration=0.0)
 
         # Define a goal trajectory near the starting point + movement
-        from core.data import TrajectoryPoint
         from core.data.ad_components import ADComponentStack
 
         # Goal at x=3.0 (reached after 3 steps)
-        reference_trajectory = [TrajectoryPoint(x=3.0, y=0.0, yaw=0.0, velocity=0.0)]
+        # Goal at x=3.0 (reached after 3 steps)
 
         # Create ADComponentStack
         ad_component = ADComponentStack(planner=planner, controller=controller)
@@ -158,10 +157,13 @@ class TestBaseSimulator:
         # Step 2: x=2.0
         # Step 3: x=3.0 (Goal reached)
 
+        # Set goal in simulator
+        sim.goal_x = 3.0
+        sim.goal_y = 0.0
+
         result = sim.run(
             ad_component,
             max_steps=10,
-            reference_trajectory=reference_trajectory,
             goal_threshold=0.1,
             min_elapsed_time=0.0,  # Immediate check
         )

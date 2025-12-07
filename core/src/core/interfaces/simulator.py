@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from core.data import Action, SimulationLog, Trajectory, VehicleState
+from core.data import Action, SimulationLog, VehicleState
 from core.data.ad_components import ADComponentStack
 
 if TYPE_CHECKING:
@@ -41,14 +41,12 @@ class Simulator(ABC):
         self,
         ad_component: "ADComponentStack",
         max_steps: int = 1000,
-        reference_trajectory: "Trajectory | None" = None,
     ) -> "SimulationResult":
         """シミュレーションを実行.
 
         Args:
             ad_component: AD component instance (planner + controller)
             max_steps: 最大ステップ数
-            reference_trajectory: 参照軌道（ゴール判定用）
 
         Returns:
             SimulationResult: シミュレーション結果

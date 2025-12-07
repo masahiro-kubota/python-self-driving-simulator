@@ -22,6 +22,8 @@ class DynamicSimulator(BaseSimulator):
         initial_state: VehicleState | None = None,
         dt: float = 0.01,  # Smaller dt for RK4 stability
         map_path: str | None = None,
+        goal_x: float | None = None,
+        goal_y: float | None = None,
     ) -> None:
         """初期化.
 
@@ -30,10 +32,17 @@ class DynamicSimulator(BaseSimulator):
             initial_state: 初期車両状態(キネマティクス形式)
             dt: シミュレーション時間刻み [s]
             map_path: Lanelet2マップファイルへのパス
+            goal_x: ゴール位置のX座標 [m]
+            goal_y: ゴール位置のY座標 [m]
         """
 
         super().__init__(
-            vehicle_params=vehicle_params, initial_state=initial_state, dt=dt, map_path=map_path
+            vehicle_params=vehicle_params,
+            initial_state=initial_state,
+            dt=dt,
+            map_path=map_path,
+            goal_x=goal_x,
+            goal_y=goal_y,
         )
 
         self.vehicle_model = DynamicVehicleModel(params=self.vehicle_params)

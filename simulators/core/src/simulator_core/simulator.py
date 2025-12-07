@@ -18,7 +18,7 @@ from simulator_core.data import SimulationVehicleState
 if TYPE_CHECKING:
     from shapely.geometry import Polygon
 
-    from core.data import ADComponentLog, Trajectory
+    from core.data import ADComponentLog
 
 
 class BaseSimulator(Simulator, ABC):
@@ -33,6 +33,8 @@ class BaseSimulator(Simulator, ABC):
         initial_state: VehicleState | None = None,
         dt: float = 0.1,
         map_path: str | None = None,
+        goal_x: float | None = None,
+        goal_y: float | None = None,
     ) -> None:
         """初期化.
 
@@ -41,6 +43,8 @@ class BaseSimulator(Simulator, ABC):
             initial_state: 初期車両状態
             dt: シミュレーション時間刻み [s]
             map_path: Lanelet2マップファイルへのパス
+            goal_x: ゴール位置のX座標 [m]
+            goal_y: ゴール位置のY座標 [m]
         """
         # 後方互換性のため、vehicle_paramsがNoneの場合はデフォルト値を使用
         if vehicle_params is None:
@@ -50,6 +54,8 @@ class BaseSimulator(Simulator, ABC):
 
         self.vehicle_params = vehicle_params
         self.dt = dt
+        self.goal_x = goal_x
+        self.goal_y = goal_y
 
         if initial_state is None:
             self.initial_state = VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=0.0, timestamp=0.0)
@@ -147,7 +153,6 @@ class BaseSimulator(Simulator, ABC):
         self,
         ad_component: "ADComponentStack",
         max_steps: int = 1000,
-        reference_trajectory: "Trajectory | None" = None,
         goal_threshold: float = 5.0,
         min_elapsed_time: float = 20.0,
     ) -> SimulationResult:
@@ -156,7 +161,6 @@ class BaseSimulator(Simulator, ABC):
         Args:
             ad_component: AD component instance (planner + controller)
             max_steps: 最大ステップ数
-            reference_trajectory: 参照軌道（ゴール判定用）
             goal_threshold: ゴール判定の距離閾値 [m]
             min_elapsed_time: ゴール判定を行う最小経過時間 [s]
 
@@ -178,10 +182,9 @@ class BaseSimulator(Simulator, ABC):
             next_state, done, _ = self.step(action)
 
             # Check goal
-            if reference_trajectory is not None:
+            if self.goal_x is not None and self.goal_y is not None:
                 goal_reached = self._check_goal(
                     next_state,
-                    reference_trajectory,
                     step,
                     goal_threshold,
                     min_elapsed_time,
@@ -257,7 +260,6 @@ class BaseSimulator(Simulator, ABC):
     def _check_goal(
         self,
         state: VehicleState,
-        reference_trajectory: "Trajectory",
         step: int,
         goal_threshold: float,
         min_elapsed_time: float,
@@ -266,7 +268,6 @@ class BaseSimulator(Simulator, ABC):
 
         Args:
             state: 現在の車両状態
-            reference_trajectory: 参照軌道
             step: 現在のステップ数
             goal_threshold: ゴール判定の距離閾値 [m]
             min_elapsed_time: ゴール判定を行う最小経過時間 [s]
@@ -275,10 +276,8 @@ class BaseSimulator(Simulator, ABC):
             ゴール到達フラグ
         """
         # Check distance to goal
-        dist_to_end = (
-            (state.x - reference_trajectory[-1].x) ** 2
-            + (state.y - reference_trajectory[-1].y) ** 2
-        ) ** 0.5
+        assert self.goal_x is not None and self.goal_y is not None
+        dist_to_end = ((state.x - self.goal_x) ** 2 + (state.y - self.goal_y) ** 2) ** 0.5
 
         # Use time threshold to avoid early goal detection
         elapsed_time = step * self.dt

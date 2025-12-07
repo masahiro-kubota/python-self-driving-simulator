@@ -22,6 +22,8 @@ simulator:
       from_track: true
     vehicle_config: "experiment/configs/vehicles/default_vehicle.yaml"
     scene_config: "experiment/configs/scenes/default_scene.yaml"
+    goal_x: 89630.0674883
+    goal_y: 43130.6945594
 
 execution:
   num_episodes: 1

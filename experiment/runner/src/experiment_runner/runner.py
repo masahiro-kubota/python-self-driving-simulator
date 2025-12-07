@@ -177,12 +177,6 @@ class ExperimentRunner:
         # Check if running in CI environment
         is_ci = bool(os.getenv("CI"))
 
-        # Get reference trajectory for metrics
-        if hasattr(self.ad_component.planner, "reference_trajectory"):
-            reference_trajectory = self.ad_component.planner.reference_trajectory  # type: ignore
-        else:
-            reference_trajectory = None
-
         if is_ci:
             # Use a dummy context manager in CI
             from contextlib import nullcontext
@@ -215,7 +209,6 @@ class ExperimentRunner:
             sim_result = self.simulator.run(
                 ad_component=self.ad_component.to_stack(),
                 max_steps=max_steps,
-                reference_trajectory=reference_trajectory,
             )
 
             end_time = time.time()
@@ -231,17 +224,8 @@ class ExperimentRunner:
                 result_artifacts.append(Artifact(local_path=mcap_path))
 
             # Calculate metrics
-            result_metrics = None
-            if reference_trajectory is not None:
-                _, metrics_obj = self._calculate_metrics(
-                    sim_result.log, sim_result.success, reference_trajectory
-                )
-                result_metrics = metrics_obj
-
-            # Generate dashboard
-            dashboard_artifact = self._generate_dashboard(sim_result.log, is_ci)
-            if dashboard_artifact:
-                result_artifacts.append(dashboard_artifact)
+            _, metrics_obj = self._calculate_metrics(sim_result.log, sim_result.success)
+            result_metrics = metrics_obj
 
             # Create ExperimentResult
             from core.data.experiment import ExperimentResult
@@ -256,6 +240,11 @@ class ExperimentRunner:
                 metrics=result_metrics,
                 artifacts=result_artifacts,
             )
+
+            # Generate dashboard
+            dashboard_artifact = self._generate_dashboard(experiment_result, is_ci)
+            if dashboard_artifact:
+                experiment_result.artifacts.append(dashboard_artifact)
 
             # Log Consolidated Result
             self.log_result(experiment_result)
@@ -282,11 +271,11 @@ class ExperimentRunner:
                 mcap_logger.log_step(step)
 
     def _calculate_metrics(
-        self, log: SimulationLog, success: bool, reference_trajectory: Any
+        self, log: SimulationLog, success: bool
     ) -> tuple[dict[str, float], EvaluationMetrics]:
         """Calculate simulation metrics."""
         print("Calculating metrics...")
-        calculator = MetricsCalculator(reference_trajectory=reference_trajectory)
+        calculator = MetricsCalculator()
         metrics = calculator.calculate(log)
 
         # Override success metric with SimulationResult.success
@@ -300,8 +289,16 @@ class ExperimentRunner:
 
         return result_metrics, metrics
 
-    def _generate_dashboard(self, log: SimulationLog, is_ci: bool) -> Artifact | None:
-        """Generate interactive dashboard."""
+    def _generate_dashboard(self, result: ExperimentResult, is_ci: bool) -> Artifact | None:
+        """Generate interactive dashboard.
+
+        Args:
+            result: Experiment result containing simulation results
+            is_ci: Whether running in CI environment
+
+        Returns:
+            Dashboard artifact if generated, None otherwise
+        """
         if not self.config.logging.dashboard.enabled:
             return None
 
@@ -322,7 +319,7 @@ class ExperimentRunner:
             )
 
         generator = HTMLDashboardGenerator()
-        generator.generate(log, dashboard_path, osm_path)
+        generator.generate(result, dashboard_path, osm_path)
 
         artifact = None
         if dashboard_path.exists():
@@ -331,7 +328,7 @@ class ExperimentRunner:
         if is_ci:
             # In CI, save simulation log as JSON for dashboard injection
             ci_log_path = Path("simulation_log.json")
-            log.save(ci_log_path)
+            result.simulation_results[0].log.save(ci_log_path)
             print(f"Simulation log saved to {ci_log_path} for CI dashboard injection")
 
             # Also save dashboard to persistent location for artifact upload
@@ -390,12 +387,6 @@ class ExperimentRunner:
 
             collected_files = []
 
-            # Get reference trajectory if available
-            if hasattr(self.planner, "reference_trajectory"):
-                reference_trajectory = self.planner.reference_trajectory  # type: ignore
-            else:
-                reference_trajectory = None
-
             for episode in range(self.config.execution.num_episodes):
                 print(f"\nEpisode {episode + 1}/{self.config.execution.num_episodes}")
 
@@ -403,7 +394,6 @@ class ExperimentRunner:
                 result = self.simulator.run(
                     ad_component=self.ad_component.to_stack(),
                     max_steps=self.config.execution.max_steps_per_episode,
-                    reference_trajectory=reference_trajectory,
                 )
 
                 print(f"  Episode completed: {result.reason}")
