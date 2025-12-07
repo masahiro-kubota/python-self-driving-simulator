@@ -8,8 +8,7 @@ from core.interfaces.ad_components import (
 )
 from core.interfaces.dashboard import DashboardGenerator
 from core.interfaces.experiment import ExperimentRunner
-from core.interfaces.simulation import SimulationLogRepository
-from core.interfaces.simulator import Simulator
+from core.interfaces.simulator import SimulationLogRepository, Simulator
 from core.interfaces.vehicle import VehicleParametersRepository
 
 __all__ = [

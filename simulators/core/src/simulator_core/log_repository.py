@@ -6,7 +6,7 @@ from pathlib import Path
 from core.data.ad_components.action import Action
 from core.data.ad_components.state import VehicleState
 from core.data.simulator.log import SimulationLog, SimulationStep
-from core.interfaces.simulation import SimulationLogRepository
+from core.interfaces.simulator import SimulationLogRepository
 
 
 class JsonSimulationLogRepository(SimulationLogRepository):
