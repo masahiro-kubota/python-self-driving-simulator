@@ -22,7 +22,6 @@ class SimulationLogRepository(ABC):
             log: Simulation log to save
             file_path: Output file path
         """
-        pass
 
     @abstractmethod
     def load(self, file_path: Path) -> SimulationLog:
@@ -34,4 +33,3 @@ class SimulationLogRepository(ABC):
         Returns:
             SimulationLog object
         """
-        pass

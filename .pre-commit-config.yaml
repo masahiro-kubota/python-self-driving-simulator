@@ -99,6 +99,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: vulture
+        name: vulture (unused code detection)
+        entry: uv run vulture core/ ad_components/ simulators/ experiment/ --min-confidence 80
+        language: system
+        pass_filenames: false
+        always_run: true
 
 
 

@@ -10,7 +10,7 @@ class TestSolver:
         """Test RK4 with a simple linear function: dx/dt = 1."""
 
         # dx/dt = 1, x(0) = 0 -> x(t) = t
-        def derivative_func(state: float) -> float:
+        def derivative_func(_state: float) -> float:
             return 1.0
 
         def add_func(state: float, derivative: float, dt: float) -> float:

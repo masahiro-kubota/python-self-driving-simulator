@@ -19,7 +19,7 @@ from core.interfaces import (
 class DummyPerception(Perception):
     """Dummy perception implementation for testing."""
 
-    def perceive(self, sensor_data: object) -> Observation:
+    def perceive(self, _sensor_data: object) -> Observation:
         """Return dummy observation."""
         return Observation(lateral_error=0.0, heading_error=0.0, velocity=5.0, target_velocity=5.0)
 
@@ -30,7 +30,7 @@ class DummyPerception(Perception):
 class DummyPlanner(Planner):
     """Dummy planner implementation for testing."""
 
-    def plan(self, observation: Observation, vehicle_state: VehicleState) -> Trajectory:
+    def plan(self, _observation: Observation, _vehicle_state: VehicleState) -> Trajectory:
         """Return dummy trajectory."""
         points = [
             TrajectoryPoint(x=0.0, y=0.0, yaw=0.0, velocity=5.0),
@@ -47,9 +47,9 @@ class DummyController(Controller):
 
     def control(
         self,
-        trajectory: Trajectory,
-        vehicle_state: VehicleState,
-        observation: Observation | None = None,
+        _trajectory: Trajectory,
+        _vehicle_state: VehicleState,
+        _observation: Observation | None = None,
     ) -> Action:
         """Return dummy action."""
         return Action(steering=0.0, acceleration=0.0)
@@ -70,7 +70,7 @@ class DummySimulator(Simulator):
         self.state = VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=0.0)
         return self.state
 
-    def step(self, action: Action) -> tuple[VehicleState, Observation, bool, dict[str, object]]:
+    def step(self, _action: Action) -> tuple[VehicleState, Observation, bool, dict[str, object]]:
         """Step simulator."""
         # Simple update
         self.state.x += 0.1
@@ -87,10 +87,10 @@ class DummySimulator(Simulator):
 
     def run(
         self,
-        planner: Planner,
-        controller: Controller,
-        max_steps: int = 1000,
-        reference_trajectory: Trajectory | None = None,
+        _planner: Planner,
+        _controller: Controller,
+        _max_steps: int = 1000,
+        _reference_trajectory: Trajectory | None = None,
     ) -> object:
         """Run simulation (dummy implementation for testing)."""
         from core.data import SimulationResult

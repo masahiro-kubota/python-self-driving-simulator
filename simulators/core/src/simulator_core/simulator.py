@@ -121,7 +121,7 @@ class BaseSimulator(Simulator, ABC):
             timestamp=vehicle_state.timestamp or 0.0,
             vehicle_state=vehicle_state,
             action=action,
-            ad_component_log=self._create_ad_component_log(vehicle_state),
+            ad_component_log=self._create_ad_component_log(),
             info=self._create_info(),
         )
         self.log.steps.append(step_log)
@@ -142,7 +142,6 @@ class BaseSimulator(Simulator, ABC):
         Returns:
             更新後の車両状態（SimulationVehicleState形式）
         """
-        pass
 
     def run(
         self,
@@ -228,13 +227,10 @@ class BaseSimulator(Simulator, ABC):
     def close(self) -> None:
         """シミュレータを終了."""
 
-    def _create_ad_component_log(self, state: VehicleState) -> "ADComponentLog":
+    def _create_ad_component_log(self) -> "ADComponentLog":
         """ADコンポーネントログを生成.
 
         サブクラスでオーバーライドして、必要なログを生成できます。
-
-        Args:
-            state: 現在の車両状態
 
         Returns:
             ADコンポーネントログ

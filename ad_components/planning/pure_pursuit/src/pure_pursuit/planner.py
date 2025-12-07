@@ -32,11 +32,11 @@ class PurePursuitPlanner(Planner):
         """
         self.reference_trajectory = trajectory
 
-    def plan(self, observation: Observation, vehicle_state: VehicleState) -> Trajectory:
+    def plan(self, _observation: Observation, vehicle_state: VehicleState) -> Trajectory:
         """Plan a trajectory using Pure Pursuit.
 
         Args:
-            observation: Current observation (unused in simple Pure Pursuit)
+            _observation: Current observation (unused in simple Pure Pursuit)
             vehicle_state: Current vehicle state
 
         Returns:

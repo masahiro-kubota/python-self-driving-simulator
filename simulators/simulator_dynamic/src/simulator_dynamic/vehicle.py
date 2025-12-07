@@ -49,8 +49,8 @@ class DynamicVehicleModel:
             alpha_r = -math.atan2(state.vy - p.lr * state.yaw_rate, state.vx)
 
         # タイヤの横方向力(線形タイヤモデル)
-        fyf = self.tire_front.lateral_force(alpha_f, 0.0)
-        fyr = self.tire_rear.lateral_force(alpha_r, 0.0)
+        fyf = self.tire_front.lateral_force(alpha_f)
+        fyr = self.tire_rear.lateral_force(alpha_r)
 
         # 縦方向力(簡易モデル: スロットルに比例)
         fx = throttle * p.max_drive_force if throttle >= 0 else throttle * p.max_brake_force

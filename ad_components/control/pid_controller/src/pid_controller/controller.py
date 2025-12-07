@@ -41,14 +41,14 @@ class PIDController(Controller):
         self,
         trajectory: Trajectory,
         vehicle_state: VehicleState,
-        observation: Observation | None = None,
+        _observation: Observation | None = None,
     ) -> Action:
         """Compute control action.
 
         Args:
             trajectory: Target trajectory (expected to contain at least one point as target)
             vehicle_state: Current vehicle state
-            observation: Current observation (unused)
+            _observation: Current observation (unused)
 
         Returns:
             Control action (steering, acceleration)

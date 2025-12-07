@@ -136,7 +136,7 @@ class GenericADComponent(ADComponent):
                 from planning_utils import load_track_csv  # type: ignore
 
                 track = load_track_csv(Path(track_path))
-                getattr(instance, "set_reference_trajectory")(track)
+                instance.set_reference_trajectory(track)
             except (ImportError, ValueError) as e:
                 print(f"Warning: Failed to load track: {e}")
 
