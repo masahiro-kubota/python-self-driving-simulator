@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from core.data import Action, SimulationLog, Trajectory, VehicleState
+from core.data.ad_components import ADComponentStack
 
 if TYPE_CHECKING:
     from core.data import SimulationResult
-    from core.interfaces import Controller, Planner
 
 
 class Simulator(ABC):
@@ -39,16 +39,14 @@ class Simulator(ABC):
     @abstractmethod
     def run(
         self,
-        planner: "Planner",
-        controller: "Controller",
+        ad_component: "ADComponentStack",
         max_steps: int = 1000,
         reference_trajectory: "Trajectory | None" = None,
     ) -> "SimulationResult":
         """シミュレーションを実行.
 
         Args:
-            planner: プランナー
-            controller: コントローラー
+            ad_component: AD component instance (planner + controller)
             max_steps: 最大ステップ数
             reference_trajectory: 参照軌道（ゴール判定用）
 

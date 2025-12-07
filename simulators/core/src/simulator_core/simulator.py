@@ -11,6 +11,7 @@ from core.data import (
     VehicleParameters,
     VehicleState,
 )
+from core.data.ad_components import ADComponentStack
 from core.interfaces import Simulator
 from simulator_core.data import SimulationVehicleState
 
@@ -18,7 +19,6 @@ if TYPE_CHECKING:
     from shapely.geometry import Polygon
 
     from core.data import ADComponentLog, Trajectory
-    from core.interfaces import Controller, Planner
 
 
 class BaseSimulator(Simulator, ABC):
@@ -145,8 +145,7 @@ class BaseSimulator(Simulator, ABC):
 
     def run(
         self,
-        planner: "Planner",
-        controller: "Controller",
+        ad_component: "ADComponentStack",
         max_steps: int = 1000,
         reference_trajectory: "Trajectory | None" = None,
         goal_threshold: float = 5.0,
@@ -155,8 +154,7 @@ class BaseSimulator(Simulator, ABC):
         """シミュレーションを実行.
 
         Args:
-            planner: プランナー
-            controller: コントローラー
+            ad_component: AD component instance (planner + controller)
             max_steps: 最大ステップ数
             reference_trajectory: 参照軌道（ゴール判定用）
             goal_threshold: ゴール判定の距離閾値 [m]
@@ -171,10 +169,10 @@ class BaseSimulator(Simulator, ABC):
         # Run simulation loop
         for step in range(max_steps):
             # Plan
-            target_trajectory = planner.plan(None, current_state)
+            target_trajectory = ad_component.planner.plan(None, current_state)
 
             # Control
-            action = controller.control(target_trajectory, current_state)
+            action = ad_component.controller.control(target_trajectory, current_state)
 
             # Simulate
             next_state, done, _ = self.step(action)

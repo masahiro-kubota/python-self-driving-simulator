@@ -213,8 +213,7 @@ class ExperimentRunner:
                 self.config.execution.max_steps_per_episode if self.config.execution else 2000
             )
             sim_result = self.simulator.run(
-                planner=self.ad_component.planner,
-                controller=self.ad_component.controller,
+                ad_component=self.ad_component.to_stack(),
                 max_steps=max_steps,
                 reference_trajectory=reference_trajectory,
             )
@@ -402,8 +401,7 @@ class ExperimentRunner:
 
                 # Run episode using simulator.run()
                 result = self.simulator.run(
-                    planner=self.ad_component.planner,
-                    controller=self.ad_component.controller,
+                    ad_component=self.ad_component.to_stack(),
                     max_steps=self.config.execution.max_steps_per_episode,
                     reference_trajectory=reference_trajectory,
                 )

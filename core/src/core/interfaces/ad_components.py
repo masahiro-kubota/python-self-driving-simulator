@@ -1,11 +1,14 @@
 """Autonomous driving component interfaces."""
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from core.data import Action, Observation, VehicleParameters, VehicleState
 from core.data.ad_components import Trajectory
 from core.data.ad_components.sensing import Sensing
+
+if TYPE_CHECKING:
+    from core.data.ad_components import ADComponentStack
 
 
 class ADComponent(ABC):
@@ -71,6 +74,16 @@ class ADComponent(ABC):
         """コンポーネントをリセット."""
         self.planner.reset()
         self.controller.reset()
+
+    def to_stack(self) -> "ADComponentStack":
+        """Convert to ADComponentStack for simulation.
+
+        Returns:
+            ADComponentStack with planner and controller
+        """
+        from core.data.ad_components import ADComponentStack
+
+        return ADComponentStack(planner=self.planner, controller=self.controller)
 
 
 class Perception(ABC):

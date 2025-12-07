@@ -116,8 +116,13 @@ class TestBaseSimulator:
         controller = MagicMock()
         controller.control.return_value = Action(steering=0.0, acceleration=0.0)
 
+        # Create ADComponentStack
+        from core.data.ad_components import ADComponentStack
+
+        ad_component = ADComponentStack(planner=planner, controller=controller)
+
         # Run for 5 steps
-        result = sim.run(planner, controller, max_steps=5)
+        result = sim.run(ad_component, max_steps=5)
 
         assert isinstance(result, SimulationResult)
         assert not result.success  # Not reached goal
@@ -139,9 +144,13 @@ class TestBaseSimulator:
 
         # Define a goal trajectory near the starting point + movement
         from core.data import TrajectoryPoint
+        from core.data.ad_components import ADComponentStack
 
         # Goal at x=3.0 (reached after 3 steps)
         reference_trajectory = [TrajectoryPoint(x=3.0, y=0.0, yaw=0.0, velocity=0.0)]
+
+        # Create ADComponentStack
+        ad_component = ADComponentStack(planner=planner, controller=controller)
 
         # Run with sufficient steps but short validation time
         # MockSimulator moves +1.0 x per step.
@@ -150,8 +159,7 @@ class TestBaseSimulator:
         # Step 3: x=3.0 (Goal reached)
 
         result = sim.run(
-            planner,
-            controller,
+            ad_component,
             max_steps=10,
             reference_trajectory=reference_trajectory,
             goal_threshold=0.1,
