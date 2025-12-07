@@ -38,3 +38,32 @@ class SimulationLog:
 
     steps: list[SimulationStep]
     metadata: dict[str, Any]
+
+    def save(self, path: str | Any) -> None:
+        """Save simulation log to a JSON file.
+
+        Args:
+            path: Path to save the JSON file
+        """
+        import dataclasses
+        import json
+        from pathlib import Path
+
+        import numpy as np
+
+        class NormalizedEncoder(json.JSONEncoder):
+            def default(self, obj: Any) -> Any:
+                if isinstance(obj, np.integer):
+                    return int(obj)
+                if isinstance(obj, np.floating):
+                    return float(obj)
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                return super().default(obj)
+
+        path_obj = Path(path)
+        path_obj.parent.mkdir(parents=True, exist_ok=True)
+
+        data = dataclasses.asdict(self)
+        with path_obj.open("w") as f:
+            json.dump(data, f, cls=NormalizedEncoder, indent=2)
