@@ -237,26 +237,24 @@ sequenceDiagram
     end
 ```
 
-#### StandardADComponent
+#### FlexibleADComponent
 
-`StandardADComponent`は、Planner、Controller、Sensorを組み合わせてノードを提供する標準実装です：
+`FlexibleADComponent`は、設定ファイルに基づいて動的にノードを構築・接続する標準実装です。
+YAML設定でパイプラインを定義できるため、コードを変更せずにセンサー、認識、計画、制御の構成を変更できます。
 
 ```python
-class StandardADComponent(ADComponent):
-    def __init__(self, vehicle_params, **kwargs):
-        # 設定からplanner/controllerをインスタンス化
-        self.planner = self._create_planner(**kwargs)
-        self.controller = self._create_controller(**kwargs)
-
-        # ノードを作成
-        self.nodes = [
-            SensorNode(rate_hz=50.0),
-            PlanningNode(self.planner, rate_hz=10.0),
-            ControlNode(self.controller, rate_hz=30.0),
-        ]
-
-    def get_schedulable_nodes(self) -> list[Node]:
-        return self.nodes
+class FlexibleADComponent(ADComponent):
+    def __init__(self, vehicle_params, nodes, **kwargs):
+        # 設定からノードを動的に構築
+        for node_config in nodes:
+            processor = self._create_processor(node_config["processor"], vehicle_params)
+            node = GenericProcessingNode(
+                name=node_config["name"],
+                processor=processor,
+                io_spec=NodeIO(**node_config["io"]),
+                rate_hz=node_config["rate_hz"],
+            )
+            self.nodes_list.append(node)
 ```
 
 #### 設定例
@@ -267,21 +265,43 @@ module:
   name: "pure_pursuit_pid"
   components:
     ad_component:
-      type: "experiment_runner.ad_components.StandardADComponent"
+      type: "experiment_runner.flexible_ad_component.FlexibleADComponent"
       params:
-        updates:
-          planning_hz: 10.0
-          control_hz: 30.0
-        planning:
-          type: "PurePursuitPlanner"
-          params:
-            lookahead_distance: 5.0
-        control:
-          type: "PIDController"
-          params:
-            kp: 1.0
-            ki: 0.1
-            kd: 0.05
+        nodes:
+          - name: "Sensor"
+            processor:
+              type: "core.processors.sensor.IdealSensorProcessor"
+            io:
+              inputs: ["sim_state"]
+              output: "vehicle_state"
+            rate_hz: 50.0
+
+          - name: "Planning"
+            processor:
+              type: "core.adapters.planner_adapter.PlannerAdapter"
+              params:
+                planner:
+                  type: "pure_pursuit.PurePursuitPlanner"
+                  params:
+                    lookahead_distance: 5.0
+                    track_path: "path/to/track.csv"
+            io:
+              inputs: ["vehicle_state", "observation"]
+              output: "trajectory"
+            rate_hz: 10.0
+
+          - name: "Control"
+            processor:
+              type: "core.adapters.controller_adapter.ControllerAdapter"
+              params:
+                controller:
+                  type: "pid_controller.PIDController"
+                  params:
+                    kp: 1.0
+            io:
+              inputs: ["trajectory", "vehicle_state", "observation"]
+              output: "action"
+            rate_hz: 30.0
 
     simulator:
       type: "KinematicSimulator"
