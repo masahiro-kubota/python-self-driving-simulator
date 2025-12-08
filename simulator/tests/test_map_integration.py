@@ -1,4 +1,4 @@
-"""Test to verify map functionality works for both simulators."""
+"""Test to verify map functionality works for both simulator."""
 
 import tempfile
 from pathlib import Path
@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from core.data import Action, VehicleState
-from simulators.kinematic import KinematicSimulator
+from simulator.simulator import KinematicSimulator
 
 
 @pytest.fixture

@@ -3,17 +3,17 @@
 import math
 
 from core.data import Action, VehicleState
-from simulators.core.data import SimulationVehicleState
-from simulators.kinematic import KinematicSimulator
-from simulators.kinematic.vehicle import KinematicVehicleModel
+from simulator.dynamics import update_bicycle_model
+from simulator.simulator import KinematicSimulator
+from simulator.state import SimulationVehicleState
 
 
-class TestKinematicVehicleModel:
-    """Tests for KinematicVehicleModel."""
+class TestDynamicsFunctions:
+    """Tests for dynamics functions."""
 
     def test_straight_line(self) -> None:
         """Test straight line motion."""
-        model = KinematicVehicleModel(wheelbase=2.5)
+        wheelbase = 2.5
         state = SimulationVehicleState(
             x=0.0,
             y=0.0,
@@ -30,7 +30,9 @@ class TestKinematicVehicleModel:
         )
 
         # Move straight for 1 second
-        new_state = model.step(state, steering=0.0, acceleration=0.0, dt=1.0)
+        new_state = update_bicycle_model(
+            state, steering=0.0, acceleration=0.0, dt=1.0, wheelbase=wheelbase
+        )
 
         assert abs(new_state.x - 10.0) < 1e-10
         assert abs(new_state.y - 0.0) < 1e-10
@@ -41,7 +43,7 @@ class TestKinematicVehicleModel:
 
     def test_acceleration(self) -> None:
         """Test acceleration."""
-        model = KinematicVehicleModel(wheelbase=2.5)
+        wheelbase = 2.5
         state = SimulationVehicleState(
             x=0.0,
             y=0.0,
@@ -58,7 +60,9 @@ class TestKinematicVehicleModel:
         )
 
         # Accelerate at 2.0 m/s^2 for 1 second
-        new_state = model.step(state, steering=0.0, acceleration=2.0, dt=1.0)
+        new_state = update_bicycle_model(
+            state, steering=0.0, acceleration=2.0, dt=1.0, wheelbase=wheelbase
+        )
 
         assert abs(new_state.vx - 2.0) < 1e-10
         # Trapezoidal rule: x_next = x + vx_avg * dt = 0 + (0 + 2) / 2 * 1 = 1.0
@@ -68,7 +72,7 @@ class TestKinematicVehicleModel:
 
     def test_turning(self) -> None:
         """Test turning motion."""
-        model = KinematicVehicleModel(wheelbase=2.5)
+        wheelbase = 2.5
         state = SimulationVehicleState(
             x=0.0,
             y=0.0,
@@ -88,7 +92,9 @@ class TestKinematicVehicleModel:
         steering = math.atan(2.5 / 10.0)  # Radius = L / tan(delta) = 10.0
         # yaw_rate = vx / R = 5.0 / 10.0 = 0.5 rad/s
 
-        new_state = model.step(state, steering=steering, acceleration=0.0, dt=1.0)
+        new_state = update_bicycle_model(
+            state, steering=steering, acceleration=0.0, dt=1.0, wheelbase=wheelbase
+        )
 
         # Expected yaw change = 0.5 * 1.0 = 0.5 rad
         assert abs(new_state.yaw - 0.5) < 1e-10
@@ -97,7 +103,7 @@ class TestKinematicVehicleModel:
 
     def test_backward_motion(self) -> None:
         """Test backward motion."""
-        model = KinematicVehicleModel(wheelbase=2.5)
+        wheelbase = 2.5
         # 後退速度
         state = SimulationVehicleState(
             x=0.0,
@@ -115,19 +121,16 @@ class TestKinematicVehicleModel:
         )
 
         # ステアリングを切って後退
-        # 後退時の旋回中心は変わらないが、yaw_rateの符号は速度に依存するはず
-        # yaw_rate = v * tan(delta) / L
-        # v < 0 なので yaw_rate も符号が反転するはず
         steering = 0.5
-        new_state = model.step(state, steering=steering, acceleration=0.0, dt=1.0)
+        new_state = update_bicycle_model(
+            state, steering=steering, acceleration=0.0, dt=1.0, wheelbase=wheelbase
+        )
 
         # X座標は減少
         assert new_state.x < 0.0
         # 速度は維持(加速度0)
         assert abs(new_state.vx - (-5.0)) < 1e-10
-        # Yawレートは負になるはず(左ハンドルで後退=車体後部は右へ=Yawは右回転=負?)
-        # 数式: yaw_rate = v * tan(delta) / L
-        # -5 * tan(0.5) / 2.5 ~= -1.09
+
         expected_yaw_rate = -5.0 * math.tan(0.5) / 2.5
         assert abs(new_state.yaw_rate - expected_yaw_rate) < 1e-10
 

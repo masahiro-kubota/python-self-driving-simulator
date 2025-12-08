@@ -1,7 +1,7 @@
 """Tests for SimulationVehicleState."""
 
 from core.data import Action, VehicleState
-from simulators.core.data import SimulationVehicleState
+from simulator.state import SimulationVehicleState
 
 
 class TestSimulationVehicleState:

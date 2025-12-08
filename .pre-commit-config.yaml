@@ -63,24 +63,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^ad_components/control/pid_controller/
-      - id: deptry-simulators-core
-        name: deptry (simulators/core)
-        entry: uv run --directory simulators/core deptry .
+      - id: deptry-simulator
+        name: deptry (simulator)
+        entry: uv run --directory simulator deptry .
         language: system
         pass_filenames: false
-        files: ^simulators/core/
-      - id: deptry-simulator-kinematic
-        name: deptry (simulators/simulator_kinematic)
-        entry: uv run --directory simulators/simulator_kinematic deptry .
-        language: system
-        pass_filenames: false
-        files: ^simulators/simulator_kinematic/
-      - id: deptry-simulator-dynamic
-        name: deptry (simulators/simulator_dynamic)
-        entry: uv run --directory simulators/simulator_dynamic deptry .
-        language: system
-        pass_filenames: false
-        files: ^simulators/simulator_dynamic/
+        files: ^simulator/
       - id: deptry-dashboard
         name: deptry (dashboard)
         entry: uv run --directory dashboard deptry .
@@ -95,7 +83,7 @@ repos:
         always_run: true
       - id: vulture
         name: vulture (unused code detection)
-        entry: uv run vulture core/ ad_components/ simulators/ experiment/ --min-confidence 80
+        entry: uv run vulture core/ ad_components/ simulator/ experiment/ --min-confidence 80
         language: system
         pass_filenames: false
         always_run: true

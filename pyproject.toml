@@ -14,7 +14,7 @@ dependencies = [
     "pure-pursuit",
     "planning-utils",
     "pid-controller",
-    "simulators",
+    "simulator",
     "core",
     "ad-component-core",
 ]
@@ -29,7 +29,7 @@ ad-component-core = { workspace = true }
 pure-pursuit = { workspace = true }
 planning-utils = { workspace = true }
 pid-controller = { workspace = true }
-simulators = { workspace = true }
+simulator = { workspace = true }
 
 [tool.uv.workspace]
 members = [
@@ -38,7 +38,7 @@ members = [
     "ad_components/planning/pure_pursuit",
     "ad_components/planning/planning_utils",
     "ad_components/control/pid_controller",
-    "simulators",
+    "simulator",
     "experiment",
     "experiment/training",
     "dashboard",
@@ -85,7 +85,7 @@ ignore_missing_imports = true
 addopts = "-p no:launch_testing -p no:launch_testing_ros -p no:launch_testing_ros_pytest_entrypoint"
 testpaths = [
     "core/tests",
-    "simulators/tests",
+    "simulator/tests",
     "experiment/tests",
 ]
 markers = [

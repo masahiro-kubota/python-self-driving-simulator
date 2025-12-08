@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from core.data import Action, SimulationLog, SimulationStep, VehicleState
-from simulators.core import JsonSimulationLogRepository
+from simulator import JsonSimulationLogRepository
 
 
 class TestJsonSimulationLogRepository:

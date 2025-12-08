@@ -80,7 +80,7 @@ ignore = [
 "**/scripts/**" = ["T201"]  # Allow print in scripts
 "**/tools/**" = ["T201"]  # Allow print in tools
 "**/tests/**" = ["ARG002"]  # Allow unused arguments in test fixtures
-"**/simulators/**" = ["ERA001"]  # Allow commented equations for documentation
+"**/simulator/**" = ["ERA001"]  # Allow commented equations for documentation
 
 [tool.ruff.lint.isort]
 known-first-party = ["core"]

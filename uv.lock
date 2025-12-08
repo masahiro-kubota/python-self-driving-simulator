@@ -11,7 +11,7 @@ members = [
     "pid-controller",
     "planning-utils",
     "pure-pursuit",
-    "simulators",
+    "simulator",
 ]
 
 [[package]]
@@ -632,7 +632,7 @@ dependencies = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
-    { name = "simulators" },
+    { name = "simulator" },
 ]
 
 [package.dev-dependencies]
@@ -659,7 +659,7 @@ requires-dist = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "ruff", specifier = ">=0.8.0" },
-    { name = "simulators", editable = "simulators" },
+    { name = "simulator", editable = "simulator" },
 ]
 
 [package.metadata.requires-dev]
@@ -2401,9 +2401,9 @@ wheels = [
 ]
 
 [[package]]
-name = "simulators"
+name = "simulator"
 version = "0.1.0"
-source = { editable = "simulators" }
+source = { editable = "simulator" }
 dependencies = [
     { name = "core" },
     { name = "pyright" },

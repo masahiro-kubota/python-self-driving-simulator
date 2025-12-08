@@ -58,7 +58,7 @@ data_collection:
 
 ```yaml
 simulator:
-  type: "simulators.kinematic.KinematicSimulator"
+  type: "simulator.KinematicSimulator"
   params:
     dt: 0.1
     initial_state:
@@ -144,5 +144,5 @@ for exp in experiments:
 - `pyyaml`: YAML設定の読み込み
 - `mlflow`: 実験トラッキング
 - `boto3`: MLflow S3アーティファクトストレージ
-- `core`, `simulators`, `dashboard`, `experiment-training`: 内部パッケージ
+- `core`, `simulator`, `dashboard`, `experiment-training`: 内部パッケージ
 - `pure_pursuit`, `pid_controller`, `neural_controller`, `planning_utils`: コンポーネントパッケージ

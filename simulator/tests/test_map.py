@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from simulators.core.lanelet_map import LaneletMap
+from simulator.map import LaneletMap
 
 
 class TestLaneletMap:
@@ -13,8 +13,7 @@ class TestLaneletMap:
     @pytest.fixture
     def map_path(self) -> Path:
         """Get path to the lanelet2 map."""
-        # Test is in simulators/tests/core, map is in simulators/assets
-        return Path(__file__).parent.parent.parent / "assets/lanelet2_map.osm"
+        return Path(__file__).parent / "assets/lanelet2_map.osm"
 
     @pytest.fixture
     def lanelet_map(self, map_path: Path) -> LaneletMap:
@@ -71,7 +70,7 @@ class TestLaneletMap:
         from unittest.mock import patch
 
         # Patch _load_map to prevent actual file loading
-        with patch("simulators.core.lanelet_map.LaneletMap._load_map"):
+        with patch("simulator.map.LaneletMap._load_map"):
             lanelet_map = LaneletMap(Path("dummy.osm"))
             # Force drivable_area to None (default)
             lanelet_map.drivable_area = None

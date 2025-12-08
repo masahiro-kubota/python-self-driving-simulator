@@ -19,7 +19,7 @@ def get_project_group(path: pathlib.Path, root: pathlib.Path) -> str:
     parts = rel_path.parts
     if parts[0] in ["core", "dashboard", "experiment"]:
         return parts[0]
-    if parts[0] in ["ad_components", "simulators"]:
+    if parts[0] in ["ad_components", "simulator"]:
         # return top level dir for these as they have sub categories
         # Actually proper grouping might be better.
         # ad_components/core -> ad_components

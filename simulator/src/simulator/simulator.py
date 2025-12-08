@@ -1,6 +1,6 @@
-"""Base classes for simulators."""
+"""Simulator implementation."""
 
-from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from core.data import (
@@ -11,8 +11,8 @@ from core.data import (
     VehicleParameters,
     VehicleState,
 )
-from core.interfaces import Simulator
-from simulators.core.data import SimulationVehicleState
+from core.interfaces import Simulator as SimulatorInterface
+from simulator.state import SimulationVehicleState
 
 if TYPE_CHECKING:
     from shapely.geometry import Polygon
@@ -21,14 +21,13 @@ if TYPE_CHECKING:
     from core.interfaces import ADComponent
 
 
-class BaseSimulator(Simulator, ABC):
-    """シミュレータの基底クラス.
-
-    共通の初期化処理、ステップ実行、ログ記録を提供します。
-    """
+class Simulator(SimulatorInterface):
+    """Generic Simulator class using composition for dynamics."""
 
     def __init__(
         self,
+        step_update_func: Callable[[SimulationVehicleState, Action, float], SimulationVehicleState],
+        get_vehicle_polygon_func: Callable[[VehicleState], "Polygon"],
         vehicle_params: "VehicleParameters | None" = None,
         initial_state: VehicleState | None = None,
         dt: float = 0.1,
@@ -36,17 +35,22 @@ class BaseSimulator(Simulator, ABC):
         goal_x: float | None = None,
         goal_y: float | None = None,
     ) -> None:
-        """初期化.
+        """Initialize Simulator.
 
         Args:
-            vehicle_params: 車両パラメータ（Noneの場合はデフォルト値を使用）
-            initial_state: 初期車両状態
-            dt: シミュレーション時間刻み [s]
-            map_path: Lanelet2マップファイルへのパス
-            goal_x: ゴール位置のX座標 [m]
-            goal_y: ゴール位置のY座標 [m]
+            step_update_func: Function to update state (state, action, dt) -> next_state
+            get_vehicle_polygon_func: Function to get vehicle polygon (state) -> Polygon
+            vehicle_params: Vehicle parameters (None will use default)
+            initial_state: Initial vehicle state
+            dt: Time step [s]
+            map_path: Path to Lanelet2 map file
+            goal_x: Goal X coordinate [m]
+            goal_y: Goal Y coordinate [m]
         """
-        # 後方互換性のため、vehicle_paramsがNoneの場合はデフォルト値を使用
+        self.step_update_func = step_update_func
+        self.get_vehicle_polygon_func = get_vehicle_polygon_func
+
+        # For backward compatibility / default values
         if vehicle_params is None:
             vehicle_params = VehicleParameters()
         elif isinstance(vehicle_params, dict):
@@ -64,25 +68,25 @@ class BaseSimulator(Simulator, ABC):
         else:
             self.initial_state = initial_state
 
-        # 内部状態はSimulationVehicleStateで管理
+        # Manage internal state with SimulationVehicleState
         self._current_state = SimulationVehicleState.from_vehicle_state(self.initial_state)
-        self.current_time = 0.0  # シミュレーション時刻の追跡
+        self.current_time = 0.0
         self.log = SimulationLog(steps=[], metadata={})
 
-        # マップの読み込み
-        self.map: Any = None  # LaneletMap | None (runtime import)
+        # Load map
+        self.map: Any = None
         if map_path:
-            import pathlib
+            from pathlib import Path
 
-            from simulators.core.lanelet_map import LaneletMap
+            from simulator.map import LaneletMap
 
-            self.map = LaneletMap(pathlib.Path(map_path))
+            self.map = LaneletMap(Path(map_path))
 
     def reset(self) -> VehicleState:
-        """シミュレーションをリセット.
+        """Reset simulation.
 
         Returns:
-            初期車両状態
+            Initial vehicle state
         """
         self._current_state = SimulationVehicleState.from_vehicle_state(self.initial_state)
         self.current_time = 0.0
@@ -90,10 +94,10 @@ class BaseSimulator(Simulator, ABC):
         return self.initial_state
 
     def step(self, action: Action) -> tuple[VehicleState, bool, dict[str, Any]]:
-        """シミュレーションを1ステップ進める.
+        """Advance simulation by one step.
 
         Args:
-            action: 実行するアクション
+            action: Action to execute
 
         Returns:
             tuple containing:
@@ -101,28 +105,22 @@ class BaseSimulator(Simulator, ABC):
                 - done: Episode termination flag
                 - info: Additional information
         """
-        # 1. Update state (Subclass responsibility)
-        self._current_state = self._update_state(action)
-        self.current_time += self.dt  # 時刻を進める
-        self._current_state.timestamp = self.current_time  # 状態のタイムスタンプ更新
+        # 1. Update state using injected function
+        self._current_state = self.step_update_func(self._current_state, action, self.dt)
+        self.current_time += self.dt
+        self._current_state.timestamp = self.current_time
 
         # 2. Convert to VehicleState for external interface
         vehicle_state = self._current_state.to_vehicle_state(action)
 
         # 3. Map validation (if map is loaded)
         if self.map is not None:
-            # Check if vehicle polygon is within drivable area
-            # If implementation of _get_vehicle_polygon is missing (e.g. older subclasses),
-            # fallback to point check or error?
-            # Since we control subclasses, we assume implementation.
-            # But for safety, we can wrap try-excerpt? No, let's enforce it.
-
             try:
-                poly = self._get_vehicle_polygon(vehicle_state)
+                poly = self.get_vehicle_polygon_func(vehicle_state)
                 if not self.map.is_drivable_polygon(poly):
                     vehicle_state.off_track = True
-            except NotImplementedError:
-                # Fallback to point check if not implemented
+            except Exception:  # Catching broadly to prevent crash during validation
+                # Fallback to point check if polygon check fails (e.g. geometry error)
                 if not self.map.is_drivable(vehicle_state.x, vehicle_state.y):
                     vehicle_state.off_track = True
 
@@ -142,17 +140,6 @@ class BaseSimulator(Simulator, ABC):
 
         return vehicle_state, done, info
 
-    @abstractmethod
-    def _update_state(self, action: Action) -> SimulationVehicleState:
-        """車両状態を更新する（サブクラスで実装）.
-
-        Args:
-            action: 実行するアクション
-
-        Returns:
-            更新後の車両状態（SimulationVehicleState形式）
-        """
-
     def run(
         self,
         ad_component: "ADComponent",
@@ -160,16 +147,16 @@ class BaseSimulator(Simulator, ABC):
         goal_threshold: float = 5.0,
         min_elapsed_time: float = 20.0,
     ) -> SimulationResult:
-        """シミュレーションを実行.
+        """Run simulation.
 
         Args:
             ad_component: AD component instance (planner + controller)
-            max_steps: 最大ステップ数
-            goal_threshold: ゴール判定の距離閾値 [m]
-            min_elapsed_time: ゴール判定を行う最小経過時間 [s]
+            max_steps: Maximum steps
+            goal_threshold: Goal threshold [m]
+            min_elapsed_time: Minimum elapsed time [s] before goal check
 
         Returns:
-            SimulationResult: シミュレーション結果
+            SimulationResult
         """
         # Reset simulator
         current_state = self.reset()
@@ -222,43 +209,28 @@ class BaseSimulator(Simulator, ABC):
         )
 
     def get_log(self) -> SimulationLog:
-        """シミュレーションログを取得.
+        """Get simulation log.
 
         Returns:
-            SimulationLog: シミュレーションログ
+            SimulationLog
         """
         return self.log
 
     def close(self) -> None:
-        """シミュレータを終了."""
+        """Close simulator."""
 
     def _create_ad_component_log(self) -> "ADComponentLog":
-        """ADコンポーネントログを生成.
-
-        サブクラスでオーバーライドして、必要なログを生成できます。
-
-        Returns:
-            ADコンポーネントログ
-        """
+        """Create AD component log."""
         from core.data import ADComponentLog
 
-        # デフォルトでは空のログを返す
         return ADComponentLog(component_type="simulator", data={})
 
     def _create_info(self) -> dict[str, Any]:
-        """追加情報を生成.
-
-        Returns:
-            追加情報の辞書
-        """
+        """Create additional info."""
         return {}
 
     def _is_done(self) -> bool:
-        """エピソード終了判定.
-
-        Returns:
-            終了フラグ
-        """
+        """Check episode termination."""
         return False
 
     def _check_goal(
@@ -268,17 +240,7 @@ class BaseSimulator(Simulator, ABC):
         goal_threshold: float,
         min_elapsed_time: float,
     ) -> bool:
-        """ゴール到達判定.
-
-        Args:
-            state: 現在の車両状態
-            step: 現在のステップ数
-            goal_threshold: ゴール判定の距離閾値 [m]
-            min_elapsed_time: ゴール判定を行う最小経過時間 [s]
-
-        Returns:
-            ゴール到達フラグ
-        """
+        """Check goal reached."""
         # Check distance to goal
         assert self.goal_x is not None and self.goal_y is not None
         dist_to_end = ((state.x - self.goal_x) ** 2 + (state.y - self.goal_y) ** 2) ** 0.5
@@ -287,65 +249,32 @@ class BaseSimulator(Simulator, ABC):
         elapsed_time = step * self.dt
         return dist_to_end < goal_threshold and elapsed_time > min_elapsed_time
 
-    def _get_vehicle_polygon(self, state: VehicleState) -> "Polygon":
-        """車両のポリゴンを取得（サブクラスで実装）.
 
-        Args:
-            state: 車両状態
+class KinematicSimulator(Simulator):
+    """Kinematic Simulator preset."""
 
-        Returns:
-            Polygon: 車両のポリゴン
-        """
-        raise NotImplementedError("Subclasses must implement _get_vehicle_polygon")
+    def __init__(self, **kwargs: Any) -> None:
+        """Initialize KinematicSimulator."""
+        super().__init__(
+            step_update_func=self._kinematic_step,
+            get_vehicle_polygon_func=self._kinematic_polygon,
+            **kwargs,
+        )
 
-    def _create_vehicle_polygon(
-        self,
-        x: float,
-        y: float,
-        yaw: float,
-        front_edge_dist: float,
-        rear_edge_dist: float,
-        half_width: float,
-    ) -> "Polygon":
-        """車両パラメータからポリゴンを生成するヘルパー関数.
+    def _kinematic_step(
+        self, state: SimulationVehicleState, action: Action, dt: float
+    ) -> SimulationVehicleState:
+        from simulator.dynamics import update_bicycle_model
 
-        Args:
-            x: 基準点X座標
-            y: 基準点Y座標
-            yaw: ヨー角
-            front_edge_dist: 基準点からフロントバンパーまでの距離（正）
-            rear_edge_dist: 基準点からリアバンパーまでの距離（負）
-            half_width: 車幅の半分
+        return update_bicycle_model(
+            state,
+            action.steering,
+            action.acceleration,
+            dt,
+            self.vehicle_params.wheelbase,
+        )
 
-        Returns:
-            Polygon: 回転・平行移動したポリゴン
-        """
-        import math
+    def _kinematic_polygon(self, state: VehicleState) -> "Polygon":
+        from simulator.dynamics import get_bicycle_model_polygon
 
-        from shapely.geometry import Polygon
-
-        # Vehicle frame coordinates (x forward, y left)
-        # p1: Front Left
-        # p2: Front Right
-        # p3: Rear Right
-        # p4: Rear Left
-
-        p1 = (front_edge_dist, half_width)
-        p2 = (front_edge_dist, -half_width)
-        p3 = (rear_edge_dist, -half_width)
-        p4 = (rear_edge_dist, half_width)
-
-        cos_yaw = math.cos(yaw)
-        sin_yaw = math.sin(yaw)
-
-        points = []
-        for px, py in [p1, p2, p3, p4]:
-            # Rotate
-            rx = px * cos_yaw - py * sin_yaw
-            ry = px * sin_yaw + py * cos_yaw
-            # Translate
-            tx = rx + x
-            ty = ry + y
-            points.append((tx, ty))
-
-        return Polygon(points)
+        return get_bicycle_model_polygon(state, self.vehicle_params)

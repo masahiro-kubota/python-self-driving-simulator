@@ -37,7 +37,7 @@ class TestTrainingIntegration:
             data_dir.mkdir()
             log_path = data_dir / "log_0.json"
 
-            from simulators.core import JsonSimulationLogRepository
+            from simulator.io import JsonSimulationLogRepository
 
             repository = JsonSimulationLogRepository()
             repository.save(dummy_log_data, log_path)

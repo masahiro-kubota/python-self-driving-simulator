@@ -51,7 +51,7 @@ class ComponentFactory:
         cls = None
         # 1. Try resolving via Entry Points
         if "." not in component_type:
-            for group in ["ad_components", "simulators"]:
+            for group in ["ad_components", "simulator"]:
                 # Python 3.10+ usage
                 eps = metadata.entry_points(group=group)
                 # Filter by name

@@ -145,7 +145,7 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
 
         if "." not in ad_comp_type:
             # Entry point lookup
-            for group in ["ad_components", "simulators"]:
+            for group in ["ad_components", "simulator"]:
                 eps = metadata.entry_points(group=group)
                 matches = [ep for ep in eps if ep.name == ad_comp_type]
                 if matches:
@@ -175,7 +175,7 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
 
         if "." not in sim_type:
             # Entry point lookup
-            for group in ["ad_components", "simulators"]:
+            for group in ["ad_components", "simulator"]:
                 eps = metadata.entry_points(group=group)
                 matches = [ep for ep in eps if ep.name == sim_type]
                 if matches:
