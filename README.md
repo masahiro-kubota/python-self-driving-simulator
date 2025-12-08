@@ -146,18 +146,11 @@ graph TD
     dashboard --> core
     ad_component_core --> core
     pure_pursuit --> core
-    pure_pursuit --> ad_component_core
     pure_pursuit --> planning_utils
     planning_utils --> core
     pid_controller --> core
-    pid_controller --> ad_component_core
     experiment_runner --> core
     experiment_runner --> dashboard
-    experiment_runner --> experiment_training
-    experiment_runner --> pure_pursuit
-    experiment_runner --> pid_controller
-    experiment_runner --> planning_utils
-    experiment_runner --> ad_component_core
     experiment_training --> core
     experiment_training --> simulator_core
     simulator_core --> core

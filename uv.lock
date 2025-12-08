@@ -681,36 +681,26 @@ name = "experiment-runner"
 version = "0.1.0"
 source = { editable = "experiment/runner" }
 dependencies = [
-    { name = "ad-component-core" },
     { name = "boto3" },
     { name = "core" },
     { name = "dashboard" },
-    { name = "experiment-training" },
     { name = "mcap" },
     { name = "mcap-protobuf-support" },
     { name = "mlflow" },
     { name = "numpy" },
-    { name = "pid-controller" },
-    { name = "planning-utils" },
-    { name = "pure-pursuit" },
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "ad-component-core", editable = "ad_components/core" },
     { name = "boto3", specifier = ">=1.0.0" },
     { name = "core", editable = "core" },
     { name = "dashboard", editable = "dashboard" },
-    { name = "experiment-training", editable = "experiment/training" },
     { name = "mcap", specifier = ">=1.0.0" },
     { name = "mcap-protobuf-support", specifier = ">=0.5.0" },
     { name = "mlflow", specifier = ">=2.0.0" },
     { name = "numpy", specifier = ">=1.20.0" },
-    { name = "pid-controller", editable = "ad_components/control/pid_controller" },
-    { name = "planning-utils", editable = "ad_components/planning/planning_utils" },
-    { name = "pure-pursuit", editable = "ad_components/planning/pure_pursuit" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pyyaml", specifier = ">=6.0" },
 ]
