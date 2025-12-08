@@ -12,7 +12,7 @@ BUILDDIR      = build
 PACKAGES = ../core/src/core \
            ../simulators/core/src/simulator_core \
            ../simulators/simulator_kinematic/src/simulator_kinematic \
-           ../experiment/runner/src/experiment_runner \
+           ../experiment/src/experiment_runner \
            ../experiment/training/src/experiment_training \
            ../ad_components/core/src/ad_component_core \
            ../ad_components/planning/pure_pursuit/src/pure_pursuit \

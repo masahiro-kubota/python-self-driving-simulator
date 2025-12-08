@@ -5,7 +5,7 @@
 ## パッケージ構成
 
 - **[core](./core/README.md)**: 全てのシミュレータの基底クラス、データ構造（`SimulationVehicleState`など）、共通ユーティリティ（ソルバー、マップなど）。
-- **[simulator_kinematic](./simulator_kinematic/README.md)**: 自転車モデルに基づく運動学シミュレータ。
+- **[simulators.kinematic](./simulators.kinematic/README.md)**: 自転車モデルに基づく運動学シミュレータ。
 
 ## アーキテクチャの主要な変更点
 
@@ -22,6 +22,6 @@
 
 ```mermaid
 graph TD
-    Kinematic[simulator_kinematic] --> Core[simulators/core]
+    Kinematic[simulators.kinematic] --> Core[simulators/core]
     Core --> Base[core]
 ```

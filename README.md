@@ -83,7 +83,7 @@ e2e_aichallenge_playground/
 │       └── neural_controller/
 ├── simulators/                    # シミュレータ実装
 │   ├── core/                     # シミュレータ基底クラス (simulators_core)
-│   └── simulator_kinematic/      # 運動学シミュレータ
+│   └── simulators.kinematic/      # 運動学シミュレータ
 ├── experiment/
 │   ├── runner/                   # 統一実験実行フレームワーク
 │   ├── training/                 # 学習機能（Dataset, Trainer）
@@ -137,10 +137,10 @@ graph TD
         class experiment_training impl;
     end
     subgraph group_simulators [simulators]
-        simulator_core["simulator-core<br/>Core utilities and b.."]
-        class simulator_core base;
-        simulator_kinematic["simulator_kinematic<br/>Kinematic bicycle mo.."]
-        class simulator_kinematic impl;
+        simulators.core["simulators.core<br/>Core utilities and b.."]
+        class simulators.core base;
+        simulators.kinematic["simulators.kinematic<br/>Kinematic bicycle mo.."]
+        class simulators.kinematic impl;
     end
     %% Dependencies
     dashboard --> core
@@ -152,10 +152,10 @@ graph TD
     experiment_runner --> core
     experiment_runner --> dashboard
     experiment_training --> core
-    experiment_training --> simulator_core
-    simulator_core --> core
-    simulator_kinematic --> core
-    simulator_kinematic --> simulator_core
+    experiment_training --> simulators.core
+    simulators.core --> core
+    simulators.kinematic --> core
+    simulators.kinematic --> simulators.core
 ```
 <!-- ARCHITECTURE_DIAGRAM_END -->
 

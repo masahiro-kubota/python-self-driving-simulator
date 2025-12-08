@@ -11,8 +11,7 @@ members = [
     "pid-controller",
     "planning-utils",
     "pure-pursuit",
-    "simulator-core",
-    "simulator-kinematic",
+    "simulators",
 ]
 
 [[package]]
@@ -633,8 +632,7 @@ dependencies = [
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
-    { name = "simulator-core" },
-    { name = "simulator-kinematic" },
+    { name = "simulators" },
 ]
 
 [package.dev-dependencies]
@@ -652,7 +650,7 @@ requires-dist = [
     { name = "ad-component-core", editable = "ad_components/core" },
     { name = "core", editable = "core" },
     { name = "deptry", specifier = ">=0.12.0" },
-    { name = "experiment-runner", editable = "experiment/runner" },
+    { name = "experiment-runner", editable = "experiment" },
     { name = "lark", specifier = ">=1.0.0" },
     { name = "pid-controller", editable = "ad_components/control/pid_controller" },
     { name = "planning-utils", editable = "ad_components/planning/planning_utils" },
@@ -661,8 +659,7 @@ requires-dist = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-cov", specifier = ">=4.1.0" },
     { name = "ruff", specifier = ">=0.8.0" },
-    { name = "simulator-core", editable = "simulators/core" },
-    { name = "simulator-kinematic", editable = "simulators/simulator_kinematic" },
+    { name = "simulators", editable = "simulators" },
 ]
 
 [package.metadata.requires-dev]
@@ -678,7 +675,7 @@ dev = [
 [[package]]
 name = "experiment-runner"
 version = "0.1.0"
-source = { editable = "experiment/runner" }
+source = { editable = "experiment" }
 dependencies = [
     { name = "boto3" },
     { name = "core" },
@@ -692,7 +689,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "boto3", specifier = ">=1.0.0" },
+    { name = "boto3", specifier = ">=1.26.0" },
     { name = "core", editable = "core" },
     { name = "dashboard", editable = "dashboard" },
     { name = "mcap", specifier = ">=1.0.0" },
@@ -2404,9 +2401,9 @@ wheels = [
 ]
 
 [[package]]
-name = "simulator-core"
+name = "simulators"
 version = "0.1.0"
-source = { editable = "simulators/core" }
+source = { editable = "simulators" }
 dependencies = [
     { name = "core" },
     { name = "pyright" },
@@ -2422,27 +2419,6 @@ requires-dist = [
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "ruff", specifier = ">=0.8.0" },
     { name = "shapely", specifier = ">=2.1.2" },
-]
-
-[[package]]
-name = "simulator-kinematic"
-version = "0.1.0"
-source = { editable = "simulators/simulator_kinematic" }
-dependencies = [
-    { name = "core" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "simulator-core" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "core", editable = "core" },
-    { name = "pyright", specifier = ">=1.1.0" },
-    { name = "pytest", specifier = ">=8.0.0" },
-    { name = "ruff", specifier = ">=0.8.0" },
-    { name = "simulator-core", editable = "simulators/core" },
 ]
 
 [[package]]
