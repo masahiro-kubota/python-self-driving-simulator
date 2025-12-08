@@ -81,9 +81,7 @@ e2e_aichallenge_playground/
 │   └── control/                   # 制御コンポーネント
 │       ├── pid_controller/
 │       └── neural_controller/
-├── simulators/                    # シミュレータ実装
-│   ├── core/                     # シミュレータ基底クラス (simulators_core)
-│   └── simulators.kinematic/      # 運動学シミュレータ
+├── simulator/                     # シミュレータ実装
 ├── experiment/
 │   ├── runner/                   # 統一実験実行フレームワーク
 │   ├── training/                 # 学習機能（Dataset, Trainer）
@@ -116,6 +114,14 @@ graph TD
         core["core<br/>Core data structures.."]
         class core core;
     end
+    subgraph group_simulator [simulator]
+        simulator["simulator<br/>Simulator package"]
+        class simulator impl;
+    end
+    subgraph group_experiment [experiment]
+        experiment_runner["experiment_runner<br/>Unified experiment e.."]
+        class experiment_runner app;
+    end
     subgraph group_dashboard [dashboard]
         dashboard["dashboard<br/>Interactive HTML das.."]
         class dashboard impl;
@@ -130,32 +136,16 @@ graph TD
         pid_controller["pid-controller<br/>PID controller"]
         class pid_controller impl;
     end
-    subgraph group_experiment [experiment]
-        experiment_runner["experiment_runner<br/>Unified experiment e.."]
-        class experiment_runner app;
-        experiment_training["experiment-training<br/>Training logic for E.."]
-        class experiment_training impl;
-    end
-    subgraph group_simulators [simulators]
-        simulators.core["simulators.core<br/>Core utilities and b.."]
-        class simulators.core base;
-        simulators.kinematic["simulators.kinematic<br/>Kinematic bicycle mo.."]
-        class simulators.kinematic impl;
-    end
     %% Dependencies
+    simulator --> core
+    experiment_runner --> core
+    experiment_runner --> dashboard
     dashboard --> core
     ad_component_core --> core
     pure_pursuit --> core
     pure_pursuit --> planning_utils
     planning_utils --> core
     pid_controller --> core
-    experiment_runner --> core
-    experiment_runner --> dashboard
-    experiment_training --> core
-    experiment_training --> simulators.core
-    simulators.core --> core
-    simulators.kinematic --> core
-    simulators.kinematic --> simulators.core
 ```
 <!-- ARCHITECTURE_DIAGRAM_END -->
 
@@ -291,7 +281,7 @@ module:
             rate_hz: 30.0
 
     simulator:
-      type: "KinematicSimulator"
+      type: "Simulator"
       params:
         dt: 0.1
 ```

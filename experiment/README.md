@@ -58,7 +58,7 @@ data_collection:
 
 ```yaml
 simulator:
-  type: "simulator.KinematicSimulator"
+  type: "simulator.Simulator"
   params:
     dt: 0.1
     initial_state:

@@ -5,10 +5,11 @@
 ## パッケージ構成
 
 - **`simulator`**: シミュレータのメインパッケージ。
-- **`simulator.simulator`**: `Simulator`クラス（シミュレーションの実行管理）および`KinematicSimulator`（プリセット）。
-- **`simulator.state`**: 車両状態定義（`SimulationVehicleState`）。
-- **`simulator.dynamics`**: 車両運動モデル（バイシクルモデルなど）。
-- **`simulator.map`**: マップ読み込み・判定（`LaneletMap`）。
+- **`simulator.simulator`**: `Simulator`クラス(シミュレーションの実行管理)。
+- **`simulator.state`**: 車両状態定義(`SimulationVehicleState`)。
+- **`simulator.dynamics`**: 車両運動モデル(バイシクルモデルなど)。
+- **`simulator.map`**: マップ読み込み・判定(`LaneletMap`)。
+- **`simulator.presets`**: プリセット設定(`KinematicSimulator`など)。
 
 ## アーキテクチャの主要な変更点
 
