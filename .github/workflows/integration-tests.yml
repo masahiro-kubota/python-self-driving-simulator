@@ -38,26 +38,11 @@ jobs:
           npm run build
 
       - name: Run integration tests
-        run: uv run pytest experiment/runner/tests -m integration -v -s
+        run: PYTHONPATH="" uv run pytest experiment/tests -m integration -v -s
         env:
           CI: 'true'
 
-      - name: Run overrun experiment (off-track detection test)
-        run: uv run experiment-runner --config experiment/configs/experiments/overrun.yaml
-        env:
-          CI: 'true'
 
-      - name: Save kinematic dashboard
-        if: always()
-        run: |
-          if [ -f "dashboard.html" ]; then
-            mv dashboard.html dashboard_kinematic.html
-          elif [ -f "/tmp/dashboard.html" ]; then
-            cp /tmp/dashboard.html dashboard_kinematic.html
-          else
-            echo "Kinematic dashboard not found"
-            touch dashboard_kinematic.html
-          fi
 
       - name: Create Dashboard Index
         if: always()
@@ -65,7 +50,7 @@ jobs:
           echo '<!DOCTYPE html>
           <html>
           <head>
-              <title>Simulation Results</title>
+              <title>Integration Test Results</title>
               <style>
                   body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
                   h1 { color: #333; }
@@ -75,12 +60,7 @@ jobs:
               </style>
           </head>
           <body>
-              <h1>Simulation Results</h1>
-
-              <div class="result-card">
-                  <a href="dashboard_kinematic.html">Kinematic Simulation (Pure Pursuit)</a>
-                  <p>Standard kinematic bicycle model simulation.</p>
-              </div>
+              <h1>Integration Test Results</h1>
 
               <div class="result-card">
                   <a href="docs/index.html">Documentation</a>
@@ -101,6 +81,5 @@ jobs:
           name: github-pages-content
           path: |
             index.html
-            dashboard_kinematic.html
             docs/build/html/
           retention-days: 7
