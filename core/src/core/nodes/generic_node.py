@@ -33,11 +33,14 @@ class GenericProcessingNode(Node):
         self.processor = processor
         self.io_spec = io_spec
 
-    def on_run(self, context: SimulationContext) -> None:
+    def on_run(self, context: SimulationContext) -> bool:
         """Execute node logic.
 
         Args:
             context: シミュレーションコンテキスト
+
+        Returns:
+            bool: 実行が成功した場合True
         """
         # 入力を収集
         inputs: dict[str, Any] = {}
@@ -45,7 +48,7 @@ class GenericProcessingNode(Node):
             value = getattr(context, field_name, None)
             if value is None:
                 # 必要なデータがまだない場合はスキップ
-                return
+                return False
             inputs[field_name] = value
 
         # 処理を実行
@@ -53,3 +56,4 @@ class GenericProcessingNode(Node):
 
         # 出力を書き込み
         setattr(context, self.io_spec.output, output)
+        return True

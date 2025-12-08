@@ -93,8 +93,12 @@ class FlexibleADComponent(ADComponent):
         """スケジュール可能なノードのリストを返す."""
         return self.nodes_list
 
-    def reset(self) -> None:
-        """コンポーネントをリセット."""
+    def reset(self) -> bool:
+        """コンポーネントをリセット.
+
+        Returns:
+            bool: リセットが成功した場合True
+        """
         # 必要に応じて各Processorのリセット処理を呼び出す
         # 現時点では未実装
-        pass
+        return True

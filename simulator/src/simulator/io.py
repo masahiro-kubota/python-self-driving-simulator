@@ -16,12 +16,15 @@ class JsonSimulationLogRepository(SimulationLogRepository):
     providing human-readable storage for debugging and analysis.
     """
 
-    def save(self, log: SimulationLog, file_path: Path) -> None:
+    def save(self, log: SimulationLog, file_path: Path) -> bool:
         """Save simulation log to JSON file.
 
         Args:
             log: Simulation log to save
             file_path: Output file path
+
+        Returns:
+            bool: 保存が成功した場合True
         """
         from dataclasses import asdict
 
@@ -40,6 +43,8 @@ class JsonSimulationLogRepository(SimulationLogRepository):
 
         with open(file_path, "w") as f:
             json.dump(data, f, indent=2)
+
+        return True
 
     def load(self, file_path: Path) -> SimulationLog:
         """Load simulation log from JSON file.

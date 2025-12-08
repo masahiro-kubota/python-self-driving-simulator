@@ -216,8 +216,13 @@ class Simulator(SimulatorInterface):
         """
         return self.log
 
-    def close(self) -> None:
-        """Close simulator."""
+    def close(self) -> bool:
+        """Close simulator.
+
+        Returns:
+            bool: 終了処理が成功した場合True
+        """
+        return True
 
     def _create_ad_component_log(self) -> "ADComponentLog":
         """Create AD component log."""

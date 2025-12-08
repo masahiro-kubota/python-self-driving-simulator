@@ -30,8 +30,9 @@ class DummySimulator(Simulator):
         info: dict[str, object] = {}
         return self.state, obs, done, info
 
-    def close(self) -> None:
+    def close(self) -> bool:
         """Close simulator."""
+        return True
 
     def render(self) -> None:
         """Render simulator."""

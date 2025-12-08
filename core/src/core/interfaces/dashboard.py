@@ -20,13 +20,16 @@ class DashboardGenerator(ABC):
         result: ExperimentResult,
         output_path: Path,
         osm_path: Path | None = None,
-    ) -> None:
+    ) -> Path:
         """Generate interactive dashboard from experiment result.
 
         Args:
             result: Experiment result containing simulation results and metadata
             output_path: Path where the generated HTML dashboard will be saved
             osm_path: Optional path to OSM map file for map visualization
+
+        Returns:
+            Path: Path to the generated dashboard file
 
         Raises:
             FileNotFoundError: If template or required files are not found

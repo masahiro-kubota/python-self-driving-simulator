@@ -60,10 +60,14 @@ class MLflowExperimentLogger:
 
             mlflow.log_artifact(str(artifact.local_path), artifact_path=artifact.remote_path)
 
-    def log_result(self, result: ExperimentResult) -> None:
-        """Log entire experiment result to MLflow."""
+    def log_result(self, result: ExperimentResult) -> bool:
+        """Log entire experiment result to MLflow.
+
+        Returns:
+            bool: ログ記録が成功した場合True
+        """
         if self._is_ci:
-            return
+            return True
 
         # Start run if not active, or assume active context?
         # Typically log_result is called at the END of an experiment.
@@ -80,6 +84,8 @@ class MLflowExperimentLogger:
                 self._log_content(result)
         else:
             self._log_content(result)
+
+        return True
 
     def _log_content(self, result: ExperimentResult) -> None:
         """Internal helper to log content."""

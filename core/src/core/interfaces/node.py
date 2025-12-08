@@ -19,6 +19,10 @@ class Node(ABC):
         return sim_time + 1e-9 >= self.next_time
 
     @abstractmethod
-    def on_run(self, context: SimulationContext) -> None:
-        """Execute node logic."""
+    def on_run(self, context: SimulationContext) -> bool:
+        """Execute node logic.
+
+        Returns:
+            bool: True if execution was successful
+        """
         raise NotImplementedError

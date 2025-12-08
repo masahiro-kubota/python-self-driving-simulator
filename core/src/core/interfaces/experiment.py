@@ -17,9 +17,12 @@ class ExperimentLogger(ABC):
         """
 
     @abstractmethod
-    def log_result(self, result: ExperimentResult) -> None:
+    def log_result(self, result: ExperimentResult) -> bool:
         """実験結果をログに記録する.
 
         Args:
             result: 記録する実験結果
+
+        Returns:
+            bool: ログ記録が成功した場合True
         """

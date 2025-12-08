@@ -34,5 +34,9 @@ class ADComponent(ABC):
         """
 
     @abstractmethod
-    def reset(self) -> None:
-        """Reset the component."""
+    def reset(self) -> bool:
+        """Reset the component.
+
+        Returns:
+            bool: True if reset was successful
+        """

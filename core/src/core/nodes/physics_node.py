@@ -15,9 +15,9 @@ class PhysicsNode(Node):
         self.step_count = 0
         self.goal_radius = goal_radius
 
-    def on_run(self, context: SimulationContext) -> None:
+    def on_run(self, context: SimulationContext) -> bool:
         if context.done:
-            return
+            return True
 
         # Use previous action or default
         action = context.action or Action(steering=0.0, acceleration=0.0)
@@ -49,14 +49,14 @@ class PhysicsNode(Node):
             context.done = True
             context.done_reason = "simulator_done"
             context.success = False
-            return
+            return True
 
         # 2. Off track
         if state.off_track:
             context.done = True
             context.done_reason = "off_track"
             context.success = False
-            return
+            return True
 
         # 3. Goal checking (if supported by simulator)
         if hasattr(self.simulator, "goal_x") and hasattr(self.simulator, "goal_y"):
@@ -69,3 +69,6 @@ class PhysicsNode(Node):
                     context.done = True
                     context.done_reason = "goal_reached"
                     context.success = True
+                    return True
+
+        return True

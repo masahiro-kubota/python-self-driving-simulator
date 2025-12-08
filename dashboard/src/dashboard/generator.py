@@ -24,13 +24,16 @@ class HTMLDashboardGenerator(DashboardGenerator):
         result: ExperimentResult,
         output_path: Path,
         osm_path: Path | None = None,
-    ) -> None:
+    ) -> Path:
         """Generate interactive HTML dashboard.
 
         Args:
             result: Experiment result containing simulation results and metadata
             output_path: Path where the generated HTML dashboard will be saved
             osm_path: Optional path to OSM map file for map visualization
+
+        Returns:
+            Path: Path to the generated dashboard file
 
         Raises:
             FileNotFoundError: If template file not found
@@ -105,6 +108,7 @@ class HTMLDashboardGenerator(DashboardGenerator):
         # Inject data into template
         inject_simulation_data(template_path, data, output_path, osm_path)
         logger.info("Dashboard saved to %s", output_path)
+        return output_path
 
 
 __all__ = ["HTMLDashboardGenerator"]

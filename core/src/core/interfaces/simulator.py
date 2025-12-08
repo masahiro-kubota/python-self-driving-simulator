@@ -53,8 +53,12 @@ class Simulator(ABC):
         """
 
     @abstractmethod
-    def close(self) -> None:
-        """シミュレータを終了."""
+    def close(self) -> bool:
+        """シミュレータを終了.
+
+        Returns:
+            bool: 終了処理が成功した場合True
+        """
 
     @abstractmethod
     def get_log(self) -> SimulationLog:
@@ -74,12 +78,15 @@ class SimulationLogRepository(ABC):
     """
 
     @abstractmethod
-    def save(self, log: SimulationLog, file_path: Path) -> None:
+    def save(self, log: SimulationLog, file_path: Path) -> bool:
         """Save simulation log to file.
 
         Args:
             log: Simulation log to save
             file_path: Output file path
+
+        Returns:
+            bool: True if save was successful
         """
 
     @abstractmethod
