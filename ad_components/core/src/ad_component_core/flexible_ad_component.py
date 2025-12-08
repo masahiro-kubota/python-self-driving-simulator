@@ -2,9 +2,9 @@ import importlib
 from typing import Any
 
 from core.data import VehicleParameters
+from core.data.node_io import NodeIO
 from core.interfaces.ad_components import ADComponent
 from core.interfaces.node import Node
-from core.interfaces.node_io import NodeIO
 from core.nodes import GenericProcessingNode
 from core.utils.paths import get_project_root
 from core.validation.node_graph import validate_node_graph

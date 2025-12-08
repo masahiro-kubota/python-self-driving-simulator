@@ -1,8 +1,9 @@
 from typing import Any
 
 from core.data import Action, ADComponentLog
+from core.data.simulation_context import SimulationContext
 from core.interfaces import Simulator
-from core.interfaces.node import Node, SimulationContext
+from core.interfaces.node import Node
 
 
 class PhysicsNode(Node):

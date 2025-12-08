@@ -1,4 +1,4 @@
-dt: 0.1
+dt: 0.01
 initial_state:
   x: 0.0
   y: 0.0

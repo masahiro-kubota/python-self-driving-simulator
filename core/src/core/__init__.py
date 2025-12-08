@@ -19,6 +19,7 @@ from core.data import (
     VehicleParameters,
     VehicleState,
 )
+from core.executor import SingleProcessExecutor
 from core.interfaces import (
     ADComponent,
     DashboardGenerator,
@@ -51,6 +52,7 @@ __all__ = [
     "SimulationStep",
     "Simulator",
     "Simulator",
+    "SingleProcessExecutor",
     "VehicleParameters",
     "VehicleState",
 ]

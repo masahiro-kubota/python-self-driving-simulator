@@ -3,12 +3,12 @@
 from unittest.mock import MagicMock
 
 import pytest
-from experiment_runner.runner.evaluation import SingleProcessExecutor
 
 from core.data import Action, Observation, SimulationLog, Trajectory, TrajectoryPoint, VehicleState
+from core.data.node_io import NodeIO
+from core.data.simulation_context import SimulationContext
+from core.executor import SingleProcessExecutor
 from core.interfaces import Simulator
-from core.interfaces.node import SimulationContext
-from core.interfaces.node_io import NodeIO
 from core.nodes import GenericProcessingNode, PhysicsNode
 from core.processors.perception import BasicPerceptionProcessor
 from core.processors.sensor import IdealSensorProcessor

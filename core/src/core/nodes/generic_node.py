@@ -1,7 +1,8 @@
 from typing import Any
 
-from core.interfaces.node import Node, SimulationContext
-from core.interfaces.node_io import NodeIO
+from core.data.node_io import NodeIO
+from core.data.simulation_context import SimulationContext
+from core.interfaces.node import Node
 from core.interfaces.processor import ProcessorProtocol
 
 
