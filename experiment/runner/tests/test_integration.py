@@ -29,7 +29,7 @@ def test_pure_pursuit_experiment() -> None:
     assert config.experiment.name == "pure_pursuit"
     assert (
         config.components.ad_component.type
-        == "experiment_runner.flexible_ad_component.FlexibleADComponent"
+        == "ad_component_core.flexible_ad_component.FlexibleADComponent"
     )
 
     # FlexibleADComponent uses "nodes" list in params
@@ -37,9 +37,10 @@ def test_pure_pursuit_experiment() -> None:
 
     # Find Planning node
     planning_node = next(n for n in nodes_config if n["name"] == "Planning")
-    planner_config = planning_node["processor"]["params"]["planner"]
-    assert "PurePursuitPlanner" in planner_config["type"]
-    assert planner_config["params"]["lookahead_distance"] == 5.0
+    # Adapter removal: processor params are now direct
+    processor_config = planning_node["processor"]
+    assert "PurePursuitPlanner" in processor_config["type"]
+    assert processor_config["params"]["lookahead_distance"] == 5.0
 
     assert config.execution.max_steps_per_episode == 2000
 
@@ -61,20 +62,22 @@ def test_config_loading() -> None:
     assert config.experiment.name == "pure_pursuit"
     assert (
         config.components.ad_component.type
-        == "experiment_runner.flexible_ad_component.FlexibleADComponent"
+        == "ad_component_core.flexible_ad_component.FlexibleADComponent"
     )
 
     nodes_config = config.components.ad_component.params["nodes"]
 
     # Planning
     planning_node = next(n for n in nodes_config if n["name"] == "Planning")
-    planner_config = planning_node["processor"]["params"]["planner"]
+    # Adapter removal: processor params are now direct
+    planner_config = planning_node["processor"]
     assert "PurePursuitPlanner" in planner_config["type"]
     assert planner_config["params"]["lookahead_distance"] == 5.0
 
     # Control
     control_node = next(n for n in nodes_config if n["name"] == "Control")
-    controller_config = control_node["processor"]["params"]["controller"]
+    # Adapter removal: processor params are now direct
+    controller_config = control_node["processor"]
     assert "PIDController" in controller_config["type"]
     assert controller_config["params"]["kp"] == 1.0
 
@@ -116,7 +119,8 @@ def test_custom_track_loading(_setup_mlflow_env: None) -> None:
         # Need to find Planning node and update its config
         nodes_config = config.components.ad_component.params["nodes"]
         planning_node = next(n for n in nodes_config if n["name"] == "Planning")
-        planning_node["processor"]["params"]["planner"]["params"]["track_path"] = custom_track_path
+        # Adapter removal: set track_path directly in params
+        planning_node["processor"]["params"]["track_path"] = custom_track_path
 
         # Run experiment setup
         runner = ExperimentRunner(config)
@@ -125,7 +129,7 @@ def test_custom_track_loading(_setup_mlflow_env: None) -> None:
         runner._setup_components()
 
         # We can't easily access the internal planner object in FlexibleADComponent
-        # because it's buried in GenericProcessingNode -> Adapter -> Planner
+        # because it's buried in GenericProcessingNode -> Processor
         # But if _setup_components succeeded, it means the track was loaded.
 
         # Additional verification: Check if nodes are created

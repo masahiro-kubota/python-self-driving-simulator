@@ -265,7 +265,7 @@ module:
   name: "pure_pursuit_pid"
   components:
     ad_component:
-      type: "experiment_runner.flexible_ad_component.FlexibleADComponent"
+      type: "ad_component_core.flexible_ad_component.FlexibleADComponent"
       params:
         nodes:
           - name: "Sensor"
