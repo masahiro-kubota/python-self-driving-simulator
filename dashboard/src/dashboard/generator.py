@@ -66,6 +66,15 @@ class HTMLDashboardGenerator(DashboardGenerator):
             else:
                 sanitized_metadata[k] = v
 
+        # Extract vehicle parameters for dashboard visualization
+        vehicle_params = {
+            "width": sanitized_metadata.get("width", 1.8),
+            "length": sanitized_metadata.get("length", 4.5),
+            "wheelbase": sanitized_metadata.get("wheelbase", 2.5),
+            "front_overhang": sanitized_metadata.get("front_overhang", 0.9),
+            "rear_overhang": sanitized_metadata.get("rear_overhang", 1.1),
+        }
+
         data: dict[str, Any] = {
             "metadata": {
                 "experiment_name": result.experiment_name,
@@ -74,6 +83,7 @@ class HTMLDashboardGenerator(DashboardGenerator):
                 "controller": sanitized_metadata.get("controller", "Unknown Controller"),
                 **sanitized_metadata,
             },
+            "vehicle_params": vehicle_params,
             "steps": [],
         }
 

@@ -33,6 +33,11 @@ def generate_circular_trajectory(
             "track": "Test Track",
             "num_steps": num_steps,
             "radius": radius,
+            "width": 1.8,
+            "length": 4.5,
+            "wheelbase": 2.5,
+            "front_overhang": 0.9,
+            "rear_overhang": 1.1,
         },
     )
 
@@ -84,6 +89,11 @@ def generate_figure_eight_trajectory(
             "track": "Test Track",
             "num_steps": num_steps,
             "radius": radius,
+            "width": 1.8,
+            "length": 4.5,
+            "wheelbase": 2.5,
+            "front_overhang": 0.9,
+            "rear_overhang": 1.1,
         },
     )
 

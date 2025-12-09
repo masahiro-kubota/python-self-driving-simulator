@@ -24,8 +24,17 @@ export interface MapPolygon {
   points: { x: number; y: number }[];
 }
 
+export interface VehicleParams {
+  width: number;
+  length: number;
+  wheelbase: number;
+  front_overhang: number;
+  rear_overhang: number;
+}
+
 export interface SimulationData {
   metadata: SimulationMetadata;
+  vehicle_params?: VehicleParams;
   steps: TrajectoryPoint[];
   map_lines?: MapLine[];
   map_polygons?: MapPolygon[];

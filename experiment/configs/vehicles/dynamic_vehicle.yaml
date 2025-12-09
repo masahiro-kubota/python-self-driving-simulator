@@ -1,9 +1,11 @@
 # 動力学シミュレータ用車両パラメータ
 
 # 基本形状
-wheelbase: 2.5  # ホイールベース [m]
-width: 1.8      # 車幅 [m]
-length: 4.5     # 車長 [m]
+wheelbase: 2.5        # ホイールベース [m]
+width: 1.8            # 車幅 [m]
+length: 4.5           # 車長 [m]
+front_overhang: 0.9   # 前方オーバーハング (前軸から車両前端) [m]
+rear_overhang: 1.1    # 後方オーバーハング (後軸から車両後端) [m]
 
 # 運動学パラメータ
 max_steering_angle: 0.6  # 最大操舵角 [rad]

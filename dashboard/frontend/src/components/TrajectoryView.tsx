@@ -75,8 +75,58 @@ export const TrajectoryView: React.FC<TrajectoryViewProps> = ({ width, height })
       hovertemplate: 'X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>',
     });
 
-    // Current position marker
-    if (currentPoint) {
+    // Current vehicle as rectangle
+    if (currentPoint && data.vehicle_params) {
+      const { width, wheelbase, front_overhang, rear_overhang } = data.vehicle_params;
+      const { x, y, yaw } = currentPoint;
+
+      // Vehicle coordinate (x, y) is at the rear axle center
+      // Calculate the 4 corners of the vehicle rectangle
+      // Local coordinates (vehicle frame):
+      //   - rear end: -rear_overhang (behind rear axle)
+      //   - front end: wheelbase + front_overhang (ahead of rear axle)
+      //   - left side: -width/2
+      //   - right side: width/2
+
+      const cos_yaw = Math.cos(yaw);
+      const sin_yaw = Math.sin(yaw);
+
+      // Helper function to transform local coordinates to global
+      const transform = (local_x: number, local_y: number) => ({
+        x: x + local_x * cos_yaw - local_y * sin_yaw,
+        y: y + local_x * sin_yaw + local_y * cos_yaw,
+      });
+
+      // Define 4 corners in local frame (rear axle center is origin)
+      const rear_left = transform(-rear_overhang, width / 2);
+      const rear_right = transform(-rear_overhang, -width / 2);
+      const front_right = transform(wheelbase + front_overhang, -width / 2);
+      const front_left = transform(wheelbase + front_overhang, width / 2);
+
+      // Close the polygon
+      const corners = [rear_left, rear_right, front_right, front_left, rear_left];
+
+      traces.push({
+        x: corners.map((c) => c.x),
+        y: corners.map((c) => c.y),
+        mode: 'lines',
+        fill: 'toself',
+        type: 'scatter',
+        name: 'Vehicle',
+        fillcolor: theme.palette.primary.main,
+        opacity: 0.6,
+        line: {
+          color: theme.palette.primary.dark,
+          width: 2,
+        },
+        showlegend: false,
+        hovertemplate:
+          'Vehicle\u003cbr\u003eX: %{x:.2f}\u003cbr\u003eY: %{y:.2f}\u003cbr\u003eYaw: ' +
+          ((yaw * 180) / Math.PI).toFixed(1) +
+          '°\u003cextra\u003e\u003c/extra\u003e',
+      });
+    } else if (currentPoint) {
+      // Fallback to point marker if vehicle params not available
       traces.push({
         x: [currentPoint.x],
         y: [currentPoint.y],
@@ -90,9 +140,9 @@ export const TrajectoryView: React.FC<TrajectoryViewProps> = ({ width, height })
         },
         showlegend: false,
         hovertemplate:
-          'X: %{x:.2f}<br>Y: %{y:.2f}<br>Yaw: ' +
+          'X: %{x:.2f}\u003cbr\u003eY: %{y:.2f}\u003cbr\u003eYaw: ' +
           ((currentPoint.yaw * 180) / Math.PI).toFixed(1) +
-          '°<extra></extra>',
+          '°\u003cextra\u003e\u003c/extra\u003e',
       });
     }
 
