@@ -81,10 +81,12 @@ def test_executor_timing(mock_simulator, mock_planner, mock_controller):
     control_node.on_run = MagicMock(wraps=control_node.on_run)
 
     nodes = [physics_node, sensor_node, planning_node, control_node]
-    executor = SingleProcessExecutor(nodes, context, clock)
+    for node in nodes:
+        node.set_context(context)
+    executor = SingleProcessExecutor(nodes, clock)
 
     # Run for 0.42 seconds
-    executor.run(duration=0.42)
+    executor.run(duration=0.42, stop_condition=lambda: context.done)
 
     assert physics_node.on_run.call_count == 5
     assert planning_node.on_run.call_count == 3
@@ -134,7 +136,9 @@ def test_executor_data_flow(mock_simulator, mock_planner, mock_controller):
     )
 
     nodes = [physics_node, sensor_node, perception_node, planning_node, control_node]
-    executor = SingleProcessExecutor(nodes, context, clock)
+    for node in nodes:
+        node.set_context(context)
+    executor = SingleProcessExecutor(nodes, clock)
 
     # Run one step
     executor.run(duration=0.05)

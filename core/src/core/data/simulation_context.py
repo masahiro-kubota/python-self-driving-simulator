@@ -13,7 +13,6 @@ class SimulationContext:
     Acts as a shared memory between nodes.
     """
 
-    current_time: float = 0.0
     sim_state: VehicleState | None = None  # Ground truth state from simulator
     vehicle_state: VehicleState | None = None  # Perceived state for planner
     trajectory: Trajectory | None = None

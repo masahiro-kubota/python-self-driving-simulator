@@ -1,7 +1,6 @@
 from typing import Any
 
 from core.data.node_io import NodeIO
-from core.data.simulation_context import SimulationContext
 from core.interfaces.node import Node
 from core.interfaces.processor import ProcessorProtocol
 
@@ -33,19 +32,23 @@ class GenericProcessingNode(Node):
         self.processor = processor
         self.io_spec = io_spec
 
-    def on_run(self, context: SimulationContext) -> bool:
+    def on_run(self, _current_time: float) -> bool:
         """Execute node logic.
 
         Args:
-            context: シミュレーションコンテキスト
+            current_time: Current simulation time
 
         Returns:
-            bool: 実行が成功した場合True
+            bool: True if execution was successful
         """
+        if self.context is None:
+            # Context not ready
+            return False
+
         # 入力を収集
         inputs: dict[str, Any] = {}
         for field_name in self.io_spec.inputs:
-            value = getattr(context, field_name, None)
+            value = getattr(self.context, field_name, None)
             if value is None:
                 # 必要なデータがまだない場合はスキップ
                 return False
@@ -55,5 +58,5 @@ class GenericProcessingNode(Node):
         output = self.processor.process(**inputs)
 
         # 出力を書き込み
-        setattr(context, self.io_spec.output, output)
+        setattr(self.context, self.io_spec.output, output)
         return True

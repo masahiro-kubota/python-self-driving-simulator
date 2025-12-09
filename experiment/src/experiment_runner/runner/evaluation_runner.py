@@ -38,7 +38,6 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
         # Create Context & Reset simulator
         initial_state = simulator.reset()
         context = SimulationContext(
-            current_time=0.0,
             sim_state=initial_state,
             vehicle_state=initial_state,  # Initialize perceived state
         )
@@ -56,6 +55,10 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
         # 2. ADComponent Nodes
         nodes.extend(ad_component.get_schedulable_nodes())
 
+        # Inject context into nodes
+        for node in nodes:
+            node.set_context(context)
+
         # Determine Clock Type
         clock_type = config.execution.clock_type if config.execution else "stepped"
 
@@ -67,13 +70,18 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
         else:
             raise ValueError(f"Unsupported clock type: {clock_type}")
 
-        executor = SingleProcessExecutor(nodes, context, clock)
+        executor = SingleProcessExecutor(nodes, clock)
 
         # Run
         duration = max_steps * (1.0 / sim_rate)
-        sim_result = executor.run(duration=duration)
+        executor.run(duration=duration, stop_condition=lambda: context.done)
 
-        return sim_result
+        return SimulationResult(
+            success=context.success,
+            reason=context.done_reason,
+            final_state=context.sim_state,
+            log=simulator.get_log(),
+        )
 
     def get_type(self) -> str:
         return "evaluation"
