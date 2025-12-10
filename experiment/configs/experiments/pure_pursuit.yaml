@@ -7,7 +7,9 @@ experiment:
 
   execution:
     num_episodes: 1
-    max_steps_per_episode: 2000
+    clock_rate_hz: 100.0  # Should match simulator.rate_hz (see system config)
+    duration_sec: 120.0    # Total simulation time in seconds
+    clock_type: "stepped"
 
   postprocess:
     mlflow:

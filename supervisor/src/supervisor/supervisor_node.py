@@ -7,11 +7,10 @@ from core.interfaces.node import Node, NodeConfig, NodeExecutionResult
 class SupervisorConfig(NodeConfig):
     """Configuration for SupervisorNode."""
 
-    goal_x: float = 0.0
-    goal_y: float = 0.0
-    goal_radius: float = 5.0
-    max_steps: int = 1000
-    min_elapsed_time: float = 20.0
+    goal_x: float
+    goal_y: float
+    goal_radius: float
+    min_elapsed_time: float
 
 
 class SupervisorNode(Node[SupervisorConfig]):
@@ -88,15 +87,6 @@ class SupervisorNode(Node[SupervisorConfig]):
             self.frame_data.success = True
             self.frame_data.termination_signal = True
             self.frame_data.termination_reason = "goal_reached"
-            return NodeExecutionResult.SUCCESS
-
-        # 3. Check timeout (max steps)
-        if self.step_count >= self.config.max_steps:
-            self.frame_data.done = True
-            self.frame_data.done_reason = "timeout"
-            self.frame_data.success = False
-            self.frame_data.termination_signal = True
-            self.frame_data.termination_reason = "timeout"
             return NodeExecutionResult.SUCCESS
 
         # No termination condition met

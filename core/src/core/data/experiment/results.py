@@ -35,14 +35,8 @@ class EvaluationMetrics:
 
     lap_time_sec: float
     collision_count: int
-    lane_departure_rate: float
-    avg_lateral_accel: float
-    max_lateral_accel: float
-    comfort_score: float
     success: int
-
-    # Additional metrics
-    avg_velocity: float
+    termination_code: int  # 0: unknown, 1: goal, 2: off_track, 3: timeout
 
     def to_dict(self) -> dict[str, float | int]:
         """Convert to dictionary for MLflow."""

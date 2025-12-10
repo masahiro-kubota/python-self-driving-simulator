@@ -295,12 +295,7 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
 
     supervisor_params = supervisor_defaults.copy()
 
-    # Sync max_steps with execution config
-    # This ensures Supervisor doesn't terminate before the configured simulation duration
-    if experiment_layer.execution and experiment_layer.execution.max_steps_per_episode:
-        supervisor_params["max_steps"] = experiment_layer.execution.max_steps_per_episode
-
-    # Also check if user provided supervisor overrides directly
+    # Apply user-provided supervisor overrides if any
     if experiment_layer.supervisor:
         supervisor_params = _recursive_merge(supervisor_params, experiment_layer.supervisor)
 
@@ -381,8 +376,14 @@ class DefaultPreprocessor:
             vehicle_params = VehicleParameters(**load_yaml_file(full_path))
             sim_params["vehicle_params"] = vehicle_params
         else:
-            vehicle_params = VehicleParameters()
-            if "vehicle_params" not in sim_params:
+            if "vehicle_params" in sim_params and isinstance(sim_params["vehicle_params"], dict):
+                vehicle_params = VehicleParameters(**sim_params["vehicle_params"])
+            elif "vehicle_params" in sim_params and isinstance(
+                sim_params["vehicle_params"], VehicleParameters
+            ):
+                vehicle_params = sim_params["vehicle_params"]
+            else:
+                vehicle_params = VehicleParameters()
                 sim_params["vehicle_params"] = vehicle_params
 
         # 2. Setup AD Nodes
@@ -399,7 +400,6 @@ class DefaultPreprocessor:
 
                 node = create_node(
                     node_type=node_cfg["type"],
-                    name=node_cfg.get("name", "Unknown"),
                     rate_hz=node_cfg.get("rate_hz", 10.0),
                     params=node_cfg.get("params", {}),
                     vehicle_params=vehicle_params,

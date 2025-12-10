@@ -61,6 +61,7 @@ class EvaluationPostprocessor(
             "ad_component": config.components.ad_component.type,
             **config.components.ad_component.params,
             "execution_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "termination_reason": getattr(sim_result, "reason", "unknown"),
         }
 
         # Prepare artifacts container
@@ -77,7 +78,8 @@ class EvaluationPostprocessor(
             sim_result.log.metadata = result_params
 
             # 3. Calculate metrics
-            _, metrics_obj = self._calculate_metrics(sim_result.log, sim_result.success)
+            reason = getattr(sim_result, "reason", "unknown")
+            _, metrics_obj = self._calculate_metrics(sim_result.log, sim_result.success, reason)
             result_metrics = metrics_obj
 
             # 4. Create ExperimentResult
@@ -136,12 +138,12 @@ class EvaluationPostprocessor(
         return True
 
     def _calculate_metrics(
-        self, log: SimulationLog, success: bool
+        self, log: SimulationLog, success: bool, reason: str = "unknown"
     ) -> tuple[dict[str, float], EvaluationMetrics]:
         """Calculate simulation metrics."""
         print("Calculating metrics...")
         calculator = MetricsCalculator()
-        metrics = calculator.calculate(log)
+        metrics = calculator.calculate(log, reason=reason)
 
         # Override success metric with SimulationResult.success
         metrics.success = 1 if success else 0

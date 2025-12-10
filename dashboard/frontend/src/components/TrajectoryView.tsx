@@ -146,6 +146,24 @@ export const TrajectoryView: React.FC<TrajectoryViewProps> = ({ width, height })
       });
     }
 
+    // Heading Arrow as a Line Trace
+    if (currentPoint) {
+      const arrowLength = 20;
+      traces.push({
+        x: [currentPoint.x, currentPoint.x + arrowLength * Math.cos(currentPoint.yaw)],
+        y: [currentPoint.y, currentPoint.y + arrowLength * Math.sin(currentPoint.yaw)],
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Heading',
+        line: {
+          color: theme.palette.error.main,
+          width: 2,
+        },
+        showlegend: false,
+        hoverinfo: 'skip',
+      });
+    }
+
     return traces;
   }, [data, currentPoint, theme]);
 
@@ -212,34 +230,21 @@ export const TrajectoryView: React.FC<TrajectoryViewProps> = ({ width, height })
       font: {
         color: theme.palette.text.primary,
       },
-      annotations: currentPoint
-        ? [
-            {
-              x: currentPoint.x + 20 * Math.cos(currentPoint.yaw),
-              y: currentPoint.y + 20 * Math.sin(currentPoint.yaw),
-              ax: currentPoint.x,
-              ay: currentPoint.y,
-              xref: 'x',
-              yref: 'y',
-              axref: 'x',
-              ayref: 'y',
-              showarrow: true,
-              arrowhead: 2,
-              arrowsize: 1,
-              arrowwidth: 2,
-              arrowcolor: theme.palette.error.main,
-            },
-          ]
-        : [],
+      annotations: [],
+      uirevision: data?.metadata?.execution_time || 'default',
     };
-  }, [data, currentPoint, width, height, theme]);
+  }, [data, width, height, theme]); // Removed currentPoint from dependencies
 
-  const config: Partial<Plotly.Config> = {
-    displayModeBar: true,
-    displaylogo: false,
-    modeBarButtonsToRemove: ['select2d', 'lasso2d'],
-    scrollZoom: true,
-  };
+  const config = useMemo(
+    (): Partial<Plotly.Config> => ({
+      displayModeBar: true,
+      displaylogo: false,
+      modeBarButtonsToRemove: ['select2d', 'lasso2d'],
+      scrollZoom: true,
+      responsive: true,
+    }),
+    []
+  );
 
   if (!data) {
     return (
@@ -251,7 +256,13 @@ export const TrajectoryView: React.FC<TrajectoryViewProps> = ({ width, height })
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      <Plot data={trajectoryData} layout={layout} config={config} />
+      <Plot
+        data={trajectoryData}
+        layout={layout}
+        config={config}
+        style={{ width: '100%', height: '100%' }}
+        useResizeHandler={true}
+      />
     </div>
   );
 };

@@ -13,13 +13,20 @@ system:
 
   simulator:
     type: "KinematicSimulator"
-    rate_hz: 100.0  # Physics update rate [Hz]
+    rate_hz: 100.0  # Physics update rate [Hz] - Should match execution.clock_rate_hz for efficiency
     params:
       initial_state:
         x: 89630.067
         y: 43130.695
         yaw: 2.2
         velocity: 0.0
+      vehicle_params:
+        wheelbase: 1.087
+        width: 1.30
+        length: 2.064
+        max_steering_angle: 0.64
+        front_overhang: 0.467
+        rear_overhang: 0.510
 
   runtime:
     mode: "singleprocess"

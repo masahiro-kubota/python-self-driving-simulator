@@ -23,7 +23,7 @@ const darkTheme = createTheme({
 });
 
 export const DashboardLayout: React.FC = () => {
-  const { data } = useSimulationStore();
+  const data = useSimulationStore((state) => state.data);
 
   if (!data)
     return (

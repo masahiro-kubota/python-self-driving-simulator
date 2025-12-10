@@ -114,6 +114,9 @@ class MLflowExperimentLogger:
 
         if result.params:
             mlflow.log_params(result.params)
+            # Log termination_reason as tag for better visibility
+            if "termination_reason" in result.params:
+                mlflow.set_tag("termination_reason", str(result.params["termination_reason"]))
 
         if result.metrics:
             mlflow.log_metrics(result.metrics.to_dict())

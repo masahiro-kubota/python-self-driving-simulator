@@ -30,16 +30,10 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
         config = experiment.config
         nodes = experiment.nodes
 
-        # 設定値の取得 (Clock作成用)
-        sim_rate = config.simulator.rate_hz
-        max_steps = config.execution.max_steps_per_episode if config.execution else 2000
-
-        # シミュレーション時間の計算
-        # duration_secが指定されている場合はそれを優先、なければmax_stepsから計算
-        if config.execution and config.execution.duration_sec is not None:
-            duration = config.execution.duration_sec
-        else:
-            duration = max_steps * (1.0 / sim_rate)
+        # 設定値の取得
+        clock_rate = config.execution.clock_rate_hz if config.execution else 100.0
+        duration = config.execution.duration_sec if config.execution else 20.0
+        clock_type = config.execution.clock_type if config.execution else "stepped"
 
         # FrameDataの構築
         # 1. 全nodeのIO要件を収集
@@ -63,14 +57,18 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
             node.set_frame_data(frame_data)
 
         # クロックの作成
-        clock_type = config.execution.clock_type if config.execution else "stepped"
-        clock = create_clock(start_time=0.0, rate_hz=sim_rate, clock_type=clock_type)
+        clock = create_clock(start_time=0.0, rate_hz=clock_rate, clock_type=clock_type)
 
         # Executorの作成
         executor = SingleProcessExecutor(nodes, clock)
 
         # 実験の実行
         executor.run(duration=duration)
+
+        # 終了理由の表示
+        reason = getattr(frame_data, "done_reason", "unknown")
+        success = getattr(frame_data, "success", False)
+        print(f"Simulation completed. Success: {success}, Reason: {reason}")
 
         # 結果の取得
         # Find LoggerNode to get log

@@ -36,10 +36,10 @@ class ExecutionConfig(BaseModel):
     """Configuration for execution."""
 
     num_episodes: int = Field(1, description="Number of episodes to run")
-    max_steps_per_episode: int = Field(2000, description="Maximum steps per episode")
-    duration_sec: float | None = Field(
-        None, description="Simulation duration in seconds (overrides max_steps_per_episode if set)"
+    clock_rate_hz: float = Field(
+        ..., description="Clock rate in Hz (should match simulator.rate_hz for efficiency)"
     )
+    duration_sec: float = Field(..., description="Simulation duration in seconds")
     parallel: bool = Field(False, description="Run episodes in parallel")
     num_workers: int = Field(1, description="Number of parallel workers")
 
@@ -47,7 +47,6 @@ class ExecutionConfig(BaseModel):
     clock_type: Literal["stepped", "realtime", "external"] = Field(
         "stepped", description="Clock type for simulation timing"
     )
-    goal_radius: float = Field(5.0, description="Goal radius for physics node")
 
 
 class TrainingConfig(BaseModel):
