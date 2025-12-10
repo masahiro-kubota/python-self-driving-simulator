@@ -20,32 +20,32 @@ class ComponentConfig(BaseModel):
     """Configuration for a component."""
 
     type: str = Field(..., description="Component class name")
-    rate_hz: float = Field(10.0, description="Execution frequency in Hz")
-    params: dict[str, Any] = Field(default_factory=dict, description="Component parameters")
+    rate_hz: float = Field(..., description="Execution frequency in Hz")
+    params: dict[str, Any] = Field(..., description="Component parameters")
 
 
 class SimulatorConfig(BaseModel):
     """Configuration for simulator."""
 
     type: str = Field(..., description="Simulator class name")
-    rate_hz: float = Field(100.0, description="Physics frequency in Hz")
-    params: dict[str, Any] = Field(default_factory=dict, description="Simulator parameters")
+    rate_hz: float = Field(..., description="Physics frequency in Hz")
+    params: dict[str, Any] = Field(..., description="Simulator parameters")
 
 
 class ExecutionConfig(BaseModel):
     """Configuration for execution."""
 
-    num_episodes: int = Field(1, description="Number of episodes to run")
+    num_episodes: int = Field(..., description="Number of episodes to run")
     clock_rate_hz: float = Field(
         ..., description="Clock rate in Hz (should match simulator.rate_hz for efficiency)"
     )
     duration_sec: float = Field(..., description="Simulation duration in seconds")
-    parallel: bool = Field(False, description="Run episodes in parallel")
-    num_workers: int = Field(1, description="Number of parallel workers")
+    parallel: bool = Field(..., description="Run episodes in parallel")
+    num_workers: int = Field(..., description="Number of parallel workers")
 
     # Future support for executor/clock switching
     clock_type: Literal["stepped", "realtime", "external"] = Field(
-        "stepped", description="Clock type for simulation timing"
+        ..., description="Clock type for simulation timing"
     )
 
 
@@ -62,12 +62,12 @@ class TrainingConfig(BaseModel):
     dataset_path: str | None = Field(None, description="Direct S3 dataset path")
 
     reference_trajectory_path: str | None = Field(None, description="Path to reference trajectory")
-    epochs: int = Field(100, description="Number of training epochs")
-    batch_size: int = Field(32, description="Batch size")
-    learning_rate: float = Field(0.001, description="Learning rate")
-    validation_split: float = Field(0.2, description="Validation split ratio")
-    optimizer: str = Field("adam", description="Optimizer type")
-    loss_function: str = Field("mse", description="Loss function type")
+    epochs: int = Field(..., description="Number of training epochs")
+    batch_size: int = Field(..., description="Batch size")
+    learning_rate: float = Field(..., description="Learning rate")
+    validation_split: float = Field(..., description="Validation split ratio")
+    optimizer: str = Field(..., description="Optimizer type")
+    loss_function: str = Field(..., description="Loss function type")
 
     @model_validator(mode="after")
     def validate_data_source(self) -> "TrainingConfig":
@@ -89,16 +89,16 @@ class TrainingConfig(BaseModel):
 class DataCollectionConfig(BaseModel):
     """Configuration for data collection."""
 
-    storage_backend: Literal["s3"] = Field("s3", description="Storage backend")
+    storage_backend: Literal["s3"] = Field(..., description="Storage backend")
 
     # S3 dataset configuration
     project: str | None = Field(None, description="Project name")
     scenario: str | None = Field(None, description="Scenario/task name")
     version: str | None = Field(None, description="Dataset version")
-    stage: Literal["raw", "processed", "features"] = Field("raw", description="Data stage")
+    stage: Literal["raw", "processed", "features"] = Field(..., description="Data stage")
 
-    format: Literal["json", "mcap"] = Field("json", description="Data format")
-    save_frequency: int = Field(1, description="Save every N episodes")
+    format: Literal["json", "mcap"] = Field(..., description="Data format")
+    save_frequency: int = Field(..., description="Save every N episodes")
 
     @model_validator(mode="after")
     def validate_storage_config(self) -> "DataCollectionConfig":
@@ -112,10 +112,10 @@ class EvaluationConfig(BaseModel):
     """Configuration for evaluation."""
 
     metrics: list[str] = Field(
-        default_factory=lambda: ["lap_time", "lateral_error", "comfort"],
+        ...,
         description="Metrics to calculate",
     )
-    generate_dashboard: bool = Field(True, description="Generate dashboard")
+    generate_dashboard: bool = Field(..., description="Generate dashboard")
 
 
 class ModelConfig(BaseModel):
@@ -130,32 +130,30 @@ class ModelConfig(BaseModel):
 class MLflowConfig(StrictConfig):
     """Configuration for MLflow logging."""
 
-    enabled: bool = Field(True, description="Enable MLflow logging")
-    tracking_uri: str = Field("http://localhost:5000", description="MLflow tracking URI")
+    enabled: bool = Field(..., description="Enable MLflow logging")
+    tracking_uri: str = Field(..., description="MLflow tracking URI")
 
 
 class MCAPConfig(StrictConfig):
     """Configuration for MCAP logging."""
 
-    enabled: bool = Field(True, description="Enable MCAP logging")
-    output_dir: str = Field("/tmp", description="Output directory for MCAP files")
+    enabled: bool = Field(..., description="Enable MCAP logging")
+    output_dir: str = Field(..., description="Output directory for MCAP files")
 
 
 class DashboardConfig(StrictConfig):
     """Configuration for dashboard generation."""
 
-    enabled: bool = Field(True, description="Enable dashboard generation")
+    enabled: bool = Field(..., description="Enable dashboard generation")
 
 
 class PostprocessConfig(StrictConfig):
     """Configuration for postprocessing (logging, metrics, dashboard)."""
 
-    inputs: list[str] = Field(
-        default_factory=list, description="List of input files to log as artifacts"
-    )
-    mlflow: MLflowConfig = Field(default_factory=MLflowConfig)
-    mcap: MCAPConfig = Field(default_factory=MCAPConfig)
-    dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
+    inputs: list[str] = Field(..., description="List of input files to log as artifacts")
+    mlflow: MLflowConfig = Field(...)
+    mcap: MCAPConfig = Field(...)
+    dashboard: DashboardConfig = Field(...)
 
 
 class ExperimentMetadata(BaseModel):
@@ -163,7 +161,7 @@ class ExperimentMetadata(BaseModel):
 
     name: str = Field(..., description="Experiment name")
     type: ExperimentType = Field(..., description="Experiment type")
-    description: str = Field("", description="Experiment description")
+    description: str = Field(..., description="Experiment description")
 
 
 class ComponentsConfig(BaseModel):
@@ -175,9 +173,9 @@ class ComponentsConfig(BaseModel):
 class ModelCheckpointConfig(BaseModel):
     """Configuration for model checkpointing."""
 
-    save_best: bool = Field(True, description="Save best model")
-    save_every_n_epochs: int = Field(10, description="Save checkpoint every N epochs")
-    output_dir: str = Field("data/models", description="Output directory for models")
+    save_best: bool = Field(..., description="Save best model")
+    save_every_n_epochs: int = Field(..., description="Save checkpoint every N epochs")
+    output_dir: str = Field(..., description="Output directory for models")
 
 
 class ModuleConfig(BaseModel):
@@ -192,14 +190,14 @@ class SystemConfig(BaseModel):
 
     name: str = Field(..., description="System name")
     module: str = Field(..., description="Path to module configuration")
-    vehicle: dict[str, Any] = Field(default_factory=dict, description="Vehicle configuration")
+    vehicle: dict[str, Any] = Field(..., description="Vehicle configuration")
     map_path: str | None = Field(None, description="Path to map file (e.g. Lanelet2 OSM)")
     simulator: dict[str, Any] | None = Field(None, description="Simulator configuration")
     simulator_overrides: dict[str, Any] = Field(
         default_factory=dict,
         description="Simulator parameter overrides (Deprecated in favor of 'simulator')",
     )
-    runtime: dict[str, Any] = Field(default_factory=dict, description="Runtime configuration")
+    runtime: dict[str, Any] = Field(..., description="Runtime configuration")
 
 
 class ExperimentLayerConfig(BaseModel):
@@ -220,7 +218,7 @@ class ExperimentLayerConfig(BaseModel):
 class SupervisorConfig(BaseModel):
     """Configuration for supervisor."""
 
-    params: dict[str, Any] = Field(default_factory=dict, description="Supervisor parameters")
+    params: dict[str, Any] = Field(..., description="Supervisor parameters")
 
 
 class ResolvedExperimentConfig(BaseModel):
@@ -239,8 +237,8 @@ class ResolvedExperimentConfig(BaseModel):
         None, description="Data collection configuration"
     )
     evaluation: EvaluationConfig | None = Field(None, description="Evaluation configuration")
-    postprocess: PostprocessConfig = Field(default_factory=PostprocessConfig)
-    runtime: dict[str, Any] = Field(default_factory=dict, description="Runtime configuration")
+    postprocess: PostprocessConfig = Field(...)
+    runtime: dict[str, Any] = Field(..., description="Runtime configuration")
 
     @model_validator(mode="after")
     def validate_experiment_type(self) -> "ResolvedExperimentConfig":

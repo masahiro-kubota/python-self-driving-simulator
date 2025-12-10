@@ -7,16 +7,20 @@ experiment:
 
   execution:
     num_episodes: 1
+    parallel: false
+    num_workers: 1
     clock_rate_hz: 100.0  # Should match simulator.rate_hz (see system config)
-    duration_sec: 120.0    # Total simulation time in seconds
+    duration_sec: 600.0    # Total simulation time in seconds
     clock_type: "stepped"
 
   supervisor:
     goal_x: 89630.067
     goal_y: 43130.695
-    goal_radius: 3.0
+    goal_radius: "default"
+    min_elapsed_time: 20.0
 
   postprocess:
+    inputs: []
     mlflow:
       enabled: true
       tracking_uri: "http://localhost:5000"

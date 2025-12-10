@@ -332,6 +332,19 @@ class TestGetBicycleModelPolygon:
             front_overhang=1.0,
             rear_overhang=0.5,
             width=2.0,
+            max_steering_angle=0.6,
+            max_velocity=20.0,
+            max_acceleration=3.0,
+            mass=1500.0,
+            inertia=2500.0,
+            lf=1.2,
+            lr=1.3,
+            cf=80000.0,
+            cr=80000.0,
+            c_drag=0.3,
+            c_roll=0.015,
+            max_drive_force=5000.0,
+            max_brake_force=8000.0,
         )
 
         polygon = get_bicycle_model_polygon(state, params)
@@ -354,6 +367,19 @@ class TestGetBicycleModelPolygon:
             front_overhang=1.0,
             rear_overhang=0.5,
             width=2.0,
+            max_steering_angle=0.6,
+            max_velocity=20.0,
+            max_acceleration=3.0,
+            mass=1500.0,
+            inertia=2500.0,
+            lf=1.2,
+            lr=1.3,
+            cf=80000.0,
+            cr=80000.0,
+            c_drag=0.3,
+            c_roll=0.015,
+            max_drive_force=5000.0,
+            max_brake_force=8000.0,
         )
 
         polygon = get_bicycle_model_polygon(state, params)
@@ -373,6 +399,19 @@ class TestGetBicycleModelPolygon:
             front_overhang=1.0,
             rear_overhang=0.5,
             width=2.0,
+            max_steering_angle=0.6,
+            max_velocity=20.0,
+            max_acceleration=3.0,
+            mass=1500.0,
+            inertia=2500.0,
+            lf=1.2,
+            lr=1.3,
+            cf=80000.0,
+            cr=80000.0,
+            c_drag=0.3,
+            c_roll=0.015,
+            max_drive_force=5000.0,
+            max_brake_force=8000.0,
         )
 
         polygon = get_bicycle_model_polygon(state, params)

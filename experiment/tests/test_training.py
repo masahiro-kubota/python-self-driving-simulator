@@ -57,13 +57,20 @@ class TestTrainingIntegration:
                     "epochs": 1,
                     "batch_size": 2,
                     "learning_rate": 0.001,
+                    "validation_split": 0.2,  # Added
+                    "optimizer": "adam",  # Added
+                    "loss_function": "mse",  # Added
                     "dataset_project": "test_project",
                     "dataset_scenario": "test_scenario",
                     "dataset_version": "v1.0.0",
                 },
-                "logging": {
-                    "mlflow": {"enabled": False},
+                "postprocess": {  # Added
+                    "inputs": [],
+                    "mlflow": {"enabled": False, "tracking_uri": ""},
+                    "mcap": {"enabled": False, "output_dir": ""},
+                    "dashboard": {"enabled": False},
                 },
+                "runtime": {"mode": "test"},  # Added
             }
 
             # Verify config validation passes

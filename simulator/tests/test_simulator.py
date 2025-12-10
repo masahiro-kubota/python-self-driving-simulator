@@ -5,6 +5,26 @@ from core.data.node_io import NodeIO
 from core.interfaces.node import NodeExecutionResult
 from simulator.simulator import Simulator
 
+DUMMY_VP = VehicleParameters(
+    wheelbase=2.5,
+    width=1.8,
+    front_overhang=1.0,
+    rear_overhang=1.0,
+    max_steering_angle=0.6,
+    max_velocity=20.0,
+    max_acceleration=3.0,
+    mass=1500.0,
+    inertia=2500.0,
+    lf=1.2,
+    lr=1.3,
+    cf=80000.0,
+    cr=80000.0,
+    c_drag=0.3,
+    c_roll=0.015,
+    max_drive_force=5000.0,
+    max_brake_force=8000.0,
+)
+
 
 class TestSimulatorNode:
     """Tests for Simulator as a Node."""
@@ -14,7 +34,7 @@ class TestSimulatorNode:
         from simulator.simulator import SimulatorConfig
 
         config = SimulatorConfig(
-            vehicle_params=VehicleParameters(),
+            vehicle_params=DUMMY_VP,
             initial_state=VehicleState(x=10.0, y=5.0, yaw=1.0, velocity=2.0, timestamp=0.0),
         )
 
@@ -30,7 +50,7 @@ class TestSimulatorNode:
         """Test that Simulator defines correct node IO."""
         from simulator.simulator import SimulatorConfig
 
-        config = SimulatorConfig(vehicle_params=VehicleParameters())
+        config = SimulatorConfig(vehicle_params=DUMMY_VP)
         sim = Simulator(config=config, rate_hz=10.0)
 
         node_io = sim.get_node_io()
@@ -44,7 +64,7 @@ class TestSimulatorNode:
         from simulator.simulator import SimulatorConfig
 
         config = SimulatorConfig(
-            vehicle_params=VehicleParameters(),
+            vehicle_params=DUMMY_VP,
             initial_state=VehicleState(x=5.0, y=3.0, yaw=0.5, velocity=1.0, timestamp=0.0),
         )
 
@@ -64,7 +84,7 @@ class TestSimulatorNode:
 
         from simulator.simulator import SimulatorConfig
 
-        config = SimulatorConfig(vehicle_params=VehicleParameters())
+        config = SimulatorConfig(vehicle_params=DUMMY_VP)
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -89,7 +109,7 @@ class TestSimulatorNode:
         from simulator.simulator import SimulatorConfig
 
         config = SimulatorConfig(
-            vehicle_params=VehicleParameters(),
+            vehicle_params=DUMMY_VP,
             initial_state=VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=0.0, timestamp=0.0),
         )
         sim = Simulator(config=config, rate_hz=10.0)
@@ -115,7 +135,7 @@ class TestSimulatorNode:
 
         from simulator.simulator import SimulatorConfig
 
-        config = SimulatorConfig(vehicle_params=VehicleParameters())
+        config = SimulatorConfig(vehicle_params=DUMMY_VP)
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -136,7 +156,7 @@ class TestSimulatorNode:
 
         from simulator.simulator import SimulatorConfig
 
-        config = SimulatorConfig(vehicle_params=VehicleParameters())
+        config = SimulatorConfig(vehicle_params=DUMMY_VP)
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -155,7 +175,7 @@ class TestSimulatorNode:
 
         from simulator.simulator import SimulatorConfig
 
-        config = SimulatorConfig(vehicle_params=VehicleParameters())
+        config = SimulatorConfig(vehicle_params=DUMMY_VP)
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -183,7 +203,7 @@ class TestSimulatorNode:
 
         from simulator.simulator import SimulatorConfig
 
-        config = SimulatorConfig(vehicle_params=VehicleParameters())
+        config = SimulatorConfig(vehicle_params=DUMMY_VP)
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -235,7 +255,7 @@ class TestSimulatorWithMap:
         from simulator.simulator import SimulatorConfig
 
         config = SimulatorConfig(
-            vehicle_params=VehicleParameters(),
+            vehicle_params=DUMMY_VP,
             map_path=str(map_file),
         )
 

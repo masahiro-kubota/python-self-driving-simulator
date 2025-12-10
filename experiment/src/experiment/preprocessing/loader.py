@@ -38,6 +38,37 @@ def _recursive_merge(base: dict[str, Any], overrides: dict[str, Any]) -> dict[st
     return merge_configs(base, overrides)
 
 
+def _resolve_defaults(
+    user_params: dict[str, Any], default_params: dict[str, Any]
+) -> dict[str, Any]:
+    """Resolve 'default' values in user parameters using default parameters.
+
+    Args:
+        user_params: User-provided parameters.
+        default_params: Default parameters.
+
+    Returns:
+        Resolved parameters.
+    """
+    resolved = user_params.copy()
+    for key, value in resolved.items():
+        if (
+            isinstance(value, dict)
+            and key in default_params
+            and isinstance(default_params[key], dict)
+        ):
+            resolved[key] = _resolve_defaults(value, default_params[key])
+        elif value == "default":
+            if key in default_params:
+                resolved[key] = default_params[key]
+            else:
+                # If "default" is specified but no default exists, we can either error or leave it
+                # (and let Pydantic fail validation if types don't match).
+                # Erroring is explicit safer.
+                raise ValueError(f"Parameter '{key}' set to 'default' but no default value found.")
+    return resolved
+
+
 def load_yaml(path: Path | str) -> dict[str, Any]:
     """Load YAML file relative to project root.
 
@@ -154,6 +185,8 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
         # Direct ad_component definition
         resolved_components = {"ad_component": module_layer.components["ad_component"]}
 
+        ad_user_params = resolved_components["ad_component"].get("params", {}) or {}
+
         # Load defaults for the ad_component type
         ad_comp_type = resolved_components["ad_component"]["type"]
         ad_package = None
@@ -173,10 +206,11 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
         if ad_package:
             ad_defaults = load_component_defaults(ad_package)
 
-        ad_user_params = resolved_components["ad_component"].get("params", {}) or {}
-        resolved_components["ad_component"]["params"] = _recursive_merge(
-            ad_defaults, ad_user_params
+        # Resolve 'default' keywords
+        resolved_components["ad_component"]["params"] = _resolve_defaults(
+            ad_user_params, ad_defaults
         )
+
     else:
         raise ValueError("Module must define 'ad_component' in components")
 
@@ -192,6 +226,8 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
 
     if resolved_simulator is None:
         raise ValueError("Simulator configuration missing (must be in System or Module)")
+
+    sim_user_params = resolved_simulator.get("params", {}) or {}
 
     # Load Defaults for Simulator
     sim_type = resolved_simulator["type"]
@@ -212,8 +248,7 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
     if sim_package:
         sim_defaults = load_component_defaults(sim_package)
 
-    sim_user_params = resolved_simulator.get("params", {}) or {}
-    resolved_simulator["params"] = _recursive_merge(sim_defaults, sim_user_params)
+    resolved_simulator["params"] = _resolve_defaults(sim_user_params, sim_defaults)
 
     # 5. Apply System Layer Overrides
 
@@ -286,18 +321,14 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
 
     # --- Supervisor ---
 
-    # Load defaults from supervisor package
-    supervisor_defaults = load_component_defaults("supervisor")
-
-    # Get user overrides from execution config if any (e.g. goal_radius)
-    # Note: legacy config might put goal_radius in execution
-    # We should merge them into supervisor params
-
-    supervisor_params = supervisor_defaults.copy()
-
     # Apply user-provided supervisor overrides if any
     if experiment_layer.supervisor:
-        supervisor_params = _recursive_merge(supervisor_params, experiment_layer.supervisor)
+        supervisor_user_params = experiment_layer.supervisor
+    else:
+        supervisor_user_params = {}
+
+    supervisor_defaults = load_component_defaults("supervisor")
+    supervisor_params = _resolve_defaults(supervisor_user_params, supervisor_defaults)
 
     final_dict["supervisor"] = {"params": supervisor_params}
 

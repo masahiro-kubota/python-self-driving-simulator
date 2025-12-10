@@ -4,6 +4,7 @@ module:
   components:
     ad_component:
       type: "ad_component_core.flexible_ad_component.FlexibleADComponent"
+      rate_hz: 10.0
       params:
         nodes:
           - name: "Sensor"

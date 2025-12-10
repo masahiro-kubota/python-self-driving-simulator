@@ -14,9 +14,9 @@ class PurePursuitConfig(NodeConfig):
     lookahead_distance: float | None = Field(
         None, description="Detailed fixed lookahead (deprecated in favor of dynamic/min/max)"
     )
-    min_lookahead_distance: float = Field(3.0, description="Minimum lookahead distance [m]")
-    max_lookahead_distance: float = Field(15.0, description="Maximum lookahead distance [m]")
-    lookahead_speed_ratio: float = Field(1.5, description="Lookahead distance speed ratio [s]")
+    min_lookahead_distance: float = Field(..., description="Minimum lookahead distance [m]")
+    max_lookahead_distance: float = Field(..., description="Maximum lookahead distance [m]")
+    lookahead_speed_ratio: float = Field(..., description="Lookahead distance speed ratio [s]")
 
     # If lookahead_distance is set, it overrides the dynamic logic (backward compatibility)
 
@@ -31,7 +31,9 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         vehicle_params: VehicleParameters | None = None,
     ):
         super().__init__("PurePursuit", rate_hz, config)
-        self.vehicle_params = vehicle_params or VehicleParameters()
+        if vehicle_params is None:
+            raise ValueError("VehicleParameters must be provided to PurePursuitNode")
+        self.vehicle_params = vehicle_params
         self.reference_trajectory: Trajectory | None = None
         # self.config is set by base class
 
