@@ -32,6 +32,11 @@ class MetricsCalculator:
         # Collision (placeholder)
         collision_count = 0
 
+        # Get goal_count from last step info if available
+        goal_count = 0
+        if log.steps:
+            goal_count = log.steps[-1].info.get("goal_count", 0)
+
         # Termination Code
         # 0: unknown, 1: goal_reached, 2: off_track, 3: timeout
         reason_map = {
@@ -48,4 +53,5 @@ class MetricsCalculator:
             collision_count=collision_count,
             success=success,
             termination_code=termination_code,
+            goal_count=goal_count,
         )

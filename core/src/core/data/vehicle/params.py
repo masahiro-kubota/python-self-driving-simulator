@@ -19,7 +19,11 @@ class VehicleParameters:
     # 基本形状
     wheelbase: float = 2.5  # ホイールベース [m]
     width: float = 1.8  # 車幅 [m]
-    length: float = 4.5  # 車長 [m]
+
+    @property
+    def length(self) -> float:
+        """車長 (computed) [m]."""
+        return self.wheelbase + self.front_overhang + self.rear_overhang
 
     # 運動学パラメータ
     max_steering_angle: float = 0.6  # 最大操舵角 [rad]

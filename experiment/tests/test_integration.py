@@ -41,6 +41,21 @@ def test_pure_pursuit_experiment_nodes() -> None:
     # We expect some movement
     assert last_step.vehicle_state.x != 89630.067  # Initial X
 
+    # Check for success and metrics
+    sim_result = result.simulation_results[0]
+    metrics = result.metrics
+
+    assert sim_result.success, f"Simulation failed with reason: {sim_result.reason}"
+
+    # Detailed metric assertions
+    assert metrics.success == 1, f"Metric success should be 1, got {metrics.success}"
+    assert metrics.lap_time_sec < 90.0, f"Lap time {metrics.lap_time_sec:.2f}s is too slow (>= 90s)"
+    assert metrics.collision_count == 0, f"Collision count {metrics.collision_count} should be 0"
+    assert (
+        metrics.termination_code == 1
+    ), f"Termination code {metrics.termination_code} != 1 (Goal Reached)"
+    assert metrics.goal_count == 1, f"Goal count {metrics.goal_count} != 1"
+
 
 def test_node_instantiation(tmp_path) -> None:
     """Test direct instantiation of Nodes."""

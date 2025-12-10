@@ -11,6 +11,11 @@ experiment:
     duration_sec: 120.0    # Total simulation time in seconds
     clock_type: "stepped"
 
+  supervisor:
+    goal_x: 89630.067
+    goal_y: 43130.695
+    goal_radius: 3.0
+
   postprocess:
     mlflow:
       enabled: true

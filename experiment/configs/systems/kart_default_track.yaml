@@ -23,7 +23,6 @@ system:
       vehicle_params:
         wheelbase: 1.087
         width: 1.30
-        length: 2.064
         max_steering_angle: 0.64
         front_overhang: 0.467
         rear_overhang: 0.510

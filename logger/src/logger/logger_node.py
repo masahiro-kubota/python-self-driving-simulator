@@ -81,7 +81,9 @@ class LoggerNode(Node[LoggerConfig]):
             vehicle_state=sim_state,
             action=action,
             ad_component_log=ad_component_log,
-            info={},
+            info={
+                "goal_count": getattr(self.frame_data, "goal_count", 0),
+            },
         )
 
         self.log.steps.append(step)

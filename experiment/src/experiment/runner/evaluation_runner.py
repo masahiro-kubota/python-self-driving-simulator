@@ -78,6 +78,21 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
                 log = node.get_log()
                 break
 
+        # Inject metadata into log
+        if log is not None:
+            # Inject vehicle parameters
+            sim_params = config.simulator.params
+            if "vehicle_params" in sim_params:
+                v_params = sim_params["vehicle_params"]
+                if hasattr(v_params, "to_dict"):
+                    log.metadata.update(v_params.to_dict())
+                elif isinstance(v_params, dict):
+                    log.metadata.update(v_params)
+
+            # Inject controller type if available
+            if config.components.ad_component:
+                log.metadata["controller"] = {"type": config.components.ad_component.type}
+
         return SimulationResult(
             success=getattr(frame_data, "success", False),
             reason=getattr(frame_data, "done_reason", "unknown"),
