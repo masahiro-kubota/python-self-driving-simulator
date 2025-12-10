@@ -1,13 +1,13 @@
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.data import VehicleParameters, VehicleState
 from core.data.ad_components import Trajectory, TrajectoryPoint
 from core.data.node_io import NodeIO
-from core.interfaces.node import Node
+from core.interfaces.node import Node, NodeConfig
 from core.utils.geometry import distance
 
 
-class PurePursuitConfig(BaseModel):
+class PurePursuitConfig(NodeConfig):
     """Configuration for PurePursuitNode."""
 
     track_path: str = Field(..., description="Path to reference trajectory CSV")
@@ -21,7 +21,7 @@ class PurePursuitConfig(BaseModel):
     # If lookahead_distance is set, it overrides the dynamic logic (backward compatibility)
 
 
-class PurePursuitNode(Node):
+class PurePursuitNode(Node[PurePursuitConfig]):
     """Pure Pursuit path tracking node."""
 
     def __init__(
@@ -30,7 +30,7 @@ class PurePursuitNode(Node):
         super().__init__("PurePursuit", rate_hz, config, config_model=PurePursuitConfig)
         self.vehicle_params = vehicle_params or VehicleParameters()
         self.reference_trajectory: Trajectory | None = None
-        self.config: PurePursuitConfig = self.validated_config
+        # self.config is set by base class
 
         if self.config.track_path:
             # Note: We need to handle path resolution.

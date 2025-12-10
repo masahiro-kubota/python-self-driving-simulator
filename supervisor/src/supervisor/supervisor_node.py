@@ -1,12 +1,10 @@
 """Supervisor node for simulation judgment and monitoring."""
 
-from pydantic import BaseModel
-
 from core.data.node_io import NodeIO
-from core.interfaces.node import Node
+from core.interfaces.node import Node, NodeConfig
 
 
-class SupervisorConfig(BaseModel):
+class SupervisorConfig(NodeConfig):
     """Configuration for SupervisorNode."""
 
     goal_x: float = 0.0
@@ -16,7 +14,7 @@ class SupervisorConfig(BaseModel):
     min_elapsed_time: float = 20.0
 
 
-class SupervisorNode(Node):
+class SupervisorNode(Node[SupervisorConfig]):
     """Node responsible for supervising simulation success/failure and termination conditions."""
 
     def __init__(self, config: dict, rate_hz: float):
@@ -79,10 +77,12 @@ class SupervisorNode(Node):
             return True
 
         # 2. Check goal reached
-        dist = ((sim_state.x - self.goal_x) ** 2 + (sim_state.y - self.goal_y) ** 2) ** 0.5
+        dist = (
+            (sim_state.x - self.config.goal_x) ** 2 + (sim_state.y - self.config.goal_y) ** 2
+        ) ** 0.5
         elapsed_time = self.step_count * (1.0 / self.rate_hz)
 
-        if dist <= self.goal_radius and elapsed_time >= self.min_elapsed_time:
+        if dist <= self.config.goal_radius and elapsed_time >= self.config.min_elapsed_time:
             self.frame_data.done = True
             self.frame_data.done_reason = "goal_reached"
             self.frame_data.success = True
@@ -91,7 +91,7 @@ class SupervisorNode(Node):
             return True
 
         # 3. Check timeout (max steps)
-        if self.step_count >= self.max_steps:
+        if self.step_count >= self.config.max_steps:
             self.frame_data.done = True
             self.frame_data.done_reason = "timeout"
             self.frame_data.success = False

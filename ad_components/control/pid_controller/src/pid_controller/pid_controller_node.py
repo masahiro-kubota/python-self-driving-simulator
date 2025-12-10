@@ -1,15 +1,15 @@
 import math
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from core.data import Action, VehicleParameters, VehicleState
 from core.data.ad_components import Trajectory
 from core.data.node_io import NodeIO
-from core.interfaces.node import Node
+from core.interfaces.node import Node, NodeConfig
 from core.utils.geometry import distance, normalize_angle
 
 
-class PIDConfig(BaseModel):
+class PIDConfig(NodeConfig):
     """Configuration for PIDControllerNode."""
 
     kp: float = Field(..., description="Proportional gain")
@@ -19,7 +19,7 @@ class PIDConfig(BaseModel):
     u_max: float = Field(10.0, description="Maximum acceleration [m/s^2]")
 
 
-class PIDControllerNode(Node):
+class PIDControllerNode(Node[PIDConfig]):
     """PID Controller node for combined steering (Pure Pursuit logic legacy) and velocity control."""
 
     def __init__(
@@ -28,7 +28,7 @@ class PIDControllerNode(Node):
         super().__init__("PIDController", rate_hz, config, config_model=PIDConfig)
         self.vehicle_params = vehicle_params or VehicleParameters()
         self.wheelbase = self.vehicle_params.wheelbase
-        self.config: PIDConfig = self.validated_config
+        # self.config is set by base class
 
         self.integral_error = 0.0
         self.prev_error = 0.0

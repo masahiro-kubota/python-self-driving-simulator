@@ -1,17 +1,15 @@
 from typing import Any
 
-from pydantic import BaseModel
-
 from core.data import VehicleState
 from core.data.node_io import NodeIO
-from core.interfaces.node import Node
+from core.interfaces.node import Node, NodeConfig
 
 
-class IdealSensorConfig(BaseModel):
+class IdealSensorConfig(NodeConfig):
     pass
 
 
-class IdealSensorNode(Node):
+class IdealSensorNode(Node[IdealSensorConfig]):
     """理想的なセンサーノード (ノイズなし、遅延なし)."""
 
     def __init__(self, config: dict, rate_hz: float, vehicle_params: Any | None = None):

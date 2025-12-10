@@ -9,17 +9,17 @@ def test_supervisor_validation_success():
     # Complete goal params
     config = {"goal_x": 10.0, "goal_y": 20.0, "goal_radius": 5.0, "max_steps": 100}
     node = SupervisorNode(config=config, rate_hz=10.0)
-    assert node.goal_x == 10.0
-    assert node.goal_y == 20.0
-    assert node.max_steps == 100
+    assert node.config.goal_x == 10.0
+    assert node.config.goal_y == 20.0
+    assert node.config.max_steps == 100
 
     # Defaults (partial config)
     # Since fields have defaults in Pydantic model (0.0, 1000), empty config should be valid?
     # Yes, we set defaults in SupervisorConfig: goal_x=0.0 etc.
     config = {}
     node = SupervisorNode(config=config, rate_hz=10.0)
-    assert node.goal_x == 0.0
-    assert node.max_steps == 1000
+    assert node.config.goal_x == 0.0
+    assert node.config.max_steps == 1000
 
 
 def test_supervisor_validation_failure():
