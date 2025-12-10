@@ -118,17 +118,13 @@ def test_custom_track_loading(_setup_mlflow_env: None) -> None:
         planning_node["processor"]["params"]["track_path"] = custom_track_path
 
         # Run experiment setup using Preprocessor directly
+        # Run experiment setup using Preprocessor directly
         preprocessor = DefaultPreprocessor()
-        components = preprocessor.setup_components(config)
-
-        ad_component = components["ad_component"]
-
-        # Additional verification: Check if nodes are created
-        assert len(ad_component.get_schedulable_nodes()) > 0
+        # Use _create_nodes (internal) since setup_components is removed
+        nodes = preprocessor._create_nodes(config)
 
         # Check if Planning node exists
-        nodes = ad_component.get_schedulable_nodes()
-        planning_node_instance = next(n for n in nodes if n.name == "Planning")
+        planning_node_instance = next((n for n in nodes if n.name == "Planning"), None)
         assert planning_node_instance is not None
 
     finally:

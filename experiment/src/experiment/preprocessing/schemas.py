@@ -207,12 +207,21 @@ class ExperimentLayerConfig(BaseModel):
     overrides: dict[str, Any] = Field(default_factory=dict, description="Configuration overrides")
 
 
+class SupervisorConfig(BaseModel):
+    """Configuration for supervisor."""
+
+    params: dict[str, Any] = Field(default_factory=dict, description="Supervisor parameters")
+
+
 class ResolvedExperimentConfig(BaseModel):
     """Complete, resolved experiment configuration (formerly ExperimentConfig)."""
 
     experiment: ExperimentMetadata = Field(..., description="Experiment metadata")
     components: ComponentsConfig | None = Field(None, description="Components configuration")
     simulator: SimulatorConfig | None = Field(None, description="Simulator configuration")
+    supervisor: SupervisorConfig | None = Field(
+        None, description="Supervisor configuration"
+    )  # Added
     execution: ExecutionConfig | None = Field(None, description="Execution configuration")
     model: ModelConfig | None = Field(None, description="Model configuration")
     training: TrainingConfig | None = Field(None, description="Training configuration")
@@ -252,4 +261,3 @@ class ResolvedExperimentConfig(BaseModel):
 
 
 # Alias for backward compatibility
-ExperimentConfig = ResolvedExperimentConfig

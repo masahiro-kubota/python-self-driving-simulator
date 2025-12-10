@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 from core.data import VehicleParameters
+from core.nodes import PhysicsNode
 from core.utils import get_project_root
 from core.utils.config import load_yaml as core_load_yaml
 from core.utils.config import merge_configs
@@ -13,6 +14,9 @@ from experiment.preprocessing.schemas import (
     ResolvedExperimentConfig,
     SystemConfig,
 )
+from experiment.structures import Experiment
+from logger import LoggerNode
+from supervisor import SupervisorNode
 
 T = TypeVar("T")
 
@@ -355,6 +359,25 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
 
     final_dict["simulator"]["params"] = sim_params
 
+    # --- Supervisor ---
+
+    # Load defaults from supervisor package
+    supervisor_defaults = load_component_defaults("supervisor")
+
+    # Get user overrides from execution config if any (e.g. goal_radius)
+    # Note: legacy config might put goal_radius in execution
+    # We should merge them into supervisor params
+
+    supervisor_params = supervisor_defaults.copy()
+
+    # Also check if user provided supervisor overrides directly
+    if experiment_layer.overrides and "supervisor" in experiment_layer.overrides:
+        supervisor_params = _recursive_merge(
+            supervisor_params, experiment_layer.overrides["supervisor"]
+        )
+
+    final_dict["supervisor"] = {"params": supervisor_params}
+
     # 7. Build Object
 
     return ResolvedExperimentConfig(**final_dict)
@@ -372,12 +395,42 @@ class DefaultPreprocessor:
 
         self.component_factory = ComponentFactory()
 
+    def create_experiment(self, config_path: Path) -> Experiment:
+        """Create experiment instance from configuration file.
+
+        Args:
+            config_path: Path to the experiment configuration file.
+
+        Returns:
+            Executable Experiment instance.
+        """
+        import uuid
+
+        # 1. Load configuration
+        config = self.load_config(config_path)
+
+        # 2. Create nodes (Simulator, AD, etc.)
+        nodes = self._create_nodes(config)
+
+        # 3. Create Experiment instance
+        experiment_id = str(uuid.uuid4())
+
+        return Experiment(
+            id=experiment_id,
+            type=config.experiment.type,
+            config=config,
+            nodes=nodes,
+        )
+
     def load_config(self, config_path: Path) -> ResolvedExperimentConfig:
         """YAML設定を読み込み、階層マージしてスキーマに変換"""
         return load_experiment_config(config_path)
 
-    def setup_components(self, config: ResolvedExperimentConfig) -> dict[str, Any]:
-        """コンポーネントをセットアップ"""
+    def _create_nodes(self, config: ResolvedExperimentConfig) -> list[Any]:
+        """Create experiment nodes (Simulator, AD Component, etc.)."""
+        # Dispatch based on experiment type (or currently just default to evaluation structure)
+        # In a more advanced setup, this would use a NodeConstructionStrategy
+
         workspace_root = get_project_root()
         sim_params = config.simulator.params.copy()
 
@@ -416,30 +469,6 @@ class DefaultPreprocessor:
         # 3. Setup Simulator
         sim_type = config.simulator.type
 
-        # FIXME: Temporary fix/override to ensure correct initial state for Pure Pursuit
-        # This logic was in runner.py, mimicking it here for compatibility
-        initial_state_fix = {
-            "x": 89630.067,
-            "y": 43130.695,
-            "yaw": 2.2,
-            "velocity": 0.0,
-        }
-        map_path_fix = "dashboard/assets/lanelet2_map.osm"
-
-        # Check if we should apply fixes (heuristically, ideally this should be in config)
-        # For now, just apply as in runner.py to maintain behavior
-        # But wait, runner.py applied it blindly?
-        # Yes: "We need to update self.config as well so that _generate_dashboard can see the map path"
-        # Since config is passed by reference/value?
-        # Here config is an object.
-
-        sim_params["initial_state"] = initial_state_fix
-        sim_params["map_path"] = map_path_fix
-
-        if hasattr(config.simulator, "params"):
-            config.simulator.params["map_path"] = map_path_fix
-            config.simulator.params["initial_state"] = initial_state_fix
-
         # Remove scene_config if present
         if "scene_config" in sim_params:
             sim_params.pop("scene_config")
@@ -453,8 +482,36 @@ class DefaultPreprocessor:
             sim_type, sim_params, vehicle_params=vehicle_params
         )
 
-        return {
-            "simulator": simulator,
-            "ad_component": ad_component,
-            "vehicle_params": vehicle_params,
-        }
+        nodes = []
+
+        # 4. Wrap Simulator in PhysicsNode
+        sim_rate = config.simulator.rate_hz
+        # Ensure simulator is reset? Runner did it.
+        # PhysicsNode might reset on first step or we do it here?
+        # Runner did: _ = simulator.reset()
+        # It is safer to do it here or let PhysicsNode handle it if it implements on_start.
+        # PhysicsNode does NOT implement on_start reset usually? It expects initialized simulator.
+        # Let's reset it here.
+        if hasattr(simulator, "reset"):
+            simulator.reset()
+
+        nodes.append(PhysicsNode(simulator, sim_rate))
+
+        # 5. AD Component Nodes
+        nodes.extend(ad_component.get_schedulable_nodes())
+
+        # 6. Supervisor Node
+        if config.supervisor:
+            supervisor_params = config.supervisor.params
+
+            supervisor = SupervisorNode(
+                config=supervisor_params,
+                rate_hz=sim_rate,
+            )
+            nodes.append(supervisor)
+
+        # 7. Logger Node
+        # Always add logger for evaluation?
+        nodes.append(LoggerNode(rate_hz=sim_rate))
+
+        return nodes

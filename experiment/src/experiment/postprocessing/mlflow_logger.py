@@ -6,6 +6,7 @@ from typing import Any
 
 import mlflow
 from core.data.experiment import Artifact, ExperimentResult
+from experiment.preprocessing.schemas import ResolvedExperimentConfig
 
 
 class MLflowExperimentLogger:
@@ -142,8 +143,8 @@ class MLflowExperimentLogger:
                 items.append((new_key, v))
         return dict(items)
 
-    def _config_to_dict(self, config: Any) -> dict:
-        """Convert ExperimentConfig to dict, handling Pydantic models and Enum types."""
+    def _config_to_dict(self, config: ResolvedExperimentConfig) -> dict[str, Any]:
+        """Convert ResolvedExperimentConfig to dict, handling Pydantic models and Enum types."""
         try:
             # Try Pydantic model first
             if hasattr(config, "model_dump"):

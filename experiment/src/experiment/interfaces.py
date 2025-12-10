@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, Generic, TypeVar
 
+from experiment.structures import Experiment
+
 TConfig = TypeVar("TConfig")
 TResult = TypeVar("TResult")
 TProcessed = TypeVar("TProcessed")
@@ -10,8 +12,12 @@ class ExperimentRunner(ABC, Generic[TConfig, TResult]):
     """実験実行インターフェース（実験タイプごとに実装）"""
 
     @abstractmethod
-    def run(self, config: TConfig, components: dict[str, Any]) -> TResult:
-        """実験を実行"""
+    def run(self, experiment: Experiment) -> TResult:
+        """実験を実行
+
+        Args:
+            experiment: 実行する実験定義 (Experiment)
+        """
         pass
 
     @abstractmethod

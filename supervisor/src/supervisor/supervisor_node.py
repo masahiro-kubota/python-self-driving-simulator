@@ -1,37 +1,46 @@
 """Supervisor node for simulation judgment and monitoring."""
 
+from pydantic import BaseModel, model_validator
+
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node
+
+
+class SupervisorConfig(BaseModel):
+    """Configuration for SupervisorNode."""
+
+    goal_x: float | None = None
+    goal_y: float | None = None
+    goal_radius: float = 5.0
+    max_steps: int | None = None
+    min_elapsed_time: float = 20.0
+
+    @model_validator(mode="after")
+    def check_goal_config(self) -> "SupervisorConfig":
+        """Validate goal configuration."""
+        if (self.goal_x is not None or self.goal_y is not None) and (
+            self.goal_x is None or self.goal_y is None
+        ):
+            # Logic from previous validation: if goal_x/y used, goal_radius is conceptually needed.
+            # But goal_radius has a default (5.0), so it's always set unless we allowed None.
+            # The old code checked if goal_x and goal_y are both present?
+            # Old code: 'if goal_x is not None or goal_y is not None: validate_config(..., required_keys=["goal_x", "goal_y"])'
+            # This implies if ONE is set, BOTH must be set.
+            raise ValueError("Both goal_x and goal_y must be provided if one is set.")
+        return self
 
 
 class SupervisorNode(Node):
     """Node responsible for supervising simulation success/failure and termination conditions."""
 
-    def __init__(
-        self,
-        goal_x: float | None = None,
-        goal_y: float | None = None,
-        goal_radius: float = 5.0,
-        max_steps: int | None = None,
-        min_elapsed_time: float = 20.0,
-        rate_hz: float = 10.0,
-    ):
+    def __init__(self, config: dict, rate_hz: float):
         """Initialize SupervisorNode.
 
         Args:
-            goal_x: Goal X coordinate [m]
-            goal_y: Goal Y coordinate [m]
-            goal_radius: Goal threshold [m]
-            max_steps: Maximum steps before timeout
-            min_elapsed_time: Minimum elapsed time [s] before goal check
+            config: Configuration dictionary
             rate_hz: Evaluation rate [Hz]
         """
-        super().__init__("Supervisor", rate_hz)
-        self.goal_x = goal_x
-        self.goal_y = goal_y
-        self.goal_radius = goal_radius
-        self.max_steps = max_steps
-        self.min_elapsed_time = min_elapsed_time
+        super().__init__("Supervisor", rate_hz, config, config_model=SupervisorConfig)
         self.step_count = 0
 
     def get_node_io(self) -> NodeIO:

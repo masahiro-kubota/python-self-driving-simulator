@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from experiment.interfaces import ExperimentPostprocessor, ExperimentRunner
+from experiment.interfaces import Experiment, ExperimentPostprocessor, ExperimentRunner
 from experiment.postprocessing.postprocessor_factory import (
     DefaultPostprocessorFactory,
 )
@@ -31,22 +31,20 @@ class ExperimentOrchestrator:
         2. 実行: 設定から実験タイプを判定してRunnerを生成・実行（動的）
         3. 後処理: 実験タイプに応じたPostprocessorを生成・実行(動的)
         """
-        # 1. 前処理(固定)
-        config = self.preprocessor.load_config(config_path)
-        components = self.preprocessor.setup_components(config)
+        # 1. 前処理(実験の生成)
+        # Preprocessorが単一の実験インスタンスを生成
+        experiment: Experiment = self.preprocessor.create_experiment(config_path)
 
         # 2. 実験タイプに応じたRunnerを動的生成
-        experiment_type = config.experiment.type
-        runner: ExperimentRunner = self.runner_factory.create(experiment_type)
+        runner: ExperimentRunner = self.runner_factory.create(experiment.type)
 
         # 3. 実行
-        result = runner.run(config, components)
+        result = runner.run(experiment)
 
         # 4. 実験タイプに応じたPostprocessorを動的生成
-        postprocessor: ExperimentPostprocessor = self.postprocessor_factory.create(experiment_type)
+        postprocessor: ExperimentPostprocessor = self.postprocessor_factory.create(experiment.type)
 
         # 5. 後処理
-        # Note: postprocessor.process expects (result, config)
-        processed_result = postprocessor.process(result, config)
+        processed_result = postprocessor.process(result, experiment.config)
 
         return processed_result
