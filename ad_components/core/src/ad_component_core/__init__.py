@@ -2,6 +2,4 @@
 
 from core.data import Observation
 
-from .flexible_ad_component import FlexibleADComponent
-
-__all__ = ["FlexibleADComponent", "Observation"]
+__all__ = ["Observation"]

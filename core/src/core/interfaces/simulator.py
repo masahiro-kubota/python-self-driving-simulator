@@ -8,7 +8,6 @@ from core.data import Action, SimulationLog, VehicleState
 
 if TYPE_CHECKING:
     from core.data import SimulationResult
-    from core.interfaces.ad_components import ADComponent
 
 
 class Simulator(ABC):
@@ -39,7 +38,7 @@ class Simulator(ABC):
     @abstractmethod
     def run(
         self,
-        ad_component: "ADComponent",
+        ad_component: Any,
         max_steps: int = 1000,
     ) -> "SimulationResult":
         """シミュレーションを実行.

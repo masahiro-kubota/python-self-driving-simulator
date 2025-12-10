@@ -1713,10 +1713,14 @@ version = "0.1.0"
 source = { editable = "ad_components/control/pid_controller" }
 dependencies = [
     { name = "core" },
+    { name = "pydantic" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "core", editable = "core" }]
+requires-dist = [
+    { name = "core", editable = "core" },
+    { name = "pydantic" },
+]
 
 [[package]]
 name = "pillow"
@@ -1858,12 +1862,14 @@ source = { editable = "ad_components/planning/pure_pursuit" }
 dependencies = [
     { name = "core" },
     { name = "planning-utils" },
+    { name = "pydantic" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "core", editable = "core" },
     { name = "planning-utils", editable = "ad_components/planning/planning_utils" },
+    { name = "pydantic" },
 ]
 
 [[package]]

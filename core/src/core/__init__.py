@@ -21,14 +21,12 @@ from core.data import (
 )
 from core.executor import SingleProcessExecutor
 from core.interfaces import (
-    ADComponent,
     DashboardGenerator,
     ExperimentLogger,
     Simulator,
 )
 
 __all__ = [
-    "ADComponent",
     "ADComponentConfig",
     "ADComponentLog",
     "ADComponentSpec",

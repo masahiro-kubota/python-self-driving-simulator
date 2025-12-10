@@ -7,47 +7,25 @@ module:
       params:
         nodes:
           - name: "Sensor"
-            processor:
-              type: "experiment.processors.sensor.IdealSensorProcessor"
-              params: {}
-            io:
-              inputs: ["sim_state"]
-              output: "vehicle_state"
-            rate_hz: 50.0
-
-          - name: "Perception"
-            processor:
-              type: "experiment.processors.perception.BasicPerceptionProcessor"
-              params: {}
-            io:
-              inputs: ["vehicle_state"]
-              output: "observation"
+            type: "experiment.processors.sensor.IdealSensorNode"
+            params: {}
             rate_hz: 50.0
 
           - name: "Planning"
-            processor:
-              type: "pure_pursuit.PurePursuitPlanner"
-              params:
-                lookahead_distance: 5.0
-                track_path: "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
-            io:
-              inputs: ["vehicle_state", "observation"]
-              output: "trajectory"
+            type: "pure_pursuit.PurePursuitNode"
+            params:
+              min_lookahead_distance: 3.0
+              max_lookahead_distance: 15.0
+              lookahead_speed_ratio: 1.5
+              track_path: "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
             rate_hz: 10.0
 
           - name: "Control"
-            processor:
-              type: "pid_controller.PIDController"
-              params:
-                kp: 1.0
-                ki: 0.1
-                kd: 0.05
-            io:
-              inputs: ["trajectory", "vehicle_state", "observation"]
-              output: "action"
+            type: "pid_controller.PIDControllerNode"
+            params:
+              kp: 1.0
+              ki: 0.1
+              kd: 0.05
+              u_min: -3.0
+              u_max: 3.0
             rate_hz: 30.0
-
-    simulator:
-      type: "KinematicSimulator"
-      params:
-        dt: 0.1

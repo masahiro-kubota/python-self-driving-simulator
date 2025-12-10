@@ -6,14 +6,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from core.clock import SteppedClock
-from core.data import Action, Observation, SimulationLog, Trajectory, TrajectoryPoint, VehicleState
+from core.data import Action, SimulationLog, Trajectory, TrajectoryPoint, VehicleState
 from core.data.frame_data import create_frame_data_type
 from core.data.node_io import NodeIO
 from core.executor import SingleProcessExecutor
 from core.interfaces import Simulator
-from core.nodes import GenericProcessingNode, PhysicsNode
-from experiment.processors.perception import BasicPerceptionProcessor
-from experiment.processors.sensor import IdealSensorProcessor
+from core.interfaces.node import Node
+from core.nodes import PhysicsNode
 
 
 @pytest.fixture
@@ -72,6 +71,46 @@ def _create_context_for_nodes(nodes) -> Any:
     return DynamicFrameData()
 
 
+class MockNode(Node):
+    """Mock node for testing executor."""
+
+    def __init__(
+        self, name: str, rate_hz: float, inputs: list[str], outputs: list[str], process_func=None
+    ):
+        super().__init__(name, rate_hz)
+        self.io = NodeIO(inputs={k: Any for k in inputs}, outputs={k: Any for k in outputs})
+        self.process_func = process_func
+
+    def get_node_io(self) -> NodeIO:
+        return self.io
+
+    def on_run(self, _current_time: float) -> bool:
+        if self.frame_data is None:
+            return False
+
+        # Collect inputs
+        inputs = {}
+        for k in self.io.inputs:
+            val = getattr(self.frame_data, k, None)
+            if val is None:
+                return False
+            inputs[k] = val
+
+        # Run process
+        if self.process_func:
+            output = self.process_func(**inputs)
+            # Write outputs
+            if isinstance(output, dict):
+                for k, v in output.items():
+                    if k in self.io.outputs:
+                        setattr(self.frame_data, k, v)
+            elif len(self.io.outputs) == 1:
+                k = next(iter(self.io.outputs))
+                setattr(self.frame_data, k, output)
+
+        return True
+
+
 def test_executor_timing(mock_simulator, mock_planner, mock_controller):
     """Test that nodes run at expected rates."""
 
@@ -81,20 +120,36 @@ def test_executor_timing(mock_simulator, mock_planner, mock_controller):
     physics_node = PhysicsNode(mock_simulator, rate_hz=10.0)
     physics_node.on_run = MagicMock(wraps=physics_node.on_run)
 
-    # Sensor Node (Generic)
-    sensor_processor = IdealSensorProcessor()
-    sensor_io = NodeIO(inputs=["sim_state"], output="vehicle_state")
-    sensor_node = GenericProcessingNode("Sensor", sensor_processor, sensor_io, rate_hz=10.0)
+    # Sensor Node (Mock)
+    sensor_node = MockNode(
+        "Sensor",
+        rate_hz=10.0,
+        inputs=["sim_state"],
+        outputs=["vehicle_state"],
+        process_func=lambda sim_state: sim_state,
+    )  # Pass through
     sensor_node.on_run = MagicMock(wraps=sensor_node.on_run)
 
-    # Planning Node (Generic)
-    planner_io = NodeIO(inputs=["vehicle_state", "observation"], output="trajectory")
-    planning_node = GenericProcessingNode("Planning", mock_planner, planner_io, rate_hz=5.0)
+    # Planning Node (Mock)
+    planning_node = MockNode(
+        "Planning",
+        rate_hz=5.0,
+        inputs=["vehicle_state"],
+        outputs=["trajectory"],
+        process_func=lambda vehicle_state: mock_planner.process(vehicle_state),
+    )  # Adapt mock
     planning_node.on_run = MagicMock(wraps=planning_node.on_run)
 
-    # Control Node (Generic)
-    controller_io = NodeIO(inputs=["trajectory", "vehicle_state", "observation"], output="action")
-    control_node = GenericProcessingNode("Control", mock_controller, controller_io, rate_hz=10.0)
+    # Control Node (Mock)
+    control_node = MockNode(
+        "Control",
+        rate_hz=10.0,
+        inputs=["trajectory", "vehicle_state"],
+        outputs=["action"],
+        process_func=lambda trajectory, vehicle_state: mock_controller.process(
+            trajectory, vehicle_state
+        ),
+    )
     control_node.on_run = MagicMock(wraps=control_node.on_run)
 
     nodes = [physics_node, sensor_node, planning_node, control_node]
@@ -122,39 +177,33 @@ def test_executor_data_flow(mock_simulator, mock_planner, mock_controller):
     physics_node = PhysicsNode(mock_simulator, rate_hz=10.0)
 
     # Sensor
-    sensor_node = GenericProcessingNode(
+    sensor_node = MockNode(
         "Sensor",
-        IdealSensorProcessor(),
-        NodeIO(inputs=["sim_state"], output="vehicle_state"),
         rate_hz=10.0,
-    )
-
-    # Perception
-    # Need perception to produce "observation" for planner/controller
-    perception_node = GenericProcessingNode(
-        "Perception",
-        BasicPerceptionProcessor(),
-        NodeIO(inputs=["vehicle_state"], output="observation"),
-        rate_hz=10.0,
+        inputs=["sim_state"],
+        outputs=["vehicle_state"],
+        process_func=lambda sim_state: sim_state,
     )
 
     # Planning
-    planning_node = GenericProcessingNode(
+    planning_node = MockNode(
         "Planning",
-        mock_planner,
-        NodeIO(inputs=["vehicle_state", "observation"], output="trajectory"),
         rate_hz=10.0,
+        inputs=["vehicle_state"],
+        outputs=["trajectory"],
+        process_func=mock_planner.process,
     )
 
     # Control
-    control_node = GenericProcessingNode(
+    control_node = MockNode(
         "Control",
-        mock_controller,
-        NodeIO(inputs=["trajectory", "vehicle_state", "observation"], output="action"),
-        rate_hz=10.0,
+        rate_hz=30.0,
+        inputs=["trajectory", "vehicle_state"],
+        outputs=["action"],
+        process_func=mock_controller.process,
     )
 
-    nodes = [physics_node, sensor_node, perception_node, planning_node, control_node]
+    nodes = [physics_node, sensor_node, planning_node, control_node]
 
     frame_data = _create_context_for_nodes(nodes)
 
@@ -171,10 +220,6 @@ def test_executor_data_flow(mock_simulator, mock_planner, mock_controller):
 
     # Sensor should have updated vehicle_state
     assert frame_data.vehicle_state is not None
-
-    # Perception should have updated observation
-    assert frame_data.observation is not None
-    assert isinstance(frame_data.observation, Observation)
 
     # Planning should have produced trajectory
     mock_planner.process.assert_called()

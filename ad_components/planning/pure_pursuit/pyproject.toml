@@ -5,6 +5,7 @@ description = "Pure Pursuit path tracking algorithm"
 requires-python = ">=3.12"
 dependencies = [
     "core",
+    "pydantic",
     "planning-utils",
 ]
 

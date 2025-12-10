@@ -8,6 +8,8 @@ from core.nodes import PhysicsNode
 from core.utils import get_project_root
 from core.utils.config import load_yaml as core_load_yaml
 from core.utils.config import merge_configs
+from core.utils.node_factory import create_node
+from core.validation.node_graph import validate_node_graph
 from experiment.preprocessing.schemas import (
     ExperimentLayerConfig,
     ModuleConfig,
@@ -170,83 +172,63 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
         raise ValueError("Module must define 'ad_component' in components")
 
     # --- Simulator ---
-    if "simulator" in module_layer.components:
+    resolved_simulator = None
+
+    # 1. Check System Layer for Simulator definition
+    if system_layer.simulator:
+        resolved_simulator = system_layer.simulator
+    # 2. Check Module Layer (legacy support or default)
+    elif "simulator" in module_layer.components:
         resolved_simulator = module_layer.components["simulator"]
 
-        # Load Defaults for Simulator
-        sim_type = resolved_simulator["type"]
-        sim_package = None
+    if resolved_simulator is None:
+        raise ValueError("Simulator configuration missing (must be in System or Module)")
 
-        if "." not in sim_type:
-            # Entry point lookup
-            for group in ["ad_components", "simulator"]:
-                eps = metadata.entry_points(group=group)
-                matches = [ep for ep in eps if ep.name == sim_type]
-                if matches:
-                    sim_package = matches[0].value.split(":")[0].split(".")[0]
-                    break
-        else:
-            sim_package = sim_type.split(".")[0]
+    # Load Defaults for Simulator
+    sim_type = resolved_simulator["type"]
+    sim_package = None
 
-        sim_defaults = {}
-        if sim_package:
-            sim_defaults = load_component_defaults(sim_package)
-
-        sim_user_params = resolved_simulator.get("params", {}) or {}
-        resolved_simulator["params"] = _recursive_merge(sim_defaults, sim_user_params)
-
+    if "." not in sim_type:
+        # Entry point lookup
+        for group in ["ad_components", "simulator"]:
+            eps = metadata.entry_points(group=group)
+            matches = [ep for ep in eps if ep.name == sim_type]
+            if matches:
+                sim_package = matches[0].value.split(":")[0].split(".")[0]
+                break
     else:
-        raise ValueError("Module must define 'simulator' component")
+        sim_package = sim_type.split(".")[0]
+
+    sim_defaults = {}
+    if sim_package:
+        sim_defaults = load_component_defaults(sim_package)
+
+    sim_user_params = resolved_simulator.get("params", {}) or {}
+    resolved_simulator["params"] = _recursive_merge(sim_defaults, sim_user_params)
 
     # 5. Apply System Layer Overrides
 
     # Simulator params injection
     sim_params = resolved_simulator.get("params", {})
 
-    # Inject Vehicle Config
-    if system_layer.vehicle:
-        # If config_path is present, we keep it as a param "vehicle_config" to be resolved by Runner
-        # OR we resolve it here?
-        # User plan said: "Resolve vehicle.config_path -> Load vehicle config -> Inject"
-        # Since we are in loader, let's leave the path resolution to Runner (as it has the logic for YamlVehicleRepository)
-        # OR better: resolve it here if simple, but Runner has the repository logic.
-        # Actually, let's follow the plan: "Resolve vehicle.config_path -> Load vehicle config -> Inject"
-        # Check if we can import the repository here.
-        # `from experiment_runner.yaml_vehicle_repository import YamlVehicleParametersRepository`
-        # It seems cleaner to do it here so Runner receives a clean object.
-        pass  # Will do below.
+    # Inject Map Path
+    if system_layer.map_path:
+        # Resolve map path relative to project root
+        full_map_path = str(get_project_root() / system_layer.map_path)
 
-    # Inject Scene Config
-    if system_layer.scene:
-        # Mapping: scene.config_path -> simulator.params.map_path (if using scene config for map)
-        # User example: scene: { config_path: ..., use_case: ... }
-        # The scene config file likely contains the map path or IS the map metadata?
-        # Current logic checks "map_path" in simulator params.
-        # Let's support passing the scene config path to simulator, or resolving it.
-        # To match user request "Resolve scene.config_path -> Inject into simulator.params.map_path",
-        # we need to know what's in default_scene.yaml.
-        # But for now let's assume we pass the parameters from system.scene to simulator params
-        # or do specific mapping.
+        # 1. Inject into Simulator
+        sim_params["map_path"] = full_map_path
 
-        # Specific override for dt, initial_state from system
-        pass
+        # 2. Inject into AD Component (for planning/generic usage)
+        if "params" not in resolved_components["ad_component"]:
+            resolved_components["ad_component"]["params"] = {}
+        resolved_components["ad_component"]["params"]["map_path"] = full_map_path
 
     # Apply `simulator_overrides` from System
     if system_layer.simulator_overrides and "params" in system_layer.simulator_overrides:
         sim_params = _recursive_merge(sim_params, system_layer.simulator_overrides["params"])
 
     # 6. Apply Experiment Layer Overrides
-    # `overrides` dict structure is likely matching the Resolved structure?
-    # User example 3-3:
-    # overrides:
-    #   components:
-    #     planning:
-    #   execution: ...
-
-    # Wait, `components.planning` in logical structure maps to `resolved.components.ad_component.params.planning`.
-    # We need to map these overrides intelligently.
-
-    # Let's construct the initial "resolved dict" and then apply overrides.
 
     base_config = {
         "experiment": {
@@ -257,35 +239,13 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
         "components": resolved_components,
         "simulator": resolved_simulator,
         "logging": {},  # Defaults
-        # execution, training etc. come from defaults or overrides
     }
 
-    # Apply System Runtime to Execution?
-    # User example: runtime: { mode: "singleprocess" }
-    # Maps to ResolvedExperimentConfig.runtime
+    # Apply System Runtime
     if system_layer.runtime:
         base_config["runtime"] = system_layer.runtime
 
     # --- MERGING OVERRIDES ---
-
-    # Experiment overrides provided by user look like:
-    # components:
-    #   planning: ...
-    #
-    # But our internal structure is:
-    # components:
-    #   ad_component:
-    #     params:
-    #       planning: ...
-
-    # We need a remapping helper for overrides if they use the "logical" simplified path.
-    # Or we assume the user provides overrides in the "Resolved" structure format?
-    # User example 3-3:
-    # overrides:
-    #   components:
-    #     planning: ...
-    #
-    # This strongly suggests we need to remap `components.X` -> `components.ad_component.params.X`
 
     overrides = experiment_layer.overrides
 
@@ -307,16 +267,10 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
                 "Legacy top-level component keys are no longer supported."
             )
 
-    # 6.2 Handle other overrides (Execution, Logging, etc.)
-    # execution, evaluation, logging can satisfy direct merge if structure matches.
-    # User example:
-    # execution: { num_episodes: 5 ... } -> matches Resolved
-    # evaluation: { metrics: ... } -> matches Resolved
-    # logging: ... -> matches Resolved
-
+    # 6.2 Handle other overrides
     final_dict = _recursive_merge(final_dict, overrides)
 
-    # --- RESOLVE PATHS (Vehicle & Scene) ---
+    # --- RESOLVE PATHS (Vehicle) ---
 
     # Resolve vehicle
     if system_layer.vehicle and "config_path" in system_layer.vehicle:
@@ -327,34 +281,8 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
         # Inject into simulator params
         sim_params["vehicle_params"] = v_params
 
-    # Resolve scene
-    if system_layer.scene and "config_path" in system_layer.scene:
-        # Assume config path points to a file that contains 'map_path' or IS the map info
-        # For default_scene.yaml, user implies it has 'use_case'.
-        # If it's a dedicated scene config, load it.
-        s_path = get_project_root() / system_layer.scene["config_path"]
-        s_data = load_yaml(s_path)
-
-        # If scene config has "map_path" override?
-        # Or if the scene config IS the definition of the scene parameters.
-        # User example:
-        # system:
-        #   scene:
-        #     config_path: "experiment/configs/scenes/default_scene.yaml"
-        #
-        # If default_scene.yaml has:
-        # map_path: "..."
-        # Then we inject it.
-
-        if "map_path" in s_data:
-            # Resolve map path relative to project root if string
-            sim_params["map_path"] = str(get_project_root() / s_data["map_path"])
-        elif "scene" in s_data and "map_path" in s_data["scene"]:
-            sim_params["map_path"] = str(get_project_root() / s_data["scene"]["map_path"])
-
     # Update simulator params in final dict
     if final_dict["simulator"] is None:
-        # Should not accept null simulator
         raise ValueError("Simulator configuration missing")
 
     final_dict["simulator"]["params"] = sim_params
@@ -457,14 +385,29 @@ class DefaultPreprocessor:
             if "vehicle_params" not in sim_params:
                 sim_params["vehicle_params"] = vehicle_params
 
-        # 2. Setup ADComponent
+        # 2. Setup AD Nodes
         comp_config = config.components
-        ad_component_type = comp_config.ad_component.type
-        ad_component_params = comp_config.ad_component.params.copy()
+        # We ignore ad_component.type now (or treat it as metadata)
+        # We expect a list of nodes in params
+        ad_params = comp_config.ad_component.params
 
-        # Instantiate ADComponent with vehicle_params
-        ad_component_params["vehicle_params"] = vehicle_params
-        ad_component = self.component_factory.create(ad_component_type, ad_component_params)
+        ad_nodes = []
+        if "nodes" in ad_params:
+            for node_cfg in ad_params["nodes"]:
+                if "type" not in node_cfg:
+                    raise ValueError(f"Node config missing 'type': {node_cfg}")
+
+                node = create_node(
+                    node_type=node_cfg["type"],
+                    name=node_cfg.get("name", "Unknown"),
+                    rate_hz=node_cfg.get("rate_hz", 10.0),
+                    params=node_cfg.get("params", {}),
+                    vehicle_params=vehicle_params,
+                )
+                ad_nodes.append(node)
+
+        if ad_nodes:
+            validate_node_graph(ad_nodes)
 
         # 3. Setup Simulator
         sim_type = config.simulator.type
@@ -486,19 +429,13 @@ class DefaultPreprocessor:
 
         # 4. Wrap Simulator in PhysicsNode
         sim_rate = config.simulator.rate_hz
-        # Ensure simulator is reset? Runner did it.
-        # PhysicsNode might reset on first step or we do it here?
-        # Runner did: _ = simulator.reset()
-        # It is safer to do it here or let PhysicsNode handle it if it implements on_start.
-        # PhysicsNode does NOT implement on_start reset usually? It expects initialized simulator.
-        # Let's reset it here.
         if hasattr(simulator, "reset"):
             simulator.reset()
 
         nodes.append(PhysicsNode(simulator, sim_rate))
 
         # 5. AD Component Nodes
-        nodes.extend(ad_component.get_schedulable_nodes())
+        nodes.extend(ad_nodes)
 
         # 6. Supervisor Node
         if config.supervisor:

@@ -1,6 +1,6 @@
 """Supervisor node for simulation judgment and monitoring."""
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel
 
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node
@@ -9,25 +9,11 @@ from core.interfaces.node import Node
 class SupervisorConfig(BaseModel):
     """Configuration for SupervisorNode."""
 
-    goal_x: float | None = None
-    goal_y: float | None = None
+    goal_x: float = 0.0
+    goal_y: float = 0.0
     goal_radius: float = 5.0
-    max_steps: int | None = None
+    max_steps: int = 1000
     min_elapsed_time: float = 20.0
-
-    @model_validator(mode="after")
-    def check_goal_config(self) -> "SupervisorConfig":
-        """Validate goal configuration."""
-        if (self.goal_x is not None or self.goal_y is not None) and (
-            self.goal_x is None or self.goal_y is None
-        ):
-            # Logic from previous validation: if goal_x/y used, goal_radius is conceptually needed.
-            # But goal_radius has a default (5.0), so it's always set unless we allowed None.
-            # The old code checked if goal_x and goal_y are both present?
-            # Old code: 'if goal_x is not None or goal_y is not None: validate_config(..., required_keys=["goal_x", "goal_y"])'
-            # This implies if ONE is set, BOTH must be set.
-            raise ValueError("Both goal_x and goal_y must be provided if one is set.")
-        return self
 
 
 class SupervisorNode(Node):
@@ -93,20 +79,19 @@ class SupervisorNode(Node):
             return True
 
         # 2. Check goal reached
-        if self.goal_x is not None and self.goal_y is not None:
-            dist = ((sim_state.x - self.goal_x) ** 2 + (sim_state.y - self.goal_y) ** 2) ** 0.5
-            elapsed_time = self.step_count * (1.0 / self.rate_hz)
+        dist = ((sim_state.x - self.goal_x) ** 2 + (sim_state.y - self.goal_y) ** 2) ** 0.5
+        elapsed_time = self.step_count * (1.0 / self.rate_hz)
 
-            if dist < self.goal_radius and elapsed_time > self.min_elapsed_time:
-                self.frame_data.done = True
-                self.frame_data.done_reason = "goal_reached"
-                self.frame_data.success = True
-                self.frame_data.termination_signal = True
-                self.frame_data.termination_reason = "goal_reached"
-                return True
+        if dist <= self.goal_radius and elapsed_time >= self.min_elapsed_time:
+            self.frame_data.done = True
+            self.frame_data.done_reason = "goal_reached"
+            self.frame_data.success = True
+            self.frame_data.termination_signal = True
+            self.frame_data.termination_reason = "goal_reached"
+            return True
 
         # 3. Check timeout (max steps)
-        if self.max_steps is not None and self.step_count >= self.max_steps:
+        if self.step_count >= self.max_steps:
             self.frame_data.done = True
             self.frame_data.done_reason = "timeout"
             self.frame_data.success = False

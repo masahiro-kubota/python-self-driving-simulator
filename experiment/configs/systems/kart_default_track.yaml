@@ -8,15 +8,13 @@ system:
   vehicle:
     config_path: "experiment/configs/vehicles/default_vehicle.yaml"
 
-  scene:
-    config_path: "experiment/configs/scenes/default_scene.yaml"
-    use_case: "time_attack"
+  # マップ情報
+  map_path: "experiment/configs/systems/lanelet2_map.osm"
 
   simulator:
     type: "KinematicSimulator"
     params:
       dt: 0.1
-      map_path: "dashboard/assets/lanelet2_map.osm"
       initial_state:
         x: 89630.067
         y: 43130.695

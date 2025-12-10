@@ -1,4 +1,3 @@
-from .perception import BasicPerceptionProcessor
-from .sensor import IdealSensorProcessor
+from experiment.processors.sensor import IdealSensorNode
 
-__all__ = ["BasicPerceptionProcessor", "IdealSensorProcessor"]
+__all__ = ["IdealSensorNode"]

@@ -1,5 +1,3 @@
-"""Pure Pursuit planning method."""
+from pure_pursuit.pure_pursuit_node import PurePursuitNode
 
-from pure_pursuit.planner import PurePursuitPlanner
-
-__all__ = ["PurePursuitPlanner"]
+__all__ = ["PurePursuitNode"]

@@ -102,9 +102,8 @@ class TestSimulator:
         sim = Simulator(step_update_func=mock_update, get_vehicle_polygon_func=mock_get_polygon)
 
         # Mock ADComponent
-        from core.interfaces import ADComponent
-
-        ad_component = MagicMock(spec=ADComponent)
+        # Mock ADComponent
+        ad_component = MagicMock()
         ad_component.planner = MagicMock()
         ad_component.planner.plan.return_value = []
         ad_component.controller = MagicMock()
@@ -128,9 +127,8 @@ class TestSimulator:
         sim = Simulator(step_update_func=mock_update, get_vehicle_polygon_func=mock_get_polygon)
 
         # Mock ADComponent
-        from core.interfaces import ADComponent
-
-        ad_component = MagicMock(spec=ADComponent)
+        # Mock ADComponent
+        ad_component = MagicMock()
         ad_component.planner = MagicMock()
         ad_component.controller = MagicMock()
         ad_component.controller.control.return_value = Action(steering=0.0, acceleration=0.0)
@@ -160,9 +158,7 @@ class TestSimulatorEdgeCases:
         mock_update = MagicMock(side_effect=mock_update_state)
         sim = Simulator(step_update_func=mock_update, get_vehicle_polygon_func=mock_get_polygon)
 
-        from core.interfaces import ADComponent
-
-        ad_component = MagicMock(spec=ADComponent)
+        ad_component = MagicMock()
         ad_component.planner = MagicMock()
         ad_component.planner.plan.return_value = []
         ad_component.controller = MagicMock()
@@ -212,9 +208,7 @@ class TestSimulatorEdgeCases:
         mock_update = MagicMock(side_effect=mock_update_state)
         sim = Simulator(step_update_func=mock_update, get_vehicle_polygon_func=mock_get_polygon)
 
-        from core.interfaces import ADComponent
-
-        ad_component = MagicMock(spec=ADComponent)
+        ad_component = MagicMock()
         ad_component.planner = MagicMock()
         ad_component.planner.plan.return_value = []
         ad_component.controller = MagicMock()
@@ -251,9 +245,7 @@ class TestSimulatorLogging:
         mock_update = MagicMock(side_effect=mock_update_state)
         sim = Simulator(step_update_func=mock_update, get_vehicle_polygon_func=mock_get_polygon)
 
-        from core.interfaces import ADComponent
-
-        ad_component = MagicMock(spec=ADComponent)
+        ad_component = MagicMock()
         ad_component.planner = MagicMock()
         ad_component.planner.plan.return_value = []
         ad_component.controller = MagicMock()
@@ -275,9 +267,7 @@ class TestSimulatorLogging:
         mock_update = MagicMock(side_effect=mock_update_state)
         sim = Simulator(step_update_func=mock_update, get_vehicle_polygon_func=mock_get_polygon)
 
-        from core.interfaces import ADComponent
-
-        ad_component = MagicMock(spec=ADComponent)
+        ad_component = MagicMock()
         ad_component.planner = MagicMock()
         ad_component.planner.plan.return_value = []
 

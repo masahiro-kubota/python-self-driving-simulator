@@ -1,5 +1,3 @@
-"""PID control method."""
+from pid_controller.pid_controller_node import PIDControllerNode
 
-from pid_controller.controller import PIDController
-
-__all__ = ["PIDController"]
+__all__ = ["PIDControllerNode"]

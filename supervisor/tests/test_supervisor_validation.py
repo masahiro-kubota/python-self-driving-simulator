@@ -7,25 +7,28 @@ from supervisor.supervisor_node import SupervisorNode
 def test_supervisor_validation_success():
     """Test successful initialization with valid parameters."""
     # Complete goal params
-    config = {"goal_x": 10.0, "goal_y": 20.0, "goal_radius": 5.0}
+    config = {"goal_x": 10.0, "goal_y": 20.0, "goal_radius": 5.0, "max_steps": 100}
     node = SupervisorNode(config=config, rate_hz=10.0)
     assert node.goal_x == 10.0
     assert node.goal_y == 20.0
+    assert node.max_steps == 100
 
-    # No goal params
-    config = {"goal_x": None, "goal_y": None}
+    # Defaults (partial config)
+    # Since fields have defaults in Pydantic model (0.0, 1000), empty config should be valid?
+    # Yes, we set defaults in SupervisorConfig: goal_x=0.0 etc.
+    config = {}
     node = SupervisorNode(config=config, rate_hz=10.0)
-    assert node.goal_x is None
+    assert node.goal_x == 0.0
+    assert node.max_steps == 1000
 
 
 def test_supervisor_validation_failure():
     """Test initialization failure with invalid parameters."""
-    # Missing goal_y
+    # Explicit None should fail
     with pytest.raises(ValidationError) as excinfo:
-        SupervisorNode(config={"goal_x": 10.0, "goal_y": None}, rate_hz=10.0)
-    assert "Both goal_x and goal_y must be provided" in str(excinfo.value)
+        SupervisorNode(config={"goal_x": None}, rate_hz=10.0)
+    assert "Input should be a valid number" in str(excinfo.value)
 
-    # Missing goal_x
     with pytest.raises(ValidationError) as excinfo:
-        SupervisorNode(config={"goal_x": None, "goal_y": 20.0}, rate_hz=10.0)
-    assert "Both goal_x and goal_y must be provided" in str(excinfo.value)
+        SupervisorNode(config={"max_steps": None}, rate_hz=10.0)
+    assert "Input should be a valid integer" in str(excinfo.value)

@@ -190,9 +190,11 @@ class SystemConfig(BaseModel):
     name: str = Field(..., description="System name")
     module: str = Field(..., description="Path to module configuration")
     vehicle: dict[str, Any] = Field(default_factory=dict, description="Vehicle configuration")
-    scene: dict[str, Any] = Field(default_factory=dict, description="Scene configuration")
+    map_path: str | None = Field(None, description="Path to map file (e.g. Lanelet2 OSM)")
+    simulator: dict[str, Any] | None = Field(None, description="Simulator configuration")
     simulator_overrides: dict[str, Any] = Field(
-        default_factory=dict, description="Simulator parameter overrides"
+        default_factory=dict,
+        description="Simulator parameter overrides (Deprecated in favor of 'simulator')",
     )
     runtime: dict[str, Any] = Field(default_factory=dict, description="Runtime configuration")
 

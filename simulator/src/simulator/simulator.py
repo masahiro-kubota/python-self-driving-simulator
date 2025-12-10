@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     from shapely.geometry import Polygon
 
     from core.data import ADComponentLog
-    from core.interfaces import ADComponent
 
 
 class Simulator(SimulatorInterface):
@@ -142,7 +141,7 @@ class Simulator(SimulatorInterface):
 
     def run(
         self,
-        ad_component: "ADComponent",
+        ad_component: Any,
         max_steps: int = 1000,
         goal_threshold: float = 5.0,
         min_elapsed_time: float = 20.0,
