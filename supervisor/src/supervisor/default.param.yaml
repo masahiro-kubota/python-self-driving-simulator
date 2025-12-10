@@ -1,9 +1,13 @@
 # Supervisor Default Parameters
 
 # Goal Configuration
-goal_x: 0.0  # Goal X coordinate [m]
-goal_y: 0.0  # Goal Y coordinate [m]
-goal_radius: 5.0  # Goal threshold [m]
-min_elapsed_time: 20.0  # Minimum elapsed time [s] before goal check
-terminate_on_goal: true
-terminate_on_off_track: true
+goal:
+  x: 0.0  # Goal X coordinate [m]
+  y: 0.0  # Goal Y coordinate [m]
+  radius: 5.0  # Goal threshold [m]
+  min_elapsed_time: 20.0  # Minimum elapsed time [s] before goal check
+  enabled: true
+
+# Off-track Configuration
+off_track:
+  enabled: true

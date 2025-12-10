@@ -4,31 +4,29 @@ from pydantic import ValidationError
 from supervisor.supervisor_node import SupervisorNode
 
 
-def test_supervisor_validation_success():
-    """Test successful initialization with valid parameters."""
-    # Complete goal params
-    config = {"goal_x": 10.0, "goal_y": 20.0, "goal_radius": 5.0, "max_steps": 100}
+def test_supervisor_nested_config():
+    """Test successful initialization with nested configuration."""
+    config = {
+        "goal": {"x": 10.0, "y": 20.0, "radius": 5.0, "enabled": True, "min_elapsed_time": 10.0},
+        "off_track": {"enabled": True},
+    }
     node = SupervisorNode(config=config, rate_hz=10.0)
-    assert node.config.goal_x == 10.0
-    assert node.config.goal_y == 20.0
-    assert node.config.max_steps == 100
-
-    # Defaults (partial config)
-    # Since fields have defaults in Pydantic model (0.0, 1000), empty config should be valid?
-    # Yes, we set defaults in SupervisorConfig: goal_x=0.0 etc.
-    config = {}
-    node = SupervisorNode(config=config, rate_hz=10.0)
-    assert node.config.goal_x == 0.0
-    assert node.config.max_steps == 1000
+    assert node.config.goal.x == 10.0
+    assert node.config.goal.y == 20.0
+    assert node.config.goal.radius == 5.0
+    assert node.config.goal.enabled is True
+    assert node.config.goal.min_elapsed_time == 10.0
+    assert node.config.off_track.enabled is True
 
 
 def test_supervisor_validation_failure():
     """Test initialization failure with invalid parameters."""
-    # Explicit None should fail
+    # Missing required goal parameters
     with pytest.raises(ValidationError) as excinfo:
-        SupervisorNode(config={"goal_x": None}, rate_hz=10.0)
-    assert "Input should be a valid number" in str(excinfo.value)
+        SupervisorNode(config={}, rate_hz=10.0)
+    assert "goal" in str(excinfo.value).lower()
 
+    # Invalid type for nested config
     with pytest.raises(ValidationError) as excinfo:
-        SupervisorNode(config={"max_steps": None}, rate_hz=10.0)
-    assert "Input should be a valid integer" in str(excinfo.value)
+        SupervisorNode(config={"goal": {"x": "invalid"}}, rate_hz=10.0)
+    assert "Input should be a valid number" in str(excinfo.value)

@@ -4,27 +4,43 @@ from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeConfig, NodeExecutionResult
 
 
+class GoalConfig(NodeConfig):
+    """Goal-related termination configuration."""
+
+    enabled: bool = True
+    x: float
+    y: float
+    radius: float
+    min_elapsed_time: float = 0.0
+
+
+class OffTrackConfig(NodeConfig):
+    """Off-track termination configuration."""
+
+    enabled: bool = True
+
+
 class SupervisorConfig(NodeConfig):
     """Configuration for SupervisorNode."""
 
-    goal_x: float
-    goal_y: float
-    goal_radius: float
-    min_elapsed_time: float
-    terminate_on_goal: bool = True
-    terminate_on_off_track: bool = True
+    goal: GoalConfig
+    off_track: OffTrackConfig = OffTrackConfig()
 
 
 class SupervisorNode(Node[SupervisorConfig]):
     """Node responsible for supervising simulation success/failure and termination conditions."""
 
-    def __init__(self, config: SupervisorConfig, rate_hz: float):
+    def __init__(self, config: SupervisorConfig | dict, rate_hz: float):
         """Initialize SupervisorNode.
 
         Args:
-            config: Validated configuration
+            config: Validated configuration or configuration dict
             rate_hz: Evaluation rate [Hz]
         """
+        # Convert dict to SupervisorConfig if needed
+        if isinstance(config, dict):
+            config = SupervisorConfig(**config)
+
         super().__init__("Supervisor", rate_hz, config)
         self.step_count = 0
         self.goal_count = 0
@@ -78,7 +94,7 @@ class SupervisorNode(Node[SupervisorConfig]):
         if (
             hasattr(sim_state, "off_track")
             and sim_state.off_track
-            and self.config.terminate_on_off_track
+            and self.config.off_track.enabled
         ):
             self.frame_data.done = True
             self.frame_data.done_reason = "off_track"
@@ -90,19 +106,19 @@ class SupervisorNode(Node[SupervisorConfig]):
 
         # 2. Check goal reached
         dist = (
-            (sim_state.x - self.config.goal_x) ** 2 + (sim_state.y - self.config.goal_y) ** 2
+            (sim_state.x - self.config.goal.x) ** 2 + (sim_state.y - self.config.goal.y) ** 2
         ) ** 0.5
         elapsed_time = self.step_count * (1.0 / self.rate_hz)
 
-        if dist <= self.config.goal_radius:
-            if not self.is_in_goal and elapsed_time >= self.config.min_elapsed_time:
+        if dist <= self.config.goal.radius:
+            if not self.is_in_goal and elapsed_time >= self.config.goal.min_elapsed_time:
                 # Entered goal
                 self.goal_count += 1
                 self.is_in_goal = True
                 self.frame_data.goal_count = self.goal_count
 
                 # Check termination
-                if self.config.terminate_on_goal:
+                if self.config.goal.enabled:
                     self.frame_data.done = True
                     self.frame_data.done_reason = "goal_reached"
                     self.frame_data.success = True
