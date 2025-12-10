@@ -68,7 +68,11 @@ class TestTrainingIntegration:
                     "inputs": [],
                     "mlflow": {"enabled": False, "tracking_uri": ""},
                     "mcap": {"enabled": False, "output_dir": ""},
-                    "dashboard": {"enabled": False},
+                    "dashboard": {
+                        "enabled": False,
+                        "map_path": "",
+                        "vehicle_config_path": "",
+                    },
                 },
                 "runtime": {"mode": "test"},  # Added
             }

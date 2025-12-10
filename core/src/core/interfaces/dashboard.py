@@ -20,6 +20,7 @@ class DashboardGenerator(ABC):
         result: ExperimentResult,
         output_path: Path,
         osm_path: Path | None = None,
+        vehicle_params: dict | None = None,
     ) -> Path:
         """Generate interactive dashboard from experiment result.
 
@@ -27,6 +28,7 @@ class DashboardGenerator(ABC):
             result: Experiment result containing simulation results and metadata
             output_path: Path where the generated HTML dashboard will be saved
             osm_path: Optional path to OSM map file for map visualization
+            vehicle_params: Optional vehicle parameters dict for visualization
 
         Returns:
             Path: Path to the generated dashboard file

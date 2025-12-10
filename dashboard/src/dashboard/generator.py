@@ -24,6 +24,7 @@ class HTMLDashboardGenerator(DashboardGenerator):
         result: ExperimentResult,
         output_path: Path,
         osm_path: Path | None = None,
+        vehicle_params: dict[str, Any] | None = None,
     ) -> Path:
         """Generate interactive HTML dashboard.
 
@@ -31,6 +32,9 @@ class HTMLDashboardGenerator(DashboardGenerator):
             result: Experiment result containing simulation results and metadata
             output_path: Path where the generated HTML dashboard will be saved
             osm_path: Optional path to OSM map file for map visualization
+            vehicle_params: Optional vehicle parameters dict with keys: width, wheelbase,
+                          front_overhang, rear_overhang. If provided, these will be used
+                          instead of extracting from metadata.
 
         Returns:
             Path: Path to the generated dashboard file
@@ -67,13 +71,31 @@ class HTMLDashboardGenerator(DashboardGenerator):
                 sanitized_metadata[k] = v
 
         # Extract vehicle parameters for dashboard visualization
-        vehicle_params = {
-            "width": sanitized_metadata.get("width", 1.8),
-            "length": sanitized_metadata.get("length", 4.5),
-            "wheelbase": sanitized_metadata.get("wheelbase", 2.5),
-            "front_overhang": sanitized_metadata.get("front_overhang", 0.9),
-            "rear_overhang": sanitized_metadata.get("rear_overhang", 1.1),
-        }
+        # Use provided vehicle_params if available, otherwise extract from metadata
+        if vehicle_params:
+            # Use provided parameters, with fallback to defaults
+            dashboard_vehicle_params = {
+                "width": vehicle_params.get("width", 1.8),
+                "wheelbase": vehicle_params.get("wheelbase", 2.5),
+                "front_overhang": vehicle_params.get("front_overhang", 0.9),
+                "rear_overhang": vehicle_params.get("rear_overhang", 1.1),
+            }
+            # Calculate length from components
+            length = (
+                dashboard_vehicle_params["wheelbase"]
+                + dashboard_vehicle_params["front_overhang"]
+                + dashboard_vehicle_params["rear_overhang"]
+            )
+            dashboard_vehicle_params["length"] = length
+        else:
+            # Fallback to metadata extraction
+            dashboard_vehicle_params = {
+                "width": sanitized_metadata.get("width", 1.8),
+                "length": sanitized_metadata.get("length", 4.5),
+                "wheelbase": sanitized_metadata.get("wheelbase", 2.5),
+                "front_overhang": sanitized_metadata.get("front_overhang", 0.9),
+                "rear_overhang": sanitized_metadata.get("rear_overhang", 1.1),
+            }
 
         data: dict[str, Any] = {
             "metadata": {
@@ -83,7 +105,7 @@ class HTMLDashboardGenerator(DashboardGenerator):
                 "controller": sanitized_metadata.get("controller", "Unknown Controller"),
                 **sanitized_metadata,
             },
-            "vehicle_params": vehicle_params,
+            "vehicle_params": dashboard_vehicle_params,
             "steps": [],
         }
 

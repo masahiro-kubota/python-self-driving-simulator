@@ -36,3 +36,5 @@ experiment:
       output_dir: "/tmp"
     dashboard:
       enabled: true
+      map_path: "experiment/configs/systems/lanelet2_map.osm"
+      vehicle_config_path: "experiment/configs/vehicles/default_vehicle.yaml"

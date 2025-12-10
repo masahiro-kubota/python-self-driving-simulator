@@ -143,6 +143,8 @@ class DashboardConfig(StrictConfig):
     """Configuration for dashboard generation."""
 
     enabled: bool = Field(..., description="Enable dashboard generation")
+    map_path: str = Field(..., description="Path to Lanelet2 OSM map file for visualization")
+    vehicle_config_path: str = Field(..., description="Path to vehicle configuration YAML file")
 
 
 class PostprocessConfig(StrictConfig):

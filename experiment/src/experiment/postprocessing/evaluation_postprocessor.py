@@ -165,20 +165,63 @@ class EvaluationPostprocessor(
         print("Generating interactive dashboard...")
         dashboard_path = Path("/tmp/dashboard.html")
 
-        # Find OSM file from simulator config
+        # Find OSM file from dashboard config or simulator config
         osm_path = None
-        sim_params = config.simulator.params
-        if sim_params and "map_path" in sim_params:
-            map_path_str = sim_params["map_path"]
-            if map_path_str:
-                potential_path = Path(map_path_str)
-                if not potential_path.is_absolute():
-                    potential_path = get_project_root() / potential_path
 
-                if potential_path.exists():
-                    osm_path = potential_path
-                else:
-                    print(f"Warning: Configured map path not found: {potential_path}")
+        # First, check dashboard config
+        if config.postprocess.dashboard.map_path:
+            map_path_str = config.postprocess.dashboard.map_path
+            potential_path = Path(map_path_str)
+            if not potential_path.is_absolute():
+                potential_path = get_project_root() / potential_path
+
+            if potential_path.exists():
+                osm_path = potential_path
+            else:
+                print(f"Warning: Configured dashboard map path not found: {potential_path}")
+
+        # Fallback to simulator config if not found in dashboard config
+        if osm_path is None:
+            sim_params = config.simulator.params
+            if sim_params and "map_path" in sim_params:
+                map_path_str = sim_params["map_path"]
+                if map_path_str:
+                    potential_path = Path(map_path_str)
+                    if not potential_path.is_absolute():
+                        potential_path = get_project_root() / potential_path
+
+                    if potential_path.exists():
+                        osm_path = potential_path
+                    else:
+                        print(f"Warning: Configured map path not found: {potential_path}")
+
+        # Load vehicle parameters from dashboard config
+        vehicle_params = None
+        if config.postprocess.dashboard.vehicle_config_path:
+            import yaml
+
+            vehicle_config_path_str = config.postprocess.dashboard.vehicle_config_path
+            vehicle_config_path = Path(vehicle_config_path_str)
+            if not vehicle_config_path.is_absolute():
+                vehicle_config_path = get_project_root() / vehicle_config_path
+
+            if vehicle_config_path.exists():
+                try:
+                    with open(vehicle_config_path) as f:
+                        vehicle_config = yaml.safe_load(f)
+
+                    # Extract relevant parameters for dashboard
+                    vehicle_params = {
+                        "width": vehicle_config.get("width"),
+                        "wheelbase": vehicle_config.get("wheelbase"),
+                        "front_overhang": vehicle_config.get("front_overhang"),
+                        "rear_overhang": vehicle_config.get("rear_overhang"),
+                    }
+                    print(f"Loaded vehicle parameters from {vehicle_config_path}")
+                except Exception as e:
+                    print(f"Warning: Failed to load vehicle config from {vehicle_config_path}: {e}")
+            else:
+                print(f"Warning: Vehicle config path not found: {vehicle_config_path}")
 
         # Use dashboard package implementation via interface
         # Dynamic loading to avoid static dependency
@@ -193,7 +236,7 @@ class EvaluationPostprocessor(
             generator_class = getattr(dashboard_module, "HTMLDashboardGenerator")
             # Instantiate
             generator: DashboardGenerator = generator_class()
-            generator.generate(result, dashboard_path, osm_path)
+            generator.generate(result, dashboard_path, osm_path, vehicle_params)
         except (ImportError, AttributeError) as e:
             print(f"Warning: Could not load dashboard generator: {e}")
             # Dashboard generation failed, but we continue experiment execution
