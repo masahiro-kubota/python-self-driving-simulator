@@ -1,5 +1,5 @@
-from experiment_runner.interfaces import ExperimentPostprocessor, ExperimentPostprocessorFactory
-from experiment_runner.postprocessing.evaluation_postprocessor import EvaluationPostprocessor
+from experiment.interfaces import ExperimentPostprocessor, ExperimentPostprocessorFactory
+from experiment.postprocessing.evaluation_postprocessor import EvaluationPostprocessor
 
 
 class DefaultPostprocessorFactory(ExperimentPostprocessorFactory):

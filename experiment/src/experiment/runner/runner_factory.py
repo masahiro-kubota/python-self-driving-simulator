@@ -1,5 +1,5 @@
-from experiment_runner.interfaces import ExperimentRunner, ExperimentRunnerFactory
-from experiment_runner.runner.evaluation_runner import EvaluationRunner
+from experiment.interfaces import ExperimentRunner, ExperimentRunnerFactory
+from experiment.runner.evaluation_runner import EvaluationRunner
 
 
 class DefaultRunnerFactory(ExperimentRunnerFactory):

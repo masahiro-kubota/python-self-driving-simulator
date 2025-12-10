@@ -8,7 +8,7 @@ module:
         nodes:
           - name: "Sensor"
             processor:
-              type: "experiment_runner.processors.sensor.IdealSensorProcessor"
+              type: "experiment.processors.sensor.IdealSensorProcessor"
               params: {}
             io:
               inputs: ["sim_state"]
@@ -17,7 +17,7 @@ module:
 
           - name: "Perception"
             processor:
-              type: "experiment_runner.processors.perception.BasicPerceptionProcessor"
+              type: "experiment.processors.perception.BasicPerceptionProcessor"
               params: {}
             io:
               inputs: ["vehicle_state"]

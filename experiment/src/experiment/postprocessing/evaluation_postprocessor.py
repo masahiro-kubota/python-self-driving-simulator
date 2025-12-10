@@ -8,11 +8,11 @@ import mlflow
 from core.data.experiment import Artifact, ExperimentResult
 from core.data.simulator import SimulationLog
 from core.utils import get_project_root
-from experiment_runner.interfaces import ExperimentPostprocessor
-from experiment_runner.postprocessing.mcap_logger import MCAPLogger
-from experiment_runner.postprocessing.metrics import EvaluationMetrics, MetricsCalculator
-from experiment_runner.postprocessing.mlflow_logger import MLflowExperimentLogger
-from experiment_runner.preprocessing.schemas import ResolvedExperimentConfig
+from experiment.interfaces import ExperimentPostprocessor
+from experiment.postprocessing.mcap_logger import MCAPLogger
+from experiment.postprocessing.metrics import EvaluationMetrics, MetricsCalculator
+from experiment.postprocessing.mlflow_logger import MLflowExperimentLogger
+from experiment.preprocessing.schemas import ResolvedExperimentConfig
 
 
 class EvaluationPostprocessor(

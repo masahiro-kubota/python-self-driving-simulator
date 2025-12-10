@@ -1,12 +1,12 @@
 from pathlib import Path
 from typing import Any
 
-from experiment_runner.interfaces import ExperimentPostprocessor, ExperimentRunner
-from experiment_runner.postprocessing.postprocessor_factory import (
+from experiment.interfaces import ExperimentPostprocessor, ExperimentRunner
+from experiment.postprocessing.postprocessor_factory import (
     DefaultPostprocessorFactory,
 )
-from experiment_runner.preprocessing.loader import DefaultPreprocessor
-from experiment_runner.runner.runner_factory import DefaultRunnerFactory
+from experiment.preprocessing.loader import DefaultPreprocessor
+from experiment.runner.runner_factory import DefaultRunnerFactory
 
 
 class ExperimentOrchestrator:

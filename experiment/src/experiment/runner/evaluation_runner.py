@@ -7,8 +7,10 @@ from core.data import SimulationResult
 from core.data.frame_data import collect_node_output_fields, create_frame_data_type
 from core.executor import SingleProcessExecutor
 from core.nodes import PhysicsNode
-from experiment_runner.interfaces import ExperimentRunner
-from experiment_runner.preprocessing.schemas import ResolvedExperimentConfig
+from experiment.interfaces import ExperimentRunner
+from experiment.preprocessing.schemas import ResolvedExperimentConfig
+from logger import LoggerNode
+from supervisor import SupervisorNode
 
 if TYPE_CHECKING:
     pass
@@ -30,29 +32,46 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
         simulator = components["simulator"]
         ad_component = components["ad_component"]
 
-        # 実験パラメータの取得
-        max_steps = config.execution.max_steps_per_episode if config.execution else 2000
+        # 設定値の取得
         sim_rate = config.simulator.rate_hz
-
-        # シミュレータのリセットと初期状態の取得
-        _ = simulator.reset()
+        max_steps = config.execution.max_steps_per_episode if config.execution else 2000
+        goal_radius = config.execution.goal_radius if config.execution else 5.0
 
         # ノードの収集
         nodes = []
-        # 1. 物理ノード (PhysicsNode)
-        nodes.append(PhysicsNode(simulator, config))
 
-        # 2. ADコンポーネントノード  # noqa: RUF003
+        # 1. 物理ノード (PhysicsNode)
+        # シミュレータのリセットと初期状態の取得
+        _ = simulator.reset()
+        nodes.append(PhysicsNode(simulator, sim_rate))
+
+        # 2. ADコンポーネントnode
         nodes.extend(ad_component.get_schedulable_nodes())
 
+        # 3. 評価ノード (SupervisorNode)
+        goal_x = getattr(simulator, "goal_x", None)
+        goal_y = getattr(simulator, "goal_y", None)
+        supervisor = SupervisorNode(
+            goal_x=goal_x,
+            goal_y=goal_y,
+            goal_radius=goal_radius,
+            max_steps=max_steps,
+            rate_hz=sim_rate,
+        )
+        nodes.append(supervisor)
+
+        # 4. ロガーノード (LoggerNode)
+        logger = LoggerNode(rate_hz=sim_rate)
+        nodes.append(logger)
+
         # FrameDataの構築
-        # 1. 全ノードのIO要件を収集  # noqa: RUF003
+        # 1. 全nodeのIO要件を収集
         fields = collect_node_output_fields(nodes)
 
         # 2. 動的なFrameDataクラスを作成
         DynamicFrameData = create_frame_data_type(fields)  # noqa: N806
 
-        # 3. Context(FrameData)のインスタンス化
+        # 3. FrameDataのインスタンス化
         # 初期値はNoneで初期化され、最初のステップで各ノードがデータを埋めることを想定
         frame_data = DynamicFrameData()
 
@@ -69,13 +88,14 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
 
         # 実験の実行
         duration = max_steps * (1.0 / sim_rate)
-        executor.run(duration=duration, stop_condition=lambda: frame_data.done)
+        executor.run(duration=duration)
 
+        # 結果の取得
         return SimulationResult(
-            success=frame_data.success,
-            reason=frame_data.done_reason,
-            final_state=frame_data.sim_state,
-            log=simulator.get_log(),
+            success=getattr(frame_data, "success", False),
+            reason=getattr(frame_data, "done_reason", "unknown"),
+            final_state=getattr(frame_data, "sim_state", None),
+            log=logger.get_log(),
         )
 
     def get_type(self) -> str:

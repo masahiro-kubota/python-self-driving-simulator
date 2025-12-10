@@ -2,8 +2,9 @@ import os
 from pathlib import Path
 
 import pytest
-from experiment_runner.orchestrator import ExperimentOrchestrator
-from experiment_runner.preprocessing.loader import DefaultPreprocessor, load_experiment_config
+
+from experiment.orchestrator import ExperimentOrchestrator
+from experiment.preprocessing.loader import DefaultPreprocessor, load_experiment_config
 
 
 @pytest.fixture(autouse=True)

@@ -83,17 +83,19 @@ e2e_aichallenge_playground/
 ├── experiment/                    # 実験フレームワーク
 │   ├── configs/                  # 実験設定ファイル
 │   │   ├── experiments/          # 実験設定
-│   │   ├── modules/              # モジュール設定（ADコンポーネント構成）
+│   │   ├── modules/              # モジュール設定(ADコンポーネント構成)
 │   │   ├── scenes/               # シーン設定
-│   │   ├── systems/              # システム設定（車両・シーン・モジュールの組み合わせ）
+│   │   ├── systems/              # システム設定(車両・シーン・モジュールの組み合わせ)
 │   │   └── vehicles/             # 車両パラメータ
 │   └── src/
-│       └── experiment_runner/    # 実験実行メインロジック
+│       └── experiment/           # 実験実行メインロジック
 │           ├── runner/           # 実行エンジン
 │           ├── postprocessing/   # 後処理 (評価・可視化)
 │           └── preprocessing/    # 前処理 (Config解析)
 ├── dashboard/                    # 可視化ダッシュボード
-├── data/                         # 一時データ（Git対象外）
+├── supervisor/                   # シミュレーション監視・判定
+├── logger/                       # ログ記録
+├── data/                         # 一時データ(Git対象外)
 └── mlflow/                       # MLflow + MinIO サーバー
 ```
 
@@ -122,8 +124,8 @@ graph TD
         class simulator impl;
     end
     subgraph group_experiment [experiment]
-        experiment_runner["experiment_runner<br/>Unified experiment e.."]
-        class experiment_runner app;
+        experiment["experiment<br/>Unified experiment e.."]
+        class experiment app;
     end
     subgraph group_dashboard [dashboard]
         dashboard["dashboard<br/>Interactive HTML das.."]
@@ -141,8 +143,8 @@ graph TD
     end
     %% Dependencies
     simulator --> core
-    experiment_runner --> core
-    experiment_runner --> dashboard
+    experiment --> core
+    experiment --> dashboard
     dashboard --> core
     ad_component_core --> core
     pure_pursuit --> core

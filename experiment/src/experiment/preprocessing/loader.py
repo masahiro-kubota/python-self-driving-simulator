@@ -7,7 +7,7 @@ from core.data import VehicleParameters
 from core.utils import get_project_root
 from core.utils.config import load_yaml as core_load_yaml
 from core.utils.config import merge_configs
-from experiment_runner.preprocessing.schemas import (
+from experiment.preprocessing.schemas import (
     ExperimentLayerConfig,
     ModuleConfig,
     ResolvedExperimentConfig,
@@ -368,7 +368,7 @@ class DefaultPreprocessor:
     """
 
     def __init__(self) -> None:
-        from experiment_runner.preprocessing.factory import ComponentFactory
+        from experiment.preprocessing.factory import ComponentFactory
 
         self.component_factory = ComponentFactory()
 

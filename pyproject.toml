@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "End-to-end AI Challenge Playground"
 requires-python = ">=3.12"
 dependencies = [
-    "experiment-runner",
+    "experiment",
     "deptry>=0.12.0",
     "pre-commit>=3.0.0",
     "pytest>=8.0.0",
@@ -23,7 +23,7 @@ dependencies = [
 managed = true
 
 [tool.uv.sources]
-experiment-runner = { workspace = true }
+experiment = { workspace = true }
 core = { workspace = true }
 ad-component-core = { workspace = true }
 pure-pursuit = { workspace = true }
@@ -42,6 +42,8 @@ members = [
     "experiment",
     "experiment/training",
     "dashboard",
+    "supervisor",
+    "logger",
 ]
 
 [tool.ruff]

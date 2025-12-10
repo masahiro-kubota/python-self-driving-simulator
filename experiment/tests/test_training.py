@@ -4,9 +4,9 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from experiment_runner.preprocessing.schemas import ExperimentType, ResolvedExperimentConfig
 
 from core.data import Action, SimulationLog, SimulationStep, VehicleState
+from experiment.preprocessing.schemas import ExperimentType, ResolvedExperimentConfig
 
 
 class TestTrainingIntegration:

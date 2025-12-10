@@ -4,8 +4,6 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from experiment_runner.processors.perception import BasicPerceptionProcessor
-from experiment_runner.processors.sensor import IdealSensorProcessor
 
 from core.clock import SteppedClock
 from core.data import Action, Observation, SimulationLog, Trajectory, TrajectoryPoint, VehicleState
@@ -14,6 +12,8 @@ from core.data.node_io import NodeIO
 from core.executor import SingleProcessExecutor
 from core.interfaces import Simulator
 from core.nodes import GenericProcessingNode, PhysicsNode
+from experiment.processors.perception import BasicPerceptionProcessor
+from experiment.processors.sensor import IdealSensorProcessor
 
 
 @pytest.fixture
@@ -72,13 +72,13 @@ def _create_context_for_nodes(nodes) -> Any:
     return DynamicFrameData()
 
 
-def test_executor_timing(mock_simulator, mock_planner, mock_controller, mock_config):
+def test_executor_timing(mock_simulator, mock_planner, mock_controller):
     """Test that nodes run at expected rates."""
 
     clock = SteppedClock(start_time=0.0, dt=0.01)
 
     # Physics Node
-    physics_node = PhysicsNode(mock_simulator, mock_config)
+    physics_node = PhysicsNode(mock_simulator, rate_hz=10.0)
     physics_node.on_run = MagicMock(wraps=physics_node.on_run)
 
     # Sensor Node (Generic)
@@ -106,7 +106,7 @@ def test_executor_timing(mock_simulator, mock_planner, mock_controller, mock_con
     executor = SingleProcessExecutor(nodes, clock)
 
     # Run for 0.42 seconds
-    executor.run(duration=0.42, stop_condition=lambda: frame_data.done)
+    executor.run(duration=0.42)
 
     assert physics_node.on_run.call_count == 5
     assert planning_node.on_run.call_count == 3
@@ -114,12 +114,12 @@ def test_executor_timing(mock_simulator, mock_planner, mock_controller, mock_con
     assert sensor_node.on_run.call_count == 5
 
 
-def test_executor_data_flow(mock_simulator, mock_planner, mock_controller, mock_config):
+def test_executor_data_flow(mock_simulator, mock_planner, mock_controller):
     """Test data flow between nodes via FrameData."""
     clock = SteppedClock(start_time=0.0, dt=0.01)
 
     # Physics
-    physics_node = PhysicsNode(mock_simulator, mock_config)
+    physics_node = PhysicsNode(mock_simulator, rate_hz=10.0)
 
     # Sensor
     sensor_node = GenericProcessingNode(
