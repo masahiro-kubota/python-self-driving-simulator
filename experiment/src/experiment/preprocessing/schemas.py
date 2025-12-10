@@ -17,11 +17,9 @@ class ExperimentType(str, Enum):
 
 
 class ComponentConfig(BaseModel):
-    """Configuration for a component."""
+    """Configuration for a component (AD component nodes container)."""
 
-    type: str = Field(..., description="Component class name")
-    rate_hz: float = Field(..., description="Execution frequency in Hz")
-    params: dict[str, Any] = Field(..., description="Component parameters")
+    params: dict[str, Any] = Field(..., description="Component parameters (contains nodes list)")
 
 
 class SimulatorConfig(BaseModel):

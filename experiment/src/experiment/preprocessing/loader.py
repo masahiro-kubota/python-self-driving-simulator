@@ -185,31 +185,9 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
         # Direct ad_component definition
         resolved_components = {"ad_component": module_layer.components["ad_component"]}
 
-        ad_user_params = resolved_components["ad_component"].get("params", {}) or {}
-
-        # Load defaults for the ad_component type
-        ad_comp_type = resolved_components["ad_component"]["type"]
-        ad_package = None
-
-        if "." not in ad_comp_type:
-            # Entry point lookup
-            for group in ["ad_components", "simulator"]:
-                eps = metadata.entry_points(group=group)
-                matches = [ep for ep in eps if ep.name == ad_comp_type]
-                if matches:
-                    ad_package = matches[0].value.split(":")[0].split(".")[0]
-                    break
-        else:
-            ad_package = ad_comp_type.split(".")[0]
-
-        ad_defaults = {}
-        if ad_package:
-            ad_defaults = load_component_defaults(ad_package)
-
-        # Resolve 'default' keywords
-        resolved_components["ad_component"]["params"] = _resolve_defaults(
-            ad_user_params, ad_defaults
-        )
+        # No type field needed anymore - FlexibleADComponent has been removed
+        # Nodes are instantiated directly from params
+        # No default resolution needed at this level - handled by individual nodes
 
     else:
         raise ValueError("Module must define 'ad_component' in components")

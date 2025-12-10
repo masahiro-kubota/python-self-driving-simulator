@@ -89,9 +89,7 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
                 elif isinstance(v_params, dict):
                     log.metadata.update(v_params)
 
-            # Inject controller type if available
-            if config.components.ad_component:
-                log.metadata["controller"] = {"type": config.components.ad_component.type}
+            # Note: controller type metadata removed as FlexibleADComponent.type no longer exists
 
         return SimulationResult(
             success=getattr(frame_data, "success", False),

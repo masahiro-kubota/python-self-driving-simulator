@@ -38,12 +38,7 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         # self.config is set by base class
 
         if self.config.track_path:
-            # Note: We need to handle path resolution.
-            # In old processor, FlexibleADComponent resolved paths.
-            # Here, the 'config' dictionary passed in should already have resolved paths if Loader/Factory did its job.
-            # However, FlexibleADComponent._create_processor did path resolution.
-            # We might need to handle it or assume absolute path.
-            # If instantiated via FlexibleADComponent (updated), it should resolve paths!
+            # Path resolution is handled by node_factory.create_node()
             from planning_utils import load_track_csv
 
             self.reference_trajectory = load_track_csv(self.config.track_path)

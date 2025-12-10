@@ -58,7 +58,6 @@ class EvaluationPostprocessor(
 
         # Prepare params to log
         result_params = {
-            "ad_component": config.components.ad_component.type,
             **config.components.ad_component.params,
             "execution_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "termination_reason": getattr(sim_result, "reason", "unknown"),

@@ -106,6 +106,12 @@ graph TD
     classDef impl fill:#bbf,stroke:#333,stroke-width:2px;
     classDef app fill:#bfb,stroke:#333,stroke-width:2px;
     classDef default fill:#fff,stroke:#333,stroke-width:1px;
+    subgraph group_other [other]
+        logger["logger<br/>Logging node for rec.."]
+        class logger impl;
+        supervisor["supervisor<br/>Supervision and moni.."]
+        class supervisor impl;
+    end
     subgraph group_core [core]
         core["core<br/>Core data structures.."]
         class core core;
@@ -116,7 +122,7 @@ graph TD
     end
     subgraph group_experiment [experiment]
         experiment["experiment<br/>Unified experiment e.."]
-        class experiment app;
+        class experiment impl;
     end
     subgraph group_dashboard [dashboard]
         dashboard["dashboard<br/>Interactive HTML das.."]
@@ -133,10 +139,14 @@ graph TD
         class pid_controller impl;
     end
     %% Dependencies
+    logger --> core
     simulator --> core
     experiment --> core
     experiment --> dashboard
+    experiment --> logger
+    experiment --> supervisor
     dashboard --> core
+    supervisor --> core
     ad_component_core --> core
     pure_pursuit --> core
     pure_pursuit --> planning_utils
@@ -151,43 +161,30 @@ graph TD
 
 ### SingleProcessExecutor
 
-このプロジェクトでは、**SingleProcessExecutor**を使用してシミュレーションを実行します。これは、複数のノード（Physics、Sensor、Planning、Control）を単一プロセス内で協調動作させる実行エンジンです。
+このプロジェクトでは、**SingleProcessExecutor**を使用してシミュレーションを実行します。これは、複数のノード（Simulator、Sensor、Planning、Control、Supervisor、Logger）を単一プロセス内で協調動作させる実行エンジンです。
 
-#### Node Provider パターン
+#### Nodeベースアーキテクチャ
 
-ADComponent（自動運転コンポーネント）は**Node Provider**として機能し、実行可能なノードのリストを提供します：
+すべてのコンポーネント（シミュレータ、センサー、プランナー、コントローラーなど）は`Node`基底クラスを継承し、統一されたインターフェースで実行されます：
 
 ```python
-class ADComponent(ABC):
-    """自動運転コンポーネントの抽象基底クラス"""
+class Node(ABC, Generic[ConfigT]):
+    """実行可能なノードの基底クラス"""
+
+    def __init__(self, name: str, rate_hz: float, config: ConfigT):
+        self.name = name
+        self.rate_hz = rate_hz
+        self.config = config  # Pydanticで検証済みの設定
 
     @abstractmethod
-    def get_schedulable_nodes(self) -> list[Node]:
-        """実行可能なノードのリストを返す"""
+    def on_run(self, current_time: float) -> NodeExecutionResult:
+        """ノードの実行ロジック"""
         pass
 ```
 
-#### FlexibleADComponent
+#### 設定ベースのノード構築
 
-`FlexibleADComponent`は、設定ファイルに基づいて動的にノードを構築・接続する標準実装です。
-YAML設定でパイプラインを定義できるため、コードを変更せずにセンサー、認識、計画、制御の構成を変更できます。
-
-```python
-class FlexibleADComponent(ADComponent):
-    def __init__(self, vehicle_params, nodes, **kwargs):
-        # 設定からノードを動的に構築
-        for node_config in nodes:
-            processor = self._create_processor(node_config["processor"], vehicle_params)
-            node = GenericProcessingNode(
-                name=node_config["name"],
-                processor=processor,
-                io_spec=NodeIO(**node_config["io"]),
-                rate_hz=node_config["rate_hz"],
-            )
-            self.nodes_list.append(node)
-```
-
-#### 設定例
+YAML設定ファイルから動的にノードを構築します。`loader.py`が設定を読み込み、`node_factory.create_node()`が各ノードをインスタンス化します：
 
 ```yaml
 # experiment/configs/modules/pure_pursuit_pid.yaml
@@ -195,50 +192,32 @@ module:
   name: "pure_pursuit_pid"
   components:
     ad_component:
-      type: "ad_component_core.flexible_ad_component.FlexibleADComponent"
       params:
         nodes:
           - name: "Sensor"
-            processor:
-              type: "core.processors.sensor.IdealSensorProcessor"
-            io:
-              inputs: ["sim_state"]
-              output: "vehicle_state"
+            type: "experiment.processors.sensor.IdealSensorNode"
+            params: {}
             rate_hz: 50.0
 
           - name: "Planning"
-            processor:
-              type: "pure_pursuit.PurePursuitPlanner"
-              params:
-                lookahead_distance: 5.0
-                track_path: "path/to/track.csv"
-            io:
-              inputs: ["vehicle_state", "observation"]
-              output: "trajectory"
+            type: "pure_pursuit.PurePursuitNode"
+            params:
+              min_lookahead_distance: 3.0
+              max_lookahead_distance: 15.0
+              lookahead_speed_ratio: 1.5
+              track_path: "path/to/track.csv"
             rate_hz: 10.0
 
           - name: "Control"
-            processor:
-              type: "pid_controller.PIDController"
-              params:
-                kp: 1.0
-            io:
-              inputs: ["trajectory", "vehicle_state", "observation"]
-              output: "action"
+            type: "pid_controller.PIDControllerNode"
+            params:
+              kp: 1.0
+              ki: 0.1
+              kd: 0.05
+              u_min: -3.0
+              u_max: 3.0
             rate_hz: 30.0
-
-    simulator:
-      type: "Simulator"
-      params:
-        dt: 0.1
 ```
-
-#### 利点
-
-1. **柔軟性**: 各ノードの実行周波数を独立して設定可能
-2. **モジュール性**: ノードの追加・削除が容易
-3. **デバッグ性**: 各ノードの動作を個別に検証可能
-4. **拡張性**: 新しいノードタイプ（例: Perception）を簡単に追加可能
 
 ---
 
@@ -273,35 +252,4 @@ PYTHONPATH="" uv run pytest core/tests/test_config.py -v
 
 # Pre-commitフックの実行（全ファイル）
 uv run pre-commit run --all-files
-```
-
-
-### コンポーネントの組み合わせ
-
-設定ファイルでコンポーネントを自由に組み合わせ：
-
-```yaml
-# experiment/configs/experiments/custom.yaml
-experiment:
-  name: "custom_experiment"
-  type: "evaluation"
-  description: "Custom experiment example with layered config"
-
-# システム構成（車両、シーン、モジュール指定）
-system: "experiment/configs/systems/kart_default_track.yaml"
-
-# 実験ごとの上書き設定
-overrides:
-  components:
-    ad_component:
-      params:
-        planning:
-          params:
-            lookahead_distance: 7.5  # デフォルト値を上書き
-        control:
-          params:
-            kp: 1.2
-
-  execution:
-    num_episodes: 5
 ```

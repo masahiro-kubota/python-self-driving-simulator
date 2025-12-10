@@ -16,7 +16,7 @@ experiment:
   supervisor:
     # Goal-related termination condition
     goal:
-      enabled: true              # Terminate simulation when goal is reached
+      enabled: true             # Terminate simulation when goal is reached
       x: 89630.067              # Goal position X coordinate
       y: 43130.695              # Goal position Y coordinate
       radius: "default"         # Goal radius threshold
