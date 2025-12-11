@@ -49,8 +49,6 @@ class HTMLDashboardGenerator(DashboardGenerator):
             raise ValueError("ExperimentResult contains no simulation results")
 
         log = result.simulation_results[0].log
-        print(f"DEBUG generator.py: log.metadata has obstacles: {'obstacles' in log.metadata}")
-        print(f"DEBUG generator.py: log.metadata keys: {list(log.metadata.keys())}")
 
         # Prepare data in the format expected by the dashboard
         # Sanitize metadata to avoid React rendering errors with nested objects

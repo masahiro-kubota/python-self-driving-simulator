@@ -30,7 +30,7 @@ class MetricsCalculator:
         success = 0
 
         # Collision (placeholder)
-        collision_count = 0
+        collision_count = 1 if reason == "collision" else 0
 
         # Get goal_count from last step info if available
         goal_count = 0
@@ -45,6 +45,7 @@ class MetricsCalculator:
             "off_track": 2,
             "timeout": 3,
             "simulator_completed": 4,
+            "collision": 5,
         }
         termination_code = reason_map.get(reason, 0)
 

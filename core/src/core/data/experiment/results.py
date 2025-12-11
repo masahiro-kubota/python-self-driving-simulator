@@ -36,7 +36,9 @@ class EvaluationMetrics:
     lap_time_sec: float
     collision_count: int
     success: int
-    termination_code: int  # 0: unknown, 1: goal, 2: off_track, 3: timeout
+    termination_code: (
+        int  # 0: unknown, 1: goal, 2: off_track, 3: timeout, 4: sim_comp, 5: collision
+    )
     goal_count: int = 0
 
     def to_dict(self) -> dict[str, float | int]:

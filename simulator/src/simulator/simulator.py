@@ -98,14 +98,8 @@ class Simulator(Node[SimulatorConfig]):
                 obs_dict = obs.model_dump() if hasattr(obs, "model_dump") else obs
                 obstacles_data.append(obs_dict)
             metadata["obstacles"] = obstacles_data
-            print(f"DEBUG Simulator.on_init: Added {len(obstacles_data)} obstacles to metadata")
-        else:
-            print("DEBUG Simulator.on_init: No obstacles in config")
 
         self.log = SimulationLog(steps=[], metadata=metadata)
-        print(
-            f"DEBUG Simulator.on_init: log.metadata has obstacles: {'obstacles' in self.log.metadata}"
-        )
 
         # Load map if specified
         if self.config.map_path:
@@ -206,10 +200,6 @@ class Simulator(Node[SimulatorConfig]):
         Returns:
             SimulationLog
         """
-        print(
-            f"DEBUG Simulator.get_log: log.metadata has obstacles: {'obstacles' in self.log.metadata}"
-        )
-        print(f"DEBUG Simulator.get_log: log.metadata keys: {list(self.log.metadata.keys())}")
         return self.log
 
     def _get_vehicle_polygon(self, state: VehicleState) -> "Polygon":
