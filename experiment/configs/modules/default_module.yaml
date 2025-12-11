@@ -1,12 +1,16 @@
 module:
   name: "pure_pursuit_pid"
 
+  # Define simulation rate as a reusable variable
+  # This ensures Simulator and Logger always run at the same frequency
+  simulation_rate_hz: &simulation_rate_hz 100.0
+
   # All nodes in execution order
   nodes:
     # Simulator node
     - name: "Simulator"
       type: "KinematicSimulator"
-      rate_hz: 100.0
+      rate_hz: *simulation_rate_hz
       params:
         map_path: "${system.map_path}"
         vehicle_params: "${system.vehicle_params}"
@@ -80,7 +84,7 @@ module:
     # Supervisor node
     - name: "Supervisor"
       type: "SupervisorNode"
-      rate_hz: 100.0
+      rate_hz: *simulation_rate_hz
       params:
         # Goal-related termination condition
         goal:
@@ -101,5 +105,5 @@ module:
     # Logger node
     - name: "Logger"
       type: "LoggerNode"
-      rate_hz: 100.0
+      rate_hz: *simulation_rate_hz
       params: {}
