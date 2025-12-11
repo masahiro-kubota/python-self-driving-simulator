@@ -32,6 +32,7 @@ class SimulatorConfig(NodeConfig):
         description="Initial vehicle state",
     )
     map_path: str | None = Field(None, description="Path to Lanelet2 map file")
+    obstacles: list = Field(default_factory=list, description="List of obstacles")
 
 
 class Simulator(Node[SimulatorConfig]):
@@ -55,6 +56,7 @@ class Simulator(Node[SimulatorConfig]):
         self.current_time = 0.0
         self.log = SimulationLog(steps=[], metadata={})
         self.map: Any = None
+        self.obstacle_manager: Any = None
 
     def get_node_io(self) -> NodeIO:
         """Define node IO."""
@@ -72,7 +74,37 @@ class Simulator(Node[SimulatorConfig]):
         # Reset state
         self._current_state = SimulationVehicleState.from_vehicle_state(self.config.initial_state)
         self.current_time = 0.0
-        self.log = SimulationLog(steps=[], metadata={})
+
+        # Initialize metadata with vehicle params and obstacles
+        metadata = {}
+
+        # Add vehicle parameters to metadata
+        if self.config.vehicle_params:
+            if hasattr(self.config.vehicle_params, "model_dump"):
+                vp_dict = self.config.vehicle_params.model_dump()
+            elif isinstance(self.config.vehicle_params, dict):
+                vp_dict = self.config.vehicle_params
+            else:
+                # Fallback: convert to dict using vars()
+                vp_dict = vars(self.config.vehicle_params)
+            metadata.update(vp_dict)
+
+        # Add obstacles to metadata
+        if self.config.obstacles:
+            # Convert obstacles to dict for metadata
+            obstacles_data = []
+            for obs in self.config.obstacles:
+                obs_dict = obs.model_dump() if hasattr(obs, "model_dump") else obs
+                obstacles_data.append(obs_dict)
+            metadata["obstacles"] = obstacles_data
+            print(f"DEBUG Simulator.on_init: Added {len(obstacles_data)} obstacles to metadata")
+        else:
+            print("DEBUG Simulator.on_init: No obstacles in config")
+
+        self.log = SimulationLog(steps=[], metadata=metadata)
+        print(
+            f"DEBUG Simulator.on_init: log.metadata has obstacles: {'obstacles' in self.log.metadata}"
+        )
 
         # Load map if specified
         if self.config.map_path:
@@ -81,6 +113,18 @@ class Simulator(Node[SimulatorConfig]):
             from simulator.map import LaneletMap
 
             self.map = LaneletMap(Path(self.config.map_path))
+
+        # Initialize obstacle manager
+        if self.config.obstacles:
+            from core.data import SimulatorObstacle
+            from simulator.obstacle import ObstacleManager
+
+            # Convert dict obstacles to SimulatorObstacle instances
+            obstacles = [
+                SimulatorObstacle(**obs) if isinstance(obs, dict) else obs
+                for obs in self.config.obstacles
+            ]
+            self.obstacle_manager = ObstacleManager(obstacles)
 
     def on_run(self, _current_time: float) -> NodeExecutionResult:
         """Execute physics simulation step.
@@ -130,6 +174,16 @@ class Simulator(Node[SimulatorConfig]):
                 if not self.map.is_drivable(vehicle_state.x, vehicle_state.y):
                     vehicle_state.off_track = True
 
+        # Obstacle collision detection
+        if self.obstacle_manager is not None:
+            try:
+                poly = self._get_vehicle_polygon(vehicle_state)
+                if self.obstacle_manager.check_vehicle_collision(poly, self.current_time):
+                    vehicle_state.collision = True
+            except Exception:
+                # If polygon check fails, skip collision detection
+                pass
+
         # Logging
         step_log = SimulationStep(
             timestamp=self.current_time,
@@ -151,6 +205,10 @@ class Simulator(Node[SimulatorConfig]):
         Returns:
             SimulationLog
         """
+        print(
+            f"DEBUG Simulator.get_log: log.metadata has obstacles: {'obstacles' in self.log.metadata}"
+        )
+        print(f"DEBUG Simulator.get_log: log.metadata keys: {list(self.log.metadata.keys())}")
         return self.log
 
     def _get_vehicle_polygon(self, state: VehicleState) -> "Polygon":

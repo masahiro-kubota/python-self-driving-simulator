@@ -25,7 +25,7 @@ uv run experiment-runner --config experiment/configs/experiments/imitation_learn
 学習済みモデル（またはルールベースコントローラー）を評価します。
 
 ```bash
-uv run experiment-runner --config experiment/configs/experiments/pure_pursuit.yaml
+uv run experiment-runner --config experiment/configs/experiments/default_experiment.yaml
 ```
 
 ## Configuration

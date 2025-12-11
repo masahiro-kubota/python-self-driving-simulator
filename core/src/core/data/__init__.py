@@ -10,7 +10,17 @@ from core.data.ad_components import (
     TrajectoryPoint,
     VehicleState,
 )
-from core.data.environment import Obstacle, ObstacleType, Scene
+from core.data.environment import (
+    Obstacle,
+    ObstacleShape,
+    ObstacleState,
+    ObstacleTrajectory,
+    ObstacleType,
+    Scene,
+    SimulatorObstacle,
+    StaticObstaclePosition,
+    TrajectoryWaypoint,
+)
 from core.data.experiment import Artifact, EvaluationMetrics, ExperimentResult
 from core.data.observation import Observation
 from core.data.simulator import SimulationConfig, SimulationLog, SimulationResult, SimulationStep
@@ -27,14 +37,20 @@ __all__ = [
     "ExperimentResult",
     "Observation",
     "Obstacle",
+    "ObstacleShape",
+    "ObstacleState",
+    "ObstacleTrajectory",
     "ObstacleType",
     "Scene",
     "SimulationConfig",
     "SimulationLog",
     "SimulationResult",
     "SimulationStep",
+    "SimulatorObstacle",
+    "StaticObstaclePosition",
     "Trajectory",
     "TrajectoryPoint",
+    "TrajectoryWaypoint",
     "VehicleParameters",
     "VehicleState",
 ]

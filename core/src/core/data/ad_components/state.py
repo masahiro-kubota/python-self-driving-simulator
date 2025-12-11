@@ -17,6 +17,7 @@ class VehicleState:
     steering: float | None = None  # ステアリング角 [rad]
     timestamp: float | None = None  # タイムスタンプ [s]
     off_track: bool = False  # コース外判定フラグ
+    collision: bool = False  # 障害物との衝突フラグ
 
     def to_array(self) -> np.ndarray:
         """numpy配列に変換."""

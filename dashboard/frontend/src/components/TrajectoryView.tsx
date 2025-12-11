@@ -164,6 +164,105 @@ export const TrajectoryView: React.FC<TrajectoryViewProps> = ({ width, height })
       });
     }
 
+    // Obstacles
+    if (data.obstacles && currentPoint) {
+      const currentTime = currentPoint.timestamp;
+
+      data.obstacles.forEach((obstacle, idx) => {
+        // Calculate obstacle position at current time
+        let position: { x: number; y: number; yaw: number } | null = null;
+
+        if (obstacle.type === 'static' && obstacle.position) {
+          position = obstacle.position;
+        } else if (obstacle.type === 'dynamic' && obstacle.trajectory) {
+          const waypoints = obstacle.trajectory.waypoints;
+
+          if (waypoints.length === 0) return;
+
+          // Handle looping
+          let time = currentTime;
+          if (obstacle.trajectory.loop && waypoints.length > 1) {
+            const duration = waypoints[waypoints.length - 1].time - waypoints[0].time;
+            if (duration > 0) {
+              time = ((currentTime - waypoints[0].time) % duration) + waypoints[0].time;
+            }
+          }
+
+          // Find surrounding waypoints
+          if (time <= waypoints[0].time) {
+            position = waypoints[0];
+          } else if (time >= waypoints[waypoints.length - 1].time) {
+            position = waypoints[waypoints.length - 1];
+          } else {
+            for (let i = 0; i < waypoints.length - 1; i++) {
+              if (time >= waypoints[i].time && time <= waypoints[i + 1].time) {
+                const t = (time - waypoints[i].time) / (waypoints[i + 1].time - waypoints[i].time);
+                position = {
+                  x: waypoints[i].x + t * (waypoints[i + 1].x - waypoints[i].x),
+                  y: waypoints[i].y + t * (waypoints[i + 1].y - waypoints[i].y),
+                  yaw: waypoints[i].yaw + t * (waypoints[i + 1].yaw - waypoints[i].yaw),
+                };
+                break;
+              }
+            }
+          }
+        }
+
+        if (!position) return;
+
+        // Create obstacle polygon
+        let points: { x: number; y: number }[] = [];
+
+        if (obstacle.shape.type === 'rectangle' && obstacle.shape.width && obstacle.shape.length) {
+          const halfWidth = obstacle.shape.width / 2;
+          const halfLength = obstacle.shape.length / 2;
+          const cos = Math.cos(position.yaw);
+          const sin = Math.sin(position.yaw);
+
+          const corners = [
+            { lx: halfLength, ly: halfWidth },
+            { lx: halfLength, ly: -halfWidth },
+            { lx: -halfLength, ly: -halfWidth },
+            { lx: -halfLength, ly: halfWidth },
+          ];
+
+          points = corners.map((c) => ({
+            x: position!.x + c.lx * cos - c.ly * sin,
+            y: position!.y + c.lx * sin + c.ly * cos,
+          }));
+        } else if (obstacle.shape.type === 'circle' && obstacle.shape.radius) {
+          // Create circle as polygon with 16 points
+          for (let i = 0; i <= 16; i++) {
+            const angle = (i / 16) * 2 * Math.PI;
+            points.push({
+              x: position.x + obstacle.shape.radius * Math.cos(angle),
+              y: position.y + obstacle.shape.radius * Math.sin(angle),
+            });
+          }
+        }
+
+        if (points.length === 0) return;
+
+        // Add obstacle trace
+        traces.push({
+          x: [...points.map((p) => p.x), points[0].x], // Close polygon
+          y: [...points.map((p) => p.y), points[0].y],
+          mode: 'lines',
+          fill: 'toself',
+          type: 'scatter',
+          name: `Obstacle ${idx + 1}`,
+          fillcolor: theme.palette.error.main, // MUI red color
+          opacity: 0.5,
+          line: {
+            color: theme.palette.error.dark,
+            width: 2,
+          },
+          showlegend: false,
+          hovertemplate: `Obstacle ${idx + 1}<br>Type: ${obstacle.type}<br>Shape: ${obstacle.shape.type}<extra></extra>`,
+        });
+      });
+    }
+
     return traces;
   }, [data, currentPoint, theme]);
 

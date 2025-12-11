@@ -4,7 +4,7 @@ from core.utils import get_project_root
 def test_metadata_injection() -> None:
     """Test that vehicle parameters are injected into log metadata."""
     workspace_root = get_project_root()
-    config_path = workspace_root / "experiment/configs/experiments/pure_pursuit.yaml"
+    config_path = workspace_root / "experiment/configs/experiments/default_experiment.yaml"
 
     # Load config and override duration to be short
     # We can't easily override config file without writing a new one,

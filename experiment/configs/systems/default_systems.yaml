@@ -1,0 +1,79 @@
+system:
+  name: "kart_default_track"
+
+  # どの module を使うか
+  module: "experiment/configs/modules/default_module.yaml"
+
+  # 車両 / シーン / ユースケース固有の設定
+  vehicle:
+    config_path: "experiment/configs/vehicles/default_vehicle.yaml"
+
+  # マップ情報
+  map_path: "experiment/configs/systems/lanelet2_map.osm"
+
+  simulator:
+    type: "KinematicSimulator"
+    rate_hz: 100.0  # Physics update rate [Hz] - Should match execution.clock_rate_hz for efficiency
+    params:
+      initial_state:
+        x: 89630.067
+        y: 43130.695
+        yaw: 2.2
+        velocity: 0.0
+      vehicle_params:
+        wheelbase: 1.087
+        width: 1.30
+        max_steering_angle: 0.64
+        front_overhang: 0.467
+        rear_overhang: 0.510
+      # 障害物設定（例）
+      obstacles:
+        # 静的障害物の例
+        - type: "static"
+          shape:
+            type: "rectangle"
+            width: 2.0
+            length: 4.0
+          position:
+            x: 89645.0
+            y: 43132.0
+            yaw: 0.0
+        # 動的障害物の例（コメントアウト）
+        # - type: "dynamic"
+        #   shape:
+        #     type: "circle"
+        #     radius: 1.0
+        #   trajectory:
+        #     type: "waypoint"
+        #     interpolation: "linear"
+        #     waypoints:
+        #       - time: 0.0
+        #         x: 89640.0
+        #         y: 43130.0
+        #         yaw: 0.0
+        #       - time: 10.0
+        #         x: 89650.0
+        #         y: 43135.0
+        #         yaw: 0.5
+        #       - time: 20.0
+        #         x: 89640.0
+        #         y: 43130.0
+        #         yaw: 0.0
+        #     loop: true
+
+  supervisor:
+    # Goal-related termination condition
+    goal:
+      enabled: true             # Terminate simulation when goal is reached
+      x: 89630.067              # Goal position X coordinate
+      y: 43130.695              # Goal position Y coordinate
+      radius: "default"         # Goal radius threshold
+      min_elapsed_time: 20.0    # Minimum time before goal detection starts
+
+    # Off-track termination condition
+    off_track:
+      enabled: true              # Terminate simulation when vehicle goes off-track
+
+    # Collision termination condition
+    collision:
+      enabled: true              # Terminate simulation when vehicle collides with obstacles

@@ -3,7 +3,7 @@ experiment:
   type: "evaluation"
   description: "Pure Pursuit tracking evaluation"
 
-  system: "experiment/configs/systems/kart_default_track.yaml"
+  system: "experiment/configs/systems/default_systems.yaml"
 
   execution:
     num_episodes: 1
@@ -12,19 +12,6 @@ experiment:
     clock_rate_hz: 100.0  # Should match simulator.rate_hz (see system config)
     duration_sec: 600.0    # Total simulation time in seconds
     clock_type: "stepped"
-
-  supervisor:
-    # Goal-related termination condition
-    goal:
-      enabled: true             # Terminate simulation when goal is reached
-      x: 89630.067              # Goal position X coordinate
-      y: 43130.695              # Goal position Y coordinate
-      radius: "default"         # Goal radius threshold
-      min_elapsed_time: 20.0    # Minimum time before goal detection starts
-
-    # Off-track termination condition
-    off_track:
-      enabled: true              # Terminate simulation when vehicle goes off-track
 
   postprocess:
     inputs: []

@@ -15,7 +15,7 @@ def test_pure_pursuit_experiment_nodes() -> None:
     """Test Pure Pursuit experiment execution with Native Nodes."""
     # Load config
     workspace_root = Path(__file__).parent.parent.parent
-    config_path = workspace_root / "experiment/configs/experiments/pure_pursuit.yaml"
+    config_path = workspace_root / "experiment/configs/experiments/default_experiment.yaml"
     config = load_experiment_config(config_path)
 
     # Verify configuration structure

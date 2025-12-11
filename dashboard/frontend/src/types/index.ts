@@ -32,12 +32,47 @@ export interface VehicleParams {
   rear_overhang: number;
 }
 
+export interface ObstacleShape {
+  type: 'rectangle' | 'circle';
+  width?: number | null;
+  length?: number | null;
+  radius?: number | null;
+}
+
+export interface ObstaclePosition {
+  x: number;
+  y: number;
+  yaw: number;
+}
+
+export interface TrajectoryWaypoint {
+  time: number;
+  x: number;
+  y: number;
+  yaw: number;
+}
+
+export interface ObstacleTrajectory {
+  type: 'waypoint';
+  interpolation: 'linear' | 'cubic_spline';
+  waypoints: TrajectoryWaypoint[];
+  loop: boolean;
+}
+
+export interface Obstacle {
+  type: 'static' | 'dynamic';
+  shape: ObstacleShape;
+  position?: ObstaclePosition | null;
+  trajectory?: ObstacleTrajectory | null;
+}
+
 export interface SimulationData {
   metadata: SimulationMetadata;
   vehicle_params?: VehicleParams;
   steps: TrajectoryPoint[];
   map_lines?: MapLine[];
   map_polygons?: MapPolygon[];
+  obstacles?: Obstacle[];
 }
 
 declare global {

@@ -20,11 +20,18 @@ class OffTrackConfig(NodeConfig):
     enabled: bool = True
 
 
+class CollisionConfig(NodeConfig):
+    """Collision termination configuration."""
+
+    enabled: bool = True
+
+
 class SupervisorConfig(NodeConfig):
     """Configuration for SupervisorNode."""
 
     goal: GoalConfig
     off_track: OffTrackConfig = OffTrackConfig()
+    collision: CollisionConfig = CollisionConfig()
 
 
 class SupervisorNode(Node[SupervisorConfig]):
@@ -102,9 +109,21 @@ class SupervisorNode(Node[SupervisorConfig]):
             self.frame_data.termination_signal = True
             self.frame_data.termination_reason = "off_track"
             return NodeExecutionResult.SUCCESS
-        # Log warning or just count collisions? (Collision handling might be elsewhere)
 
-        # 2. Check goal reached
+        # 2. Check collision with obstacles
+        if (
+            hasattr(sim_state, "collision")
+            and sim_state.collision
+            and self.config.collision.enabled
+        ):
+            self.frame_data.done = True
+            self.frame_data.done_reason = "collision"
+            self.frame_data.success = False
+            self.frame_data.termination_signal = True
+            self.frame_data.termination_reason = "collision"
+            return NodeExecutionResult.SUCCESS
+
+        # 3. Check goal reached
         dist = (
             (sim_state.x - self.config.goal.x) ** 2 + (sim_state.y - self.config.goal.y) ** 2
         ) ** 0.5

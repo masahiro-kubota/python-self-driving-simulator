@@ -1,5 +1,6 @@
 """Configuration loader for module/system/experiment layers."""
 
+import logging
 from pathlib import Path
 from typing import Any, TypeVar
 
@@ -18,6 +19,8 @@ from experiment.preprocessing.schemas import (
 from experiment.structures import Experiment
 from logger import LoggerNode
 from supervisor import SupervisorNode
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 
@@ -85,129 +88,66 @@ def load_yaml(path: Path | str) -> dict[str, Any]:
     return core_load_yaml(full_path)
 
 
-def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
-    """Load and merge experiment configuration layers.
+def _load_layer_configs(
+    path: Path | str,
+) -> tuple[ExperimentLayerConfig, SystemConfig, ModuleConfig]:
+    """Load and validate all 3 configuration layers.
 
     Args:
-        path: Path to the experiment layer content file (ExperimentLayerConfig).
+        path: Path to the experiment layer configuration file.
 
     Returns:
-        Resolved experiment configuration (ResolvedExperimentConfig).
+        Tuple of (experiment_layer, system_layer, module_layer).
     """
-    # 1. Load Experiment Layer
+    # Load Experiment Layer
     exp_data = load_yaml(path)
+    if "experiment" not in exp_data:
+        raise ValueError(f"Missing 'experiment' key in {path}")
+    experiment_layer = ExperimentLayerConfig(**exp_data["experiment"])
 
-    # Normalize structure:
-    # Support both flat and nested structures
-    # Nested: experiment: {name, type, system, execution, postprocess}
-    # Flat: name, type, system, execution, postprocess (at root level)
-    config_data = exp_data.copy()
-
-    if "experiment" in config_data and isinstance(config_data["experiment"], dict):
-        # Nested structure: flatten it
-        exp_content = config_data.pop("experiment")
-
-        # Merge experiment content into root, but preserve root-level overrides
-        # Priority: root level > experiment nested level
-        for key in [
-            "name",
-            "type",
-            "description",
-            "system",
-            "execution",
-            "postprocess",
-            "supervisor",
-        ]:
-            if key not in config_data and key in exp_content:
-                config_data[key] = exp_content[key]
-
-    experiment_layer = ExperimentLayerConfig(**config_data)
-
-    # 2. Load System Layer
+    # Load System Layer
     system_data = load_yaml(experiment_layer.system)
-    # Similar normalization for system?
-    # User example 3-2:
-    # system:
-    #   name: ...
-    #   module: ...
-    if "system" in system_data and isinstance(system_data["system"], dict):
-        system_config_data = system_data["system"]
-    else:
-        system_config_data = system_data
+    if "system" not in system_data:
+        raise ValueError(f"Missing 'system' key in {experiment_layer.system}")
+    system_layer = SystemConfig(**system_data["system"])
 
-    system_layer = SystemConfig(**system_config_data)
-
-    # 3. Load Module Layer
+    # Load Module Layer
     module_data = load_yaml(system_layer.module)
-    if "module" in module_data and isinstance(module_data["module"], dict):
-        module_config_data = module_data["module"]
-    else:
-        module_config_data = module_data
+    if "module" not in module_data:
+        raise ValueError(f"Missing 'module' key in {system_layer.module}")
+    module_layer = ModuleConfig(**module_data["module"])
 
-    module_layer = ModuleConfig(**module_config_data)
+    return experiment_layer, system_layer, module_layer
 
-    # 4. Construct Base Configuration from Module
-    # The module defines 'components', which maps to ResolvedExperimentConfig.components (mostly)
-    # but structure needs alignment.
-    # Module: components -> { input:..., perception:..., planning:..., control:..., simulator:... }
-    # Resolved: components -> { ad_component: { type:..., params:... } }, simulator: { type:..., params:... }
 
-    # We need to transform the Module Components into the Resolved structure.
-    # This might require some mapping logic, as Module groups planning/control under "components"
-    # while Resolved separates simulator and wraps planning/control in ad_component?
-    #
-    # Wait, looking at Config.py:
-    # ComponentsConfig has `ad_component`.
-    # SimulatorConfig is separate.
-    #
-    # User example 3-1:
-    # module:
-    #   components:
-    #     perception: ...
-    #     planning: ...
-    #     control: ...
-    #     simulator: ...
-    #
-    # We need to map `planning` and `control` (and `perception`) into `ad_component`.
-    # And `simulator` to `simulator`.
+def _resolve_simulator_config(
+    system_layer: SystemConfig, module_layer: ModuleConfig
+) -> dict[str, Any]:
+    """Resolve simulator configuration from system/module layers.
 
-    # Let's start with an empty dict for the resolved config and build it up.
+    Args:
+        system_layer: System configuration.
+        module_layer: Module configuration.
 
-    # --- Components (AD Component) ---
-    # If module defines ad_component directly, use it
-    # Otherwise fail (no legacy support)
-
+    Returns:
+        Resolved simulator configuration dict.
+    """
     from importlib import metadata
 
     from core.utils.param_loader import load_component_defaults
 
-    if "ad_component" in module_layer.components:
-        # Direct ad_component definition
-        resolved_components = {"ad_component": module_layer.components["ad_component"]}
-
-        # No type field needed anymore - FlexibleADComponent has been removed
-        # Nodes are instantiated directly from params
-        # No default resolution needed at this level - handled by individual nodes
-
-    else:
-        raise ValueError("Module must define 'ad_component' in components")
-
-    # --- Simulator ---
+    # Check System Layer first, then Module Layer
     resolved_simulator = None
-
-    # 1. Check System Layer for Simulator definition
     if system_layer.simulator:
         resolved_simulator = system_layer.simulator
-    # 2. Check Module Layer (legacy support or default)
     elif "simulator" in module_layer.components:
         resolved_simulator = module_layer.components["simulator"]
 
     if resolved_simulator is None:
         raise ValueError("Simulator configuration missing (must be in System or Module)")
 
+    # Load defaults for simulator
     sim_user_params = resolved_simulator.get("params", {}) or {}
-
-    # Load Defaults for Simulator
     sim_type = resolved_simulator["type"]
     sim_package = None
 
@@ -228,31 +168,100 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
 
     resolved_simulator["params"] = _resolve_defaults(sim_user_params, sim_defaults)
 
-    # 5. Apply System Layer Overrides
+    return resolved_simulator
 
-    # Simulator params injection
+
+def _inject_system_overrides(
+    resolved_simulator: dict[str, Any],
+    resolved_components: dict[str, Any],
+    system_layer: SystemConfig,
+) -> None:
+    """Inject system-level overrides into simulator and components.
+
+    Args:
+        resolved_simulator: Resolved simulator configuration (modified in-place).
+        resolved_components: Resolved components configuration (modified in-place).
+        system_layer: System configuration.
+    """
     sim_params = resolved_simulator.get("params", {})
 
-    # Inject Map Path
+    # Inject map path
     if system_layer.map_path:
-        # Resolve map path relative to project root
         full_map_path = str(get_project_root() / system_layer.map_path)
 
-        # 1. Inject into Simulator
+        # Inject into Simulator
         sim_params["map_path"] = full_map_path
 
-        # 2. Inject into AD Component (for planning/generic usage)
+        # Inject into AD Component
         if "params" not in resolved_components["ad_component"]:
             resolved_components["ad_component"]["params"] = {}
         resolved_components["ad_component"]["params"]["map_path"] = full_map_path
 
-    # Apply `simulator_overrides` from System
+    # Apply simulator_overrides from System
     if system_layer.simulator_overrides and "params" in system_layer.simulator_overrides:
         sim_params = _recursive_merge(sim_params, system_layer.simulator_overrides["params"])
+        resolved_simulator["params"] = sim_params
 
-    # 6. Apply Experiment Layer Overrides
 
-    base_config = {
+def _resolve_vehicle_config(system_layer: SystemConfig, sim_params: dict[str, Any]) -> None:
+    """Load vehicle configuration and inject into simulator params.
+
+    Args:
+        system_layer: System configuration.
+        sim_params: Simulator parameters (modified in-place).
+    """
+    if system_layer.vehicle and "config_path" in system_layer.vehicle:
+        v_path = get_project_root() / system_layer.vehicle["config_path"]
+        v_params = VehicleParameters(**load_yaml(v_path))
+        sim_params["vehicle_params"] = v_params
+
+
+def _resolve_supervisor_config(experiment_layer: ExperimentLayerConfig) -> dict[str, Any]:
+    """Resolve supervisor configuration from system and experiment layers.
+
+    Args:
+        experiment_layer: Experiment configuration.
+
+    Returns:
+        Resolved supervisor configuration dict.
+    """
+    from core.utils.param_loader import load_component_defaults
+
+    # Start with system layer supervisor config
+    # Note: We need to access the raw dict to get supervisor config
+    system_data = load_yaml(experiment_layer.system)
+    supervisor_user_params = system_data.get("system", {}).get("supervisor", {})
+
+    # Apply experiment layer supervisor overrides
+    if experiment_layer.supervisor:
+        supervisor_user_params = _recursive_merge(
+            supervisor_user_params, experiment_layer.supervisor
+        )
+
+    supervisor_defaults = load_component_defaults("supervisor")
+    supervisor_params = _resolve_defaults(supervisor_user_params, supervisor_defaults)
+
+    return {"params": supervisor_params}
+
+
+def _build_final_config(
+    experiment_layer: ExperimentLayerConfig,
+    resolved_components: dict[str, Any],
+    resolved_simulator: dict[str, Any],
+    supervisor_config: dict[str, Any],
+) -> ResolvedExperimentConfig:
+    """Build final resolved experiment configuration.
+
+    Args:
+        experiment_layer: Experiment configuration.
+        resolved_components: Resolved components configuration.
+        resolved_simulator: Resolved simulator configuration.
+        supervisor_config: Resolved supervisor configuration.
+
+    Returns:
+        Complete resolved experiment configuration.
+    """
+    final_dict = {
         "experiment": {
             "name": experiment_layer.name,
             "type": experiment_layer.type,
@@ -260,59 +269,55 @@ def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
         },
         "components": resolved_components,
         "simulator": resolved_simulator,
-        "postprocess": {},  # Defaults (will be overridden if experiment_layer.postprocess exists)
+        "supervisor": supervisor_config,
+        "postprocess": {},
     }
 
-    # Apply System Runtime
-    if system_layer.runtime:
-        base_config["runtime"] = system_layer.runtime
-
-    # --- APPLYING EXPERIMENT LAYER CONFIG ---
-
-    # Start with base config
-    final_dict = base_config
-
-    # Apply postprocess config if specified
+    # Apply postprocess config
     if experiment_layer.postprocess:
         final_dict["postprocess"] = experiment_layer.postprocess.model_dump()
 
-    # Apply execution config if specified
+    # Apply execution config
     if experiment_layer.execution:
         final_dict["execution"] = experiment_layer.execution.model_dump()
 
-    # --- RESOLVE PATHS (Vehicle) ---
-
-    # Resolve vehicle
-    if system_layer.vehicle and "config_path" in system_layer.vehicle:
-        # Load from file
-        v_path = get_project_root() / system_layer.vehicle["config_path"]
-        v_params = VehicleParameters(**load_yaml(v_path))
-
-        # Inject into simulator params
-        sim_params["vehicle_params"] = v_params
-
-    # Update simulator params in final dict
-    if final_dict["simulator"] is None:
-        raise ValueError("Simulator configuration missing")
-
-    final_dict["simulator"]["params"] = sim_params
-
-    # --- Supervisor ---
-
-    # Apply user-provided supervisor overrides if any
-    if experiment_layer.supervisor:
-        supervisor_user_params = experiment_layer.supervisor
-    else:
-        supervisor_user_params = {}
-
-    supervisor_defaults = load_component_defaults("supervisor")
-    supervisor_params = _resolve_defaults(supervisor_user_params, supervisor_defaults)
-
-    final_dict["supervisor"] = {"params": supervisor_params}
-
-    # 7. Build Object
-
     return ResolvedExperimentConfig(**final_dict)
+
+
+def load_experiment_config(path: Path | str) -> ResolvedExperimentConfig:
+    """Load and merge experiment configuration layers.
+
+    Args:
+        path: Path to the experiment layer content file (ExperimentLayerConfig).
+
+    Returns:
+        Resolved experiment configuration (ResolvedExperimentConfig).
+    """
+    # 1. Load all layers
+    experiment_layer, system_layer, module_layer = _load_layer_configs(path)
+
+    # 2. Resolve components
+    if "ad_component" not in module_layer.components:
+        raise ValueError("Module must define 'ad_component' in components")
+    resolved_components = {"ad_component": module_layer.components["ad_component"]}
+
+    # 3. Resolve simulator
+    resolved_simulator = _resolve_simulator_config(system_layer, module_layer)
+
+    # 4. Apply system overrides
+    _inject_system_overrides(resolved_simulator, resolved_components, system_layer)
+
+    # 5. Resolve vehicle
+    sim_params = resolved_simulator["params"]
+    _resolve_vehicle_config(system_layer, sim_params)
+
+    # 6. Resolve supervisor
+    supervisor_config = _resolve_supervisor_config(experiment_layer)
+
+    # 7. Build final config
+    return _build_final_config(
+        experiment_layer, resolved_components, resolved_simulator, supervisor_config
+    )
 
 
 class DefaultPreprocessor:
@@ -447,9 +452,18 @@ class DefaultPreprocessor:
                 map_path_str = str(workspace_root / map_path_str)
             simulator_config["map_path"] = map_path_str
 
+        # Add obstacles if available
+        if "obstacles" in sim_params:
+            simulator_config["obstacles"] = sim_params["obstacles"]
+            logger.info("Adding %d obstacles to SimulatorConfig", len(sim_params["obstacles"]))
+
         from simulator.simulator import SimulatorConfig
 
+        logger.info("Creating SimulatorConfig with obstacles: %s", "obstacles" in simulator_config)
         simulator_config_model = SimulatorConfig(**simulator_config)
+        logger.info(
+            "SimulatorConfig created with %d obstacles", len(simulator_config_model.obstacles)
+        )
         simulator = Simulator(config=simulator_config_model, rate_hz=sim_rate)
 
         nodes = []

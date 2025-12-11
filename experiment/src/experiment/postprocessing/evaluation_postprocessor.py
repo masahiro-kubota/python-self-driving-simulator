@@ -73,8 +73,15 @@ class EvaluationPostprocessor(
             if config.postprocess.mcap.enabled and mcap_path.exists():
                 result_artifacts.append(Artifact(local_path=mcap_path))
 
-            # 2. Add metadata to log
-            sim_result.log.metadata = result_params
+            # 2. Add metadata to log (merge with existing metadata to preserve obstacles etc.)
+            # Preserve existing metadata (e.g., obstacles from Simulator.on_init)
+            existing_metadata = sim_result.log.metadata.copy() if sim_result.log.metadata else {}
+            print(f"DEBUG: existing_metadata has obstacles: {'obstacles' in existing_metadata}")
+            print(f"DEBUG: existing_metadata keys: {list(existing_metadata.keys())}")
+            print(f"DEBUG: result_params keys: {list(result_params.keys())}")
+            # Merge with new params (new params take precedence)
+            sim_result.log.metadata = {**existing_metadata, **result_params}
+            print(f"DEBUG: merged metadata has obstacles: {'obstacles' in sim_result.log.metadata}")
 
             # 3. Calculate metrics
             reason = getattr(sim_result, "reason", "unknown")

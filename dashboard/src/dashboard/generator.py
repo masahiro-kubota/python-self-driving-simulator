@@ -49,6 +49,8 @@ class HTMLDashboardGenerator(DashboardGenerator):
             raise ValueError("ExperimentResult contains no simulation results")
 
         log = result.simulation_results[0].log
+        print(f"DEBUG generator.py: log.metadata has obstacles: {'obstacles' in log.metadata}")
+        print(f"DEBUG generator.py: log.metadata keys: {list(log.metadata.keys())}")
 
         # Prepare data in the format expected by the dashboard
         # Sanitize metadata to avoid React rendering errors with nested objects
@@ -63,9 +65,13 @@ class HTMLDashboardGenerator(DashboardGenerator):
             metadata["controller"] = metadata["controller"]["type"]
 
         # Generic sanitization: convert dicts/lists to strings
+        # Exclude obstacles from sanitized_metadata (will be added separately to data)
         sanitized_metadata = {}
         for k, v in metadata.items():
-            if isinstance(v, dict | list):
+            if k == "obstacles":
+                # Skip obstacles - will be added directly to data["obstacles"]
+                continue
+            elif isinstance(v, dict | list):
                 sanitized_metadata[k] = str(v)
             else:
                 sanitized_metadata[k] = v
@@ -122,6 +128,13 @@ class HTMLDashboardGenerator(DashboardGenerator):
                     "steering": step.action.steering,
                 }
             )
+
+        # Extract obstacles from metadata if available
+        if "obstacles" in metadata and isinstance(metadata["obstacles"], list):
+            data["obstacles"] = metadata["obstacles"]
+            logger.info("Added %d obstacles to dashboard data", len(metadata["obstacles"]))
+        else:
+            logger.warning("No obstacles found in metadata")
 
         # Find template path
         # __file__ is dashboard/src/dashboard/generator.py

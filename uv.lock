@@ -2435,6 +2435,7 @@ dependencies = [
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
+    { name = "scipy" },
     { name = "shapely" },
 ]
 
@@ -2445,6 +2446,7 @@ requires-dist = [
     { name = "pyright", specifier = ">=1.1.0" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "ruff", specifier = ">=0.8.0" },
+    { name = "scipy", specifier = ">=1.10.0" },
     { name = "shapely", specifier = ">=2.1.2" },
 ]
 
