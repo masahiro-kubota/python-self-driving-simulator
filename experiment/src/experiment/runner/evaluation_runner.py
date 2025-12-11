@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING
 
 from core.clock import create_clock
-from core.data import SimulationResult
+from core.data import SimulationLog, SimulationResult
 from core.data.experiment.config import ResolvedExperimentConfig
 from core.data.frame_data import collect_node_output_fields, create_frame_data_type
 from core.executor import SingleProcessExecutor
@@ -79,15 +79,8 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
                 break
 
         # Inject metadata into log
-        if log is not None:
-            # Inject vehicle parameters from Simulator node
-            simulator_node_config = next((n for n in config.nodes if n.name == "Simulator"), None)
-            if simulator_node_config and "vehicle_params" in simulator_node_config.params:
-                v_params = simulator_node_config.params["vehicle_params"]
-                if hasattr(v_params, "to_dict"):
-                    log.metadata.update(v_params.to_dict())
-                elif isinstance(v_params, dict):
-                    log.metadata.update(v_params)
+        if log is not None and config.nodes:
+            self._inject_simulator_metadata(log, config)
 
         return SimulationResult(
             success=getattr(frame_data, "success", False),
@@ -95,6 +88,39 @@ class EvaluationRunner(ExperimentRunner[ResolvedExperimentConfig, SimulationResu
             final_state=getattr(frame_data, "sim_state", None),
             log=log,
         )
+
+    def _inject_simulator_metadata(
+        self, log: "SimulationLog", config: ResolvedExperimentConfig
+    ) -> None:
+        """Inject vehicle parameters and obstacles from Simulator config into log metadata.
+
+        Args:
+            log: Simulation log to inject metadata into
+            config: Resolved experiment configuration
+        """
+        simulator_node_config = next((n for n in config.nodes if n.name == "Simulator"), None)
+        if not simulator_node_config:
+            return
+
+        # Inject vehicle parameters
+        v_params = simulator_node_config.params["vehicle_params"]
+        if hasattr(v_params, "to_dict"):
+            log.metadata.update(v_params.to_dict())
+        elif isinstance(v_params, dict):
+            log.metadata.update(v_params)
+
+        # Inject obstacles
+        obstacles = simulator_node_config.params["obstacles"]
+        if obstacles:
+            obstacles_data = [
+                obs.model_dump()
+                if hasattr(obs, "model_dump")
+                else obs
+                if isinstance(obs, dict)
+                else vars(obs)
+                for obs in obstacles
+            ]
+            log.metadata["obstacles"] = obstacles_data
 
     def get_type(self) -> str:
         return "evaluation"
