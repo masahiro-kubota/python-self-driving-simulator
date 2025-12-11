@@ -4,29 +4,21 @@
 
 ## Usage
 
-### 1. データ収集 (Data Collection)
+### 1. 評価/実験 (Evaluation/Experiment)
 
-シミュレーションを実行し、ログデータをMinIOに保存します。
-
-```bash
-uv run experiment-runner --config experiment/configs/experiments/data_collection_pure_pursuit.yaml
-```
-
-### 2. 学習 (Training)
-
-MinIOからデータをダウンロードし、モデルを学習します。
-
-```bash
-uv run experiment-runner --config experiment/configs/experiments/imitation_learning_s3.yaml
-```
-
-### 3. 評価 (Evaluation)
-
-学習済みモデル（またはルールベースコントローラー）を評価します。
+デフォルトの実験設定（Pure Pursuit制御 + 障害物回避監視）を実行します。
 
 ```bash
 uv run experiment-runner --config experiment/configs/experiments/default_experiment.yaml
 ```
+
+### 2. データ収集 (Data Collection)
+
+(設定ファイルを作成し、`experiment`セクションの `type` を `data_collection` に設定することで実行可能です)
+
+### 3. 学習 (Training)
+
+(学習用スクリプトまたは設定ファイルを用意して実行します)
 
 ## Configuration
 
@@ -54,31 +46,17 @@ data_collection:
 
 ### Simulator Configuration
 
-シミュレータの設定は `simulator` セクションで行います。
+シミュレータ等のシステム設定は `systems/*.yaml` で、ADコンポーネント構成は `modules/*.yaml` で管理されます。メインの実験設定ファイル（`experiments/*.yaml`）からこれらを参照します。
 
 ```yaml
-simulator:
-  type: "simulator.Simulator"
-  params:
-    dt: 0.1
-    initial_state:
-      from_track: true
-    # 車両・シーン設定ファイルのパス（オプション）
-    # 指定しない場合はデフォルト値または後方互換パラメータが使用されます
-    vehicle_config: "experiment/configs/vehicles/default_vehicle.yaml"
-    scene_config: "experiment/configs/scenes/default_scene.yaml"
-```
-
-### Training
-
-```yaml
-training:
-  dataset_project: "e2e_aichallenge"
-  dataset_scenario: "pure_pursuit"
-  dataset_version: "v1.0"
-  dataset_stage: "raw"
-  epochs: 100
+experiment:
   # ...
+
+system:
+  config_path: "experiment/configs/systems/default_systems.yaml"
+
+module:
+  config_path: "experiment/configs/modules/default_module.yaml"
 ```
 
 ## Testing

@@ -150,6 +150,7 @@ graph TD
     ad_component_core --> core
     pure_pursuit --> core
     pure_pursuit --> planning_utils
+    pure_pursuit --> simulator
     planning_utils --> core
     pid_controller --> core
 ```
@@ -226,6 +227,7 @@ my_algorithm = "my_package.my_module:MyAlgorithmNode"
         param_a: 1.0
         file_path: "models/model.pt"
       rate_hz: 20.0
+
 ```
 
 ---
@@ -235,11 +237,7 @@ my_algorithm = "my_package.my_module:MyAlgorithmNode"
 ### 基本的な実験実行
 
 ```bash
-# Pure Pursuit コントローラーでシミュレーション
-uv run experiment-runner --config experiment/configs/experiments/pure_pursuit.yaml
-
-# Imitation Learning（ニューラルコントローラー）でシミュレーション
-uv run experiment-runner --config experiment/configs/experiments/imitation_learning.yaml
+uv run experiment-runner --config experiment/configs/experiments/default_experiment.yaml
 ```
 
 ### テストの実行
