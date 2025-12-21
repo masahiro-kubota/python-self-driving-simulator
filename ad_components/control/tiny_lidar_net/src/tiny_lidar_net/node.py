@@ -27,6 +27,8 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
         """
         super().__init__("TinyLidarNet", rate_hz, config)
 
+        self.logger = logging.getLogger(__name__)
+
         # Initialize core inference engine
         try:
             self.core = TinyLidarNetCore(
@@ -38,7 +40,6 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
                 control_mode=config.control_mode,
                 max_range=config.max_range,
             )
-            self.logger = logging.getLogger(__name__)
             self.logger.info(
                 f"TinyLidarNetCore initialized. Architecture: {config.architecture}, "
                 f"MaxRange: {config.max_range}"

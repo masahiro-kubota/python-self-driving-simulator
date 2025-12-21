@@ -1,0 +1,92 @@
+# Data Collection Experiment Configuration
+
+
+defaults:
+  - /env: default
+  - /vehicle: default
+  - /agent: pure_pursuit
+  - _self_
+
+experiment:
+  name: "data_collection"
+  type: "collection"
+  description: "Data collection with randomized episodes"
+
+execution:
+  num_episodes: 1
+  parallel: false
+  num_workers: 1
+  clock_rate_hz: 100.0
+  duration_sec: 200.0
+  clock_type: "stepped"
+  headless: true  # Prefer headless for data collection
+
+# Simulation nodes configuration
+system:
+  simulation_rate_hz: 100.0
+
+  nodes:
+    # Simulator
+    - name: "Simulator"
+      type: "KinematicSimulator"
+      rate_hz: ${execution.clock_rate_hz}
+      params:
+        map_path: ${env.map_path}
+        vehicle_params: ${vehicle}
+        initial_state: ${env.initial_state}
+        obstacles: ${env.obstacles}
+
+    # Sensor
+    - name: "Sensor"
+      type: "experiment.processors.sensor.IdealSensorNode"
+      rate_hz: 50.0
+      params: {}
+
+    # Agent nodes are injected here from 'agent' config
+    # We will handle list merging in the python script or manually list them if needed.
+    # For now, let's explicitly reference them or assume the script handles it.
+    # Hydra list merging is tricky, so simpler to put them here or structure differently.
+    # Let's put a placeholder referencing agent nodes if possible, or just append in python.
+    # But for simplicity, let's define 'agent_nodes' in agent config and merge them here?
+    # Hydra doesn't support list merging easily across files without special syntax.
+    # A common pattern is to have a 'nodes' list in top level and Append.
+    # But here we are composing.
+    # Valid approach: The python script constructs the full node list from:
+    # [Simulator, Sensor] + agent.nodes + [Supervisor, Logger]
+
+    # Supervisor
+    - name: "Supervisor"
+      type: "SupervisorNode"
+      rate_hz: ${execution.clock_rate_hz}
+      params:
+        goal:
+          enabled: true
+          x: 89630.067
+          y: 43130.695
+          radius: 5.0
+          min_elapsed_time: 20.0
+        off_track:
+          enabled: true
+        collision:
+          enabled: true
+
+    # Logger
+    - name: "Logger"
+      type: "LoggerNode"
+      rate_hz: ${execution.clock_rate_hz}
+      params:
+        map_path: ${env.map_path}
+        vehicle_params: ${vehicle}
+
+postprocess:
+  inputs: []
+  mlflow:
+    enabled: true
+    tracking_uri: "http://localhost:5000"
+  mcap:
+    enabled: true
+    output_dir: ${hydra:runtime.output_dir}/raw_data
+  dashboard:
+    enabled: true
+    map_path: ${env.map_path}
+    vehicle_config_path: "experiment/conf/vehicle/default.yaml"  # Placeholder

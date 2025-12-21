@@ -11,11 +11,11 @@ from core.interfaces.node import Node, NodeExecutionResult
 class GoalConfig(ComponentConfig):
     """Goal-related termination configuration."""
 
-    enabled: bool = True
+    enabled: bool
     x: float
     y: float
     radius: float
-    min_elapsed_time: float = 0.0
+    min_elapsed_time: float
 
 
 class OffTrackConfig(ComponentConfig):

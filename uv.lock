@@ -399,6 +399,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "ruff" },
     { name = "shapely" },
+    { name = "tqdm" },
 ]
 
 [package.metadata]
@@ -413,6 +414,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.8.0" },
     { name = "shapely", specifier = ">=2.0.0" },
+    { name = "tqdm", specifier = ">=4.66.0" },
 ]
 
 [[package]]

@@ -27,8 +27,14 @@ docker compose up -d
 cd ..
 
 # 4. 実験を実行
-# 評価（Pure Pursuit）
-uv run experiment-runner --config experiment/configs/experiments/default_experiment.yaml
+# デフォルト実行 (Pure Pursuit, 60秒)
+uv run experiment-runner
+
+# パラメータを上書き
+uv run experiment-runner execution.duration_sec=10.0
+
+# エージェントを切り替え (Tiny LiDAR Net)
+uv run experiment-runner agent=tiny_lidar agent.model_path=models/tinylidarnet_v2.npy
 
 # 5. 結果を確認
 # MLflow UI: http://localhost:5000
@@ -342,6 +348,6 @@ uv run python scripts/convert_model.py \
 uv run python scripts/collect_data.py \
     execution.num_episodes=5 \
     agent=tiny_lidar \
-    agent.params.model_path=models/tinylidarnet_v1.npy \
+    agent.model_path=models/tinylidarnet_v1.npy \
     +split=eval
 ```

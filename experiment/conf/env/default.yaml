@@ -1,6 +1,6 @@
 # Default Environment Configuration
 
-map_path: "experiment/configs/systems/lanelet2_map.osm"
+map_path: "simulator/tests/assets/lanelet2_map.osm"
 
 # Initial State
 initial_state:
@@ -8,6 +8,12 @@ initial_state:
   y: 43130.695
   yaw: 2.2
   velocity: 0.0
+
+# Goal Configuration
+goal_position:
+  x: 89630.067
+  y: 43130.695
+goal_tolerance: 5.0
 
 # Obstacles
 obstacles:

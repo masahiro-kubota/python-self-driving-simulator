@@ -7,6 +7,7 @@ nodes:
     rate_hz: 10.0
     params:
       # vehicle_params will be injected by main config
+      vehicle_params: ${vehicle}
       min_lookahead_distance: 2.0
       max_lookahead_distance: 15.0
       lookahead_speed_ratio: 1.5
@@ -16,6 +17,7 @@ nodes:
     type: "pid_controller.PIDControllerNode"
     rate_hz: 30.0
     params:
+      vehicle_params: ${vehicle}
       kp: 1.0
       ki: 0.1
       kd: 0.05

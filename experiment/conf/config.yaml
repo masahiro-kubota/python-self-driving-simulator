@@ -1,5 +1,10 @@
+# Root Hydra Configuration
+
 defaults:
-  - experiment: collect_data
+  - experiment: run  # Default to single-run mode (use collect_data for data collection)
+  - env: default
+  - vehicle: default
+  - agent: pure_pursuit
   - _self_
 
 hydra:

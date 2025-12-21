@@ -6,61 +6,54 @@ from pure_pursuit.pure_pursuit_node import PurePursuitConfig, PurePursuitNode
 
 from core.data import VehicleParameters
 from experiment.orchestrator import ExperimentOrchestrator
-from experiment.preprocessing.loader import load_experiment_config
 from experiment.processors.sensor import IdealSensorNode
 
 
 @pytest.mark.integration
 def test_pure_pursuit_experiment_nodes() -> None:
-    """Test Pure Pursuit experiment execution with Native Nodes."""
-    # Load config
+    """Test Pure Pursuit experiment execution with Hydra configuration."""
+    from omegaconf import OmegaConf
+
+    # Load Hydra config files manually
     workspace_root = Path(__file__).parent.parent.parent
-    config_path = workspace_root / "experiment/configs/experiments/default_experiment.yaml"
-    config = load_experiment_config(config_path)
-
-    # Verify configuration structure - new unified nodes array
-    assert config.nodes is not None
-    assert len(config.nodes) > 0
-
-    # Check that we have the expected nodes
-    node_names = [n.name for n in config.nodes]
-    assert "Simulator" in node_names
-    assert "Planning" in node_names
-    assert "Control" in node_names
-    assert "Supervisor" in node_names
-
-    # Check Planning node configuration
-    planning_node = next(n for n in config.nodes if n.name == "Planning")
-    assert planning_node.type == "pure_pursuit.PurePursuitNode"
-    assert planning_node.params["min_lookahead_distance"] == 2.0
+    config_dir = workspace_root / "experiment/conf"
 
     # Create tmp directory for MCAP output
     tmp_path = workspace_root / "tmp"
     tmp_path.mkdir(exist_ok=True)
 
-    # Create tmp directory for MCAP output
-    tmp_path = workspace_root / "tmp"
-    tmp_path.mkdir(exist_ok=True)
+    # Manually compose config by loading each component
+    env_cfg = OmegaConf.load(config_dir / "env/default.yaml")
+    vehicle_cfg = OmegaConf.load(config_dir / "vehicle/default.yaml")
+    agent_cfg = OmegaConf.load(config_dir / "agent/pure_pursuit.yaml")
+    experiment_cfg = OmegaConf.load(config_dir / "experiment/run.yaml")
 
-    # Create temporary experiment config to override output dir
-    import yaml
+    # Merge configs
+    cfg = OmegaConf.merge(
+        experiment_cfg, {"env": env_cfg, "vehicle": vehicle_cfg, "agent": agent_cfg}
+    )
 
-    with open(config_path) as f:
-        exp_data = yaml.safe_load(f)
+    # Override for testing
+    cfg.execution.duration_sec = 200.0
+    cfg.execution.num_episodes = 1
+    cfg.postprocess.mcap.output_dir = str(tmp_path)
 
-    # Update output directory to tmp_path
-    exp_data["experiment"]["postprocess"]["mcap"]["output_dir"] = str(tmp_path)
+    # Manually replace Hydra interpolations before resolution
+    OmegaConf.set_struct(cfg, False)
+    cfg.hydra = {"runtime": {"output_dir": str(tmp_path)}}
+    # Replace ${hydra:runtime.output_dir} in Logger params
+    for node in cfg.system.nodes:
+        if node.name == "Logger" and "output_mcap_path" in node.params:
+            node.params.output_mcap_path = str(tmp_path)
+    OmegaConf.set_struct(cfg, True)
 
-    # Disable parallel execution to avoid cluttering or race conditions?
-    # (Parallel=false is default in verification, but good to ensure)
+    # Resolve all interpolations
+    cfg = OmegaConf.to_container(cfg, resolve=True)
+    cfg = OmegaConf.create(cfg)
 
-    temp_config_path = tmp_path / "temp_experiment.yaml"
-    with open(temp_config_path, "w") as f:
-        yaml.dump(exp_data, f)
-
-    # Run experiment with temp config
+    # Run experiment with Hydra config
     orchestrator = ExperimentOrchestrator()
-    result = orchestrator.run(temp_config_path)
+    result = orchestrator.run_from_hydra(cfg)
 
     assert result is not None
     assert len(result.simulation_results) > 0

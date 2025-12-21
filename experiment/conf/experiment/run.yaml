@@ -1,0 +1,79 @@
+# @package _global_
+# Standard Experiment Configuration (Single Run)
+
+# Experiment metadata
+experiment:
+  name: "standard_run"
+  type: "evaluation"
+  description: "Standard single-run experiment"
+
+# Execution settings
+execution:
+  clock_rate_hz: 100.0
+  duration_sec: 200.0
+  clock_type: "stepped"
+  num_episodes: 1  # Single run by default
+  parallel: false
+  num_workers: 1
+
+# Postprocessing configuration
+postprocess:
+  inputs: []
+  mlflow:
+    enabled: false
+    tracking_uri: "http://localhost:5000"
+  mcap:
+    enabled: true
+    output_dir: "${hydra:runtime.output_dir}"
+  dashboard:
+    enabled: true
+    map_path: ${env.map_path}
+    vehicle_config_path: "experiment/conf/vehicle/default.yaml"
+
+# System configuration
+system:
+  simulation_rate_hz: 100.0
+
+  nodes:
+    # Simulator
+    - name: "Simulator"
+      type: "simulator.Simulator"
+      rate_hz: ${execution.clock_rate_hz}
+      params:
+        vehicle_params: ${vehicle}
+        initial_state: ${env.initial_state}
+        map_path: ${env.map_path}
+        obstacles: ${env.obstacles}
+
+    # Sensor (if needed, can be removed if not used)
+    - name: "Sensor"
+      type: "experiment.processors.sensor.IdealSensorNode"
+      rate_hz: 50.0
+      params: {}
+
+    # Agent nodes will be inserted here from agent config
+
+    # Supervisor
+    - name: "Supervisor"
+      type: "supervisor.SupervisorNode"
+      rate_hz: 10.0
+      params:
+        goal:
+          enabled: true
+          x: ${env.goal_position.x}
+          y: ${env.goal_position.y}
+          radius: ${env.goal_tolerance}
+          min_elapsed_time: 20.0
+        off_track:
+          enabled: true
+        collision:
+          enabled: true
+
+    # Logger
+    - name: "Logger"
+      type: "logger.LoggerNode"
+      rate_hz: ${execution.clock_rate_hz}
+      params:
+        vehicle_params: ${vehicle}
+        map_path: ${env.map_path}
+        output_mcap_path: "${hydra:runtime.output_dir}"
