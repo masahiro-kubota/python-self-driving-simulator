@@ -1,0 +1,2303 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profiling Dashboard - E2E AI Challenge Playground</title>
+    <style>
+        /* Material Design 3 Theme */
+        :root {
+            --md-sys-color-primary: #1976d2;
+            --md-sys-color-on-primary: #ffffff;
+            --md-sys-color-primary-container: #d3e4fd;
+            --md-sys-color-on-primary-container: #001c38;
+            --md-sys-color-secondary: #535e70;
+            --md-sys-color-on-secondary: #ffffff;
+            --md-sys-color-surface: #fdfbff;
+            --md-sys-color-on-surface: #1a1c1e;
+            --md-sys-color-surface-variant: #e0e2ec;
+            --md-sys-color-on-surface-variant: #43474e;
+            --md-sys-color-outline: #74777f;
+            --md-sys-color-error: #ba1a1a;
+            --md-sys-color-shadow: #000000;
+            --md-elevation-1: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+            --md-elevation-2: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+            --md-elevation-3: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            background-color: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            line-height: 1.6;
+        }
+
+        .app-bar {
+            background-color: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            padding: 16px 24px;
+            box-shadow: var(--md-elevation-2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .app-bar h1 {
+            font-size: 20px;
+            font-weight: 500;
+            letter-spacing: 0.15px;
+        }
+
+        .app-bar .subtitle {
+            font-size: 14px;
+            opacity: 0.87;
+            margin-top: 4px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--md-elevation-1);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--md-elevation-2);
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 500;
+            color: var(--md-sys-color-primary);
+        }
+
+        .stat-card .unit {
+            font-size: 16px;
+            color: var(--md-sys-color-on-surface-variant);
+            margin-left: 4px;
+        }
+
+        .tabs {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--md-elevation-1);
+            overflow: hidden;
+        }
+
+        .tab-header {
+            display: flex;
+            border-bottom: 1px solid var(--md-sys-color-outline);
+            background-color: var(--md-sys-color-surface-variant);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 16px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface-variant);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-button:hover {
+            background-color: rgba(25, 118, 210, 0.08);
+        }
+
+        .tab-button.active {
+            color: var(--md-sys-color-primary);
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: var(--md-sys-color-primary);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 24px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .search-box {
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--md-sys-color-primary);
+            box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background-color: var(--md-sys-color-surface-variant);
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 500;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        th:hover {
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        th.sortable::after {
+            content: '⇅';
+            margin-left: 8px;
+            opacity: 0.3;
+        }
+
+        th.sort-asc::after {
+            content: '↑';
+            opacity: 1;
+        }
+
+        th.sort-desc::after {
+            content: '↓';
+            opacity: 1;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--md-sys-color-outline);
+        }
+
+        tbody tr {
+            transition: background-color 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(25, 118, 210, 0.04);
+        }
+
+        .mono {
+            font-family: 'Roboto Mono', 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .highlight {
+            background-color: rgba(25, 118, 210, 0.1);
+            font-weight: 500;
+        }
+
+        .chip {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .chip-high {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        .chip-medium {
+            background-color: #fff3e0;
+            color: #e65100;
+        }
+
+        .chip-low {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tab-button {
+                padding: 12px 16px;
+                font-size: 12px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th,
+            td {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-bar">
+        <h1>🔍 Profiling Dashboard</h1>
+        <div class="subtitle">E2E AI Challenge Playground - Performance Analysis</div>
+    </div>
+
+    <div class="container">
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Total Runtime</div>
+                <div class="value" id="total-runtime">-</div>
+                <div class="unit">seconds</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Function Calls</div>
+                <div class="value" id="total-calls">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Top Bottleneck</div>
+                <div class="value mono" id="top-bottleneck" style="font-size: 16px;">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Profiled At</div>
+                <div class="value" id="profiled-at" style="font-size: 16px;">-</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab-header">
+                <button class="tab-button active" data-tab="cumulative">Cumulative Time</button>
+                <button class="tab-button" data-tab="time">Execution Time</button>
+                <button class="tab-button" data-tab="calls">Call Count</button>
+            </div>
+
+            <!-- Cumulative Time Tab -->
+            <div class="tab-content active" id="cumulative">
+                <div class="search-box">
+                    <input type="text" id="search-cumulative" placeholder="Search functions...">
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="table-cumulative">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="rank">#</th>
+                                <th class="sortable" data-sort="function">Function</th>
+                                <th class="sortable" data-sort="ncalls">Calls</th>
+                                <th class="sortable" data-sort="tottime">Total Time</th>
+                                <th class="sortable" data-sort="cumtime">Cumulative Time</th>
+                                <th class="sortable" data-sort="percall">Per Call</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Execution Time Tab -->
+            <div class="tab-content" id="time">
+                <div class="search-box">
+                    <input type="text" id="search-time" placeholder="Search functions...">
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="table-time">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="rank">#</th>
+                                <th class="sortable" data-sort="function">Function</th>
+                                <th class="sortable" data-sort="ncalls">Calls</th>
+                                <th class="sortable" data-sort="tottime">Total Time</th>
+                                <th class="sortable" data-sort="cumtime">Cumulative Time</th>
+                                <th class="sortable" data-sort="percall">Per Call</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Call Count Tab -->
+            <div class="tab-content" id="calls">
+                <div class="search-box">
+                    <input type="text" id="search-calls" placeholder="Search functions...">
+                </div>
+                <div style="overflow-x: auto;">
+                    <table id="table-calls">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="rank">#</th>
+                                <th class="sortable" data-sort="function">Function</th>
+                                <th class="sortable" data-sort="ncalls">Calls</th>
+                                <th class="sortable" data-sort="tottime">Total Time</th>
+                                <th class="sortable" data-sort="cumtime">Cumulative Time</th>
+                                <th class="sortable" data-sort="percall">Per Call</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Profile data will be injected here
+        // @ts-ignore
+        const PROFILE_DATA = {
+  "timestamp": "2025-12-22T00:48:05.002396",
+  "total_runtime": 6.513,
+  "total_calls": 220883,
+  "top_bottleneck": "__init__.py:1(<module>)",
+  "cumulative": [
+    {
+      "function": "__init__.py:1(<module>)",
+      "ncalls": 284,
+      "tottime": 0.004,
+      "cumtime": 6.513,
+      "percall": 0.023
+    },
+    {
+      "function": "{built-in method builtins.exec}",
+      "ncalls": 2592,
+      "tottime": 0.047,
+      "cumtime": 2.219,
+      "percall": 2.219
+    },
+    {
+      "function": "<string>:1(<module>)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 2.208,
+      "percall": 2.208
+    },
+    {
+      "function": "<frozen runpy>:201(run_module)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 1.91,
+      "percall": 1.91
+    },
+    {
+      "function": "<frozen runpy>:65(_run_code)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 1.909,
+      "percall": 1.909
+    },
+    {
+      "function": "cli.py:1(<module>)",
+      "ncalls": 4,
+      "tottime": 0.0,
+      "cumtime": 1.887,
+      "percall": 0.629
+    },
+    {
+      "function": "main.py:80(decorated_main)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 1.885,
+      "percall": 1.885
+    },
+    {
+      "function": "utils.py:306(_run_hydra)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 1.885,
+      "percall": 1.885
+    },
+    {
+      "function": "evaluation_runner.py:21(run)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 1.369,
+      "percall": 1.369
+    },
+    {
+      "function": "single_process.py:29(run)",
+      "ncalls": 1,
+      "tottime": 0.001,
+      "cumtime": 1.369,
+      "percall": 1.369
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1349(_find_and_load)",
+      "ncalls": 2236,
+      "tottime": 0.008,
+      "cumtime": 1.35,
+      "percall": 0.007
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1304(_find_and_load_unlocked)",
+      "ncalls": 2177,
+      "tottime": 0.01,
+      "cumtime": 1.345,
+      "percall": 0.01
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:480(_call_with_frames_removed)",
+      "ncalls": 4607,
+      "tottime": 0.002,
+      "cumtime": 1.326,
+      "percall": 0.008
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:989(exec_module)",
+      "ncalls": 1767,
+      "tottime": 0.002,
+      "cumtime": 1.297,
+      "percall": 0.046
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:911(_load_unlocked)",
+      "ncalls": 1912,
+      "tottime": 0.004,
+      "cumtime": 1.294,
+      "percall": 0.065
+    },
+    {
+      "function": "simulator.py:151(on_run)",
+      "ncalls": 100,
+      "tottime": 0.002,
+      "cumtime": 1.252,
+      "percall": 0.013
+    },
+    {
+      "function": "{built-in method builtins.__import__}",
+      "ncalls": 847,
+      "tottime": 0.001,
+      "cumtime": 1.247,
+      "percall": 0.015
+    },
+    {
+      "function": "sensor.py:42(scan)",
+      "ncalls": 100,
+      "tottime": 0.229,
+      "cumtime": 1.224,
+      "percall": 0.012
+    },
+    {
+      "function": "<frozen runpy>:105(_get_module_details)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 1.06,
+      "percall": 1.06
+    },
+    {
+      "function": "sensor.py:149(_vectorized_ray_segment_intersection)",
+      "ncalls": 51200,
+      "tottime": 0.833,
+      "cumtime": 0.956,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1390(_handle_fromlist)",
+      "ncalls": 27762,
+      "tottime": 0.01,
+      "cumtime": 0.919,
+      "percall": 0.0
+    },
+    {
+      "function": "orchestrator.py:1(<module>)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.8,
+      "percall": 0.8
+    },
+    {
+      "function": "evaluation_postprocessor.py:1(<module>)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.705,
+      "percall": 0.705
+    },
+    {
+      "function": "mlflow_logger.py:1(<module>)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.692,
+      "percall": 0.692
+    },
+    {
+      "function": "utils.py:218(run_and_report)",
+      "ncalls": 4,
+      "tottime": 0.0,
+      "cumtime": 0.516,
+      "percall": 0.172
+    },
+    {
+      "function": "utils.py:430(_run_app)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.516,
+      "percall": 0.516
+    },
+    {
+      "function": "rest_store.py:193(_call_endpoint)",
+      "ncalls": 8,
+      "tottime": 0.0,
+      "cumtime": 0.395,
+      "percall": 0.049
+    },
+    {
+      "function": "rest_utils.py:568(call_endpoint)",
+      "ncalls": 8,
+      "tottime": 0.0,
+      "cumtime": 0.394,
+      "percall": 0.049
+    },
+    {
+      "function": "{built-in method builtins.hasattr}",
+      "ncalls": 97909,
+      "tottime": 0.016,
+      "cumtime": 0.392,
+      "percall": 0.0
+    },
+    {
+      "function": "rest_utils.py:60(http_request)",
+      "ncalls": 8,
+      "tottime": 0.0,
+      "cumtime": 0.385,
+      "percall": 0.048
+    },
+    {
+      "function": "utils.py:458(<lambda>)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.376,
+      "percall": 0.376
+    },
+    {
+      "function": "hydra.py:98(run)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.376,
+      "percall": 0.376
+    },
+    {
+      "function": "utils.py:99(run_job)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.339,
+      "percall": 0.339
+    },
+    {
+      "function": "cli.py:12(main)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.339,
+      "percall": 0.339
+    },
+    {
+      "function": "request_utils.py:193(_get_http_response_with_retries)",
+      "ncalls": 8,
+      "tottime": 0.0,
+      "cumtime": 0.333,
+      "percall": 0.042
+    },
+    {
+      "function": "orchestrator.py:63(run_from_hydra)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.328,
+      "percall": 0.328
+    },
+    {
+      "function": "evaluation_postprocessor.py:117(process)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.328,
+      "percall": 0.328
+    },
+    {
+      "function": "client.py:1(<module>)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.315,
+      "percall": 0.035
+    },
+    {
+      "function": "__init__.py:131(__getattr__)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.301,
+      "percall": 0.15
+    },
+    {
+      "function": "evaluation_dataset.py:1(<module>)",
+      "ncalls": 3,
+      "tottime": 0.0,
+      "cumtime": 0.301,
+      "percall": 0.1
+    },
+    {
+      "function": "__init__.py:901(entry_points)",
+      "ncalls": 15,
+      "tottime": 0.002,
+      "cumtime": 0.289,
+      "percall": 0.019
+    },
+    {
+      "function": "hydra.py:576(compose_config)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.279,
+      "percall": 0.139
+    },
+    {
+      "function": "config_loader_impl.py:133(load_configuration)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.278,
+      "percall": 0.139
+    },
+    {
+      "function": "config_loader_impl.py:233(_load_configuration_impl)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.278,
+      "percall": 0.139
+    },
+    {
+      "function": "__init__.py:910(<genexpr>)",
+      "ncalls": 5268,
+      "tottime": 0.002,
+      "cumtime": 0.275,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.__build_class__}",
+      "ncalls": 3604,
+      "tottime": 0.027,
+      "cumtime": 0.27,
+      "percall": 0.0
+    },
+    {
+      "function": "node_factory.py:20(create)",
+      "ncalls": 6,
+      "tottime": 0.0,
+      "cumtime": 0.257,
+      "percall": 0.043
+    },
+    {
+      "function": "mlflow_logger.py:79(log_result)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.238,
+      "percall": 0.238
+    },
+    {
+      "function": "mlflow_logger.py:106(_log_content)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.238,
+      "percall": 0.238
+    },
+    {
+      "function": "track.py:21(wrapper)",
+      "ncalls": 4,
+      "tottime": 0.0,
+      "cumtime": 0.227,
+      "percall": 0.057
+    },
+    {
+      "function": "client.py:2430(log_batch)",
+      "ncalls": 3,
+      "tottime": 0.0,
+      "cumtime": 0.226,
+      "percall": 0.075
+    },
+    {
+      "function": "client.py:504(log_batch)",
+      "ncalls": 3,
+      "tottime": 0.0,
+      "cumtime": 0.225,
+      "percall": 0.075
+    },
+    {
+      "function": "dataset_registry.py:1(<module>)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.224,
+      "percall": 0.224
+    },
+    {
+      "function": "rest_store.py:899(log_batch)",
+      "ncalls": 3,
+      "tottime": 0.0,
+      "cumtime": 0.224,
+      "percall": 0.075
+    },
+    {
+      "function": "sessions.py:500(request)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.221,
+      "percall": 0.032
+    },
+    {
+      "function": "__init__.py:559(entry_points)",
+      "ncalls": 5600,
+      "tottime": 0.003,
+      "cumtime": 0.217,
+      "percall": 0.0
+    },
+    {
+      "function": "sessions.py:673(send)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.215,
+      "percall": 0.031
+    },
+    {
+      "function": "models.py:890(content)",
+      "ncalls": 59,
+      "tottime": 0.0,
+      "cumtime": 0.203,
+      "percall": 0.003
+    },
+    {
+      "function": "{method 'join' of 'bytes' objects}",
+      "ncalls": 110,
+      "tottime": 0.0,
+      "cumtime": 0.203,
+      "percall": 0.002
+    },
+    {
+      "function": "pandas_dataset.py:1(<module>)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.202,
+      "percall": 0.202
+    },
+    {
+      "function": "utils.py:1(<module>)",
+      "ncalls": 24,
+      "tottime": 0.001,
+      "cumtime": 0.194,
+      "percall": 0.008
+    },
+    {
+      "function": "{method 'recv_into' of '_socket.socket' objects}",
+      "ncalls": 17,
+      "tottime": 0.193,
+      "cumtime": 0.193,
+      "percall": 0.011
+    },
+    {
+      "function": "socket.py:706(readinto)",
+      "ncalls": 18,
+      "tottime": 0.0,
+      "cumtime": 0.191,
+      "percall": 0.011
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:1062(get_code)",
+      "ncalls": 1768,
+      "tottime": 0.007,
+      "cumtime": 0.181,
+      "percall": 0.0
+    },
+    {
+      "function": "plugins.py:8(get_entry_points)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.168,
+      "percall": 0.019
+    },
+    {
+      "function": "plugins.py:4(_get_entry_points)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.168,
+      "percall": 0.019
+    },
+    {
+      "function": "models.py:816(generate)",
+      "ncalls": 18,
+      "tottime": 0.0,
+      "cumtime": 0.167,
+      "percall": 0.009
+    },
+    {
+      "function": "response.py:1220(stream)",
+      "ncalls": 18,
+      "tottime": 0.0,
+      "cumtime": 0.166,
+      "percall": 0.009
+    },
+    {
+      "function": "response.py:1054(read)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.166,
+      "percall": 0.018
+    },
+    {
+      "function": "api.py:1(<module>)",
+      "ncalls": 10,
+      "tottime": 0.0,
+      "cumtime": 0.166,
+      "percall": 0.017
+    },
+    {
+      "function": "response.py:1002(_raw_read)",
+      "ncalls": 18,
+      "tottime": 0.0,
+      "cumtime": 0.166,
+      "percall": 0.009
+    },
+    {
+      "function": "response.py:945(_fp_read)",
+      "ncalls": 18,
+      "tottime": 0.0,
+      "cumtime": 0.165,
+      "percall": 0.009
+    },
+    {
+      "function": "client.py:463(read)",
+      "ncalls": 18,
+      "tottime": 0.0,
+      "cumtime": 0.165,
+      "percall": 0.009
+    },
+    {
+      "function": "fluent.py:1252(log_params)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.16,
+      "percall": 0.08
+    },
+    {
+      "function": "{method 'read' of '_io.BufferedReader' objects}",
+      "ncalls": 1782,
+      "tottime": 0.015,
+      "cumtime": 0.152,
+      "percall": 0.0
+    },
+    {
+      "function": "hydra.py:81(get_mode)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.149,
+      "percall": 0.149
+    },
+    {
+      "function": "inspect.py:1684(getframeinfo)",
+      "ncalls": 21,
+      "tottime": 0.0,
+      "cumtime": 0.137,
+      "percall": 0.007
+    },
+    {
+      "function": "utils.py:168(is_under_debugger)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.136,
+      "percall": 0.136
+    },
+    {
+      "function": "inspect.py:1775(stack)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.136,
+      "percall": 0.136
+    },
+    {
+      "function": "inspect.py:1745(getouterframes)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.136,
+      "percall": 0.136
+    },
+    {
+      "function": "inspect.py:988(getmodule)",
+      "ncalls": 34,
+      "tottime": 0.016,
+      "cumtime": 0.136,
+      "percall": 0.004
+    },
+    {
+      "function": "defaults_list.py:729(create_defaults_list)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.135,
+      "percall": 0.067
+    },
+    {
+      "function": "defaults_list.py:706(_create_defaults_list)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.134,
+      "percall": 0.067
+    },
+    {
+      "function": "defaults_list.py:348(_create_defaults_tree)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.132,
+      "percall": 0.066
+    },
+    {
+      "function": "defaults_list.py:445(_create_defaults_tree_impl)",
+      "ncalls": 32,
+      "tottime": 0.0,
+      "cumtime": 0.132,
+      "percall": 0.066
+    },
+    {
+      "function": "defaults_list.py:267(_expand_virtual_root)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.132,
+      "percall": 0.066
+    },
+    {
+      "function": "node_factory.py:52(_resolve_node_class)",
+      "ncalls": 6,
+      "tottime": 0.0,
+      "cumtime": 0.132,
+      "percall": 0.022
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1240(_find_spec)",
+      "ncalls": 2074,
+      "tottime": 0.012,
+      "cumtime": 0.131,
+      "percall": 0.0
+    },
+    {
+      "function": "inspect.py:1070(findsource)",
+      "ncalls": 21,
+      "tottime": 0.0,
+      "cumtime": 0.127,
+      "percall": 0.006
+    },
+    {
+      "function": "node.py:44(from_dict)",
+      "ncalls": 6,
+      "tottime": 0.0,
+      "cumtime": 0.124,
+      "percall": 0.021
+    },
+    {
+      "function": "pure_pursuit_node.py:32(__init__)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.124,
+      "percall": 0.124
+    },
+    {
+      "function": "base.py:1(<module>)",
+      "ncalls": 21,
+      "tottime": 0.0,
+      "cumtime": 0.124,
+      "percall": 0.006
+    },
+    {
+      "function": "adapters.py:590(send)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.123,
+      "percall": 0.018
+    },
+    {
+      "function": "__init__.py:990(read_text)",
+      "ncalls": 5603,
+      "tottime": 0.01,
+      "cumtime": 0.122,
+      "percall": 0.0
+    },
+    {
+      "function": "basecontainer.py:524(_set_item_impl)",
+      "ncalls": 1006,
+      "tottime": 0.004,
+      "cumtime": 0.122,
+      "percall": 0.0
+    },
+    {
+      "function": "connectionpool.py:592(urlopen)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.121,
+      "percall": 0.017
+    },
+    {
+      "function": "sensing.py:1(<module>)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.121,
+      "percall": 0.121
+    },
+    {
+      "function": "connectionpool.py:377(_make_request)",
+      "ncalls": 9,
+      "tottime": 0.0,
+      "cumtime": 0.12,
+      "percall": 0.017
+    },
+    {
+      "function": "track_loader.py:1(<module>)",
+      "ncalls": 1,
+      "tottime": 0.0,
+      "cumtime": 0.12,
+      "percall": 0.12
+    },
+    {
+      "function": "obstacle.py:1(<module>)",
+      "ncalls": 2,
+      "tottime": 0.0,
+      "cumtime": 0.12,
+      "percall": 0.06
+    }
+  ],
+  "by_time": [
+    {
+      "function": "sensor.py:149(_vectorized_ray_segment_intersection)",
+      "ncalls": 51200,
+      "tottime": 0.833,
+      "cumtime": 0.956,
+      "percall": 0.0
+    },
+    {
+      "function": "sensor.py:42(scan)",
+      "ncalls": 100,
+      "tottime": 0.229,
+      "cumtime": 1.224,
+      "percall": 0.012
+    },
+    {
+      "function": "{method 'recv_into' of '_socket.socket' objects}",
+      "ncalls": 17,
+      "tottime": 0.193,
+      "cumtime": 0.193,
+      "percall": 0.011
+    },
+    {
+      "function": "{built-in method marshal.loads}",
+      "ncalls": 1768,
+      "tottime": 0.085,
+      "cumtime": 0.085,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.isinstance}",
+      "ncalls": 586396,
+      "tottime": 0.065,
+      "cumtime": 0.082,
+      "percall": 0.0
+    },
+    {
+      "function": "numeric.py:401(full_like)",
+      "ncalls": 51200,
+      "tottime": 0.055,
+      "cumtime": 0.061,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.exec}",
+      "ncalls": 2592,
+      "tottime": 0.047,
+      "cumtime": 2.219,
+      "percall": 2.219
+    },
+    {
+      "function": "{built-in method _imp.create_dynamic}",
+      "ncalls": 103,
+      "tottime": 0.035,
+      "cumtime": 0.043,
+      "percall": 0.0
+    },
+    {
+      "function": "copy.py:118(deepcopy)",
+      "ncalls": 46540,
+      "tottime": 0.034,
+      "cumtime": 0.111,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:751(_compile_bytecode)",
+      "ncalls": 1768,
+      "tottime": 0.033,
+      "cumtime": 0.118,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method time.sleep}",
+      "ncalls": 1,
+      "tottime": 0.028,
+      "cumtime": 0.028,
+      "percall": 0.028
+    },
+    {
+      "function": "{built-in method posix.stat}",
+      "ncalls": 12588,
+      "tottime": 0.027,
+      "cumtime": 0.028,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.__build_class__}",
+      "ncalls": 3604,
+      "tottime": 0.027,
+      "cumtime": 0.27,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen posixpath>:71(join)",
+      "ncalls": 26909,
+      "tottime": 0.026,
+      "cumtime": 0.045,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:1593(find_spec)",
+      "ncalls": 5012,
+      "tottime": 0.026,
+      "cumtime": 0.094,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'get' of 'dict' objects}",
+      "ncalls": 204029,
+      "tottime": 0.023,
+      "cumtime": 0.026,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method posix.lstat}",
+      "ncalls": 20346,
+      "tottime": 0.023,
+      "cumtime": 0.023,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'load_verify_locations' of '_ssl._SSLContext' objects}",
+      "ncalls": 1,
+      "tottime": 0.02,
+      "cumtime": 0.02,
+      "percall": 0.02
+    },
+    {
+      "function": "{built-in method _io.open}",
+      "ncalls": 6041,
+      "tottime": 0.02,
+      "cumtime": 0.082,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'sub' of 're.Pattern' objects}",
+      "ncalls": 11331,
+      "tottime": 0.02,
+      "cumtime": 0.02,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:126(_path_join)",
+      "ncalls": 26775,
+      "tottime": 0.019,
+      "cumtime": 0.033,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'startswith' of 'str' objects}",
+      "ncalls": 128268,
+      "tottime": 0.019,
+      "cumtime": 0.019,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.getattr}",
+      "ncalls": 164295,
+      "tottime": 0.019,
+      "cumtime": 0.02,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen posixpath>:432(_joinrealpath)",
+      "ncalls": 2027,
+      "tottime": 0.019,
+      "cumtime": 0.08,
+      "percall": 0.0
+    },
+    {
+      "function": "_ufunc_config.py:448(__enter__)",
+      "ncalls": 51203,
+      "tottime": 0.017,
+      "cumtime": 0.035,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method _imp.exec_dynamic}",
+      "ncalls": 103,
+      "tottime": 0.017,
+      "cumtime": 0.111,
+      "percall": 0.002
+    },
+    {
+      "function": "_parser.py:512(_parse)",
+      "ncalls": 1929,
+      "tottime": 0.017,
+      "cumtime": 0.043,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method __new__ of type object at 0x7f4f362e44c0}",
+      "ncalls": 41727,
+      "tottime": 0.016,
+      "cumtime": 0.023,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.len}",
+      "ncalls": 219784,
+      "tottime": 0.016,
+      "cumtime": 0.017,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.hasattr}",
+      "ncalls": 97909,
+      "tottime": 0.016,
+      "cumtime": 0.392,
+      "percall": 0.0
+    },
+    {
+      "function": "inspect.py:988(getmodule)",
+      "ncalls": 34,
+      "tottime": 0.016,
+      "cumtime": 0.136,
+      "percall": 0.004
+    },
+    {
+      "function": "ros_message_builder.py:143(build_laser_scan_message)",
+      "ncalls": 100,
+      "tottime": 0.015,
+      "cumtime": 0.022,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'read' of '_io.BufferedReader' objects}",
+      "ncalls": 1782,
+      "tottime": 0.015,
+      "cumtime": 0.152,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method _io.open_code}",
+      "ncalls": 1768,
+      "tottime": 0.015,
+      "cumtime": 0.015,
+      "percall": 0.0
+    },
+    {
+      "function": "pathlib.py:387(_parse_path)",
+      "ncalls": 6449,
+      "tottime": 0.014,
+      "cumtime": 0.028,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'append' of 'list' objects}",
+      "ncalls": 128932,
+      "tottime": 0.014,
+      "cumtime": 0.014,
+      "percall": 0.0
+    },
+    {
+      "function": "functools.py:35(update_wrapper)",
+      "ncalls": 7196,
+      "tottime": 0.013,
+      "cumtime": 0.024,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1240(_find_spec)",
+      "ncalls": 2074,
+      "tottime": 0.012,
+      "cumtime": 0.131,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'join' of 'str' objects}",
+      "ncalls": 47556,
+      "tottime": 0.011,
+      "cumtime": 0.013,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'compress' of 'zstandard.backend_c.ZstdCompressor' objects}",
+      "ncalls": 3,
+      "tottime": 0.011,
+      "cumtime": 0.011,
+      "percall": 0.004
+    },
+    {
+      "function": "{method 'findall' of 're.Pattern' objects}",
+      "ncalls": 2659,
+      "tottime": 0.011,
+      "cumtime": 0.011,
+      "percall": 0.0
+    },
+    {
+      "function": "_ufunc_config.py:464(__exit__)",
+      "ncalls": 51203,
+      "tottime": 0.011,
+      "cumtime": 0.021,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1390(_handle_fromlist)",
+      "ncalls": 27762,
+      "tottime": 0.01,
+      "cumtime": 0.919,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'reset' of '_contextvars.ContextVar' objects}",
+      "ncalls": 51204,
+      "tottime": 0.01,
+      "cumtime": 0.01,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'do_handshake' of '_ssl._SSLSocket' objects}",
+      "ncalls": 1,
+      "tottime": 0.01,
+      "cumtime": 0.01,
+      "percall": 0.01
+    },
+    {
+      "function": "__init__.py:122(read)",
+      "ncalls": 12784,
+      "tottime": 0.01,
+      "cumtime": 0.02,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'set' of '_contextvars.ContextVar' objects}",
+      "ncalls": 51205,
+      "tottime": 0.01,
+      "cumtime": 0.01,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1304(_find_and_load_unlocked)",
+      "ncalls": 2177,
+      "tottime": 0.01,
+      "cumtime": 1.345,
+      "percall": 0.01
+    },
+    {
+      "function": "__init__.py:990(read_text)",
+      "ncalls": 5603,
+      "tottime": 0.01,
+      "cumtime": 0.122,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.compile}",
+      "ncalls": 1159,
+      "tottime": 0.009,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "_compiler.py:37(_compile)",
+      "ncalls": 3441,
+      "tottime": 0.009,
+      "cumtime": 0.025,
+      "percall": 0.0
+    },
+    {
+      "function": "decorators.py:73(wrapped)",
+      "ncalls": 6707,
+      "tottime": 0.009,
+      "cumtime": 0.03,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'endswith' of 'str' objects}",
+      "ncalls": 58121,
+      "tottime": 0.009,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'validate_python' of 'pydantic_core._pydantic_core.SchemaValidator' objects}",
+      "ncalls": 9883,
+      "tottime": 0.009,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'rstrip' of 'str' objects}",
+      "ncalls": 61455,
+      "tottime": 0.009,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "copy.py:217(_deepcopy_dict)",
+      "ncalls": 4447,
+      "tottime": 0.008,
+      "cumtime": 0.064,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:304(acquire)",
+      "ncalls": 3376,
+      "tottime": 0.008,
+      "cumtime": 0.031,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method numpy._core._multiarray_umath._make_extobj}",
+      "ncalls": 51204,
+      "tottime": 0.008,
+      "cumtime": 0.008,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method _abc._abc_instancecheck}",
+      "ncalls": 54197,
+      "tottime": 0.008,
+      "cumtime": 0.01,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1349(_find_and_load)",
+      "ncalls": 2236,
+      "tottime": 0.008,
+      "cumtime": 1.35,
+      "percall": 0.007
+    },
+    {
+      "function": "{built-in method sys.intern}",
+      "ncalls": 56850,
+      "tottime": 0.008,
+      "cumtime": 0.008,
+      "percall": 0.0
+    },
+    {
+      "function": "pathlib.py:437(__str__)",
+      "ncalls": 11678,
+      "tottime": 0.008,
+      "cumtime": 0.064,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'to_json' of 'pydantic_core._pydantic_core.SchemaSerializer' objects}",
+      "ncalls": 801,
+      "tottime": 0.008,
+      "cumtime": 0.008,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:1062(get_code)",
+      "ncalls": 1768,
+      "tottime": 0.007,
+      "cumtime": 0.181,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.setattr}",
+      "ncalls": 54134,
+      "tottime": 0.007,
+      "cumtime": 0.008,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'match' of 're.Pattern' objects}",
+      "ncalls": 12449,
+      "tottime": 0.007,
+      "cumtime": 0.007,
+      "percall": 0.0
+    },
+    {
+      "function": "__init__.py:1007(_normalized_name)",
+      "ncalls": 5600,
+      "tottime": 0.007,
+      "cumtime": 0.067,
+      "percall": 0.0
+    },
+    {
+      "function": "pathlib.py:358(__init__)",
+      "ncalls": 6871,
+      "tottime": 0.007,
+      "cumtime": 0.011,
+      "percall": 0.0
+    },
+    {
+      "function": "_compiler.py:243(_optimize_charset)",
+      "ncalls": 1388,
+      "tottime": 0.007,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'split' of 'str' objects}",
+      "ncalls": 19446,
+      "tottime": 0.007,
+      "cumtime": 0.007,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen abc>:117(__instancecheck__)",
+      "ncalls": 54197,
+      "tottime": 0.006,
+      "cumtime": 0.016,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.eval}",
+      "ncalls": 371,
+      "tottime": 0.006,
+      "cumtime": 0.007,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:482(cache_from_source)",
+      "ncalls": 3536,
+      "tottime": 0.006,
+      "cumtime": 0.019,
+      "percall": 0.0
+    },
+    {
+      "function": "__init__.py:457(_replace)",
+      "ncalls": 7633,
+      "tottime": 0.006,
+      "cumtime": 0.011,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:74(__new__)",
+      "ncalls": 3376,
+      "tottime": 0.006,
+      "cumtime": 0.007,
+      "percall": 0.0
+    },
+    {
+      "function": "__init__.py:116(<genexpr>)",
+      "ncalls": 12784,
+      "tottime": 0.006,
+      "cumtime": 0.047,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'rpartition' of 'str' objects}",
+      "ncalls": 32593,
+      "tottime": 0.006,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "__init__.py:365(<genexpr>)",
+      "ncalls": 12784,
+      "tottime": 0.006,
+      "cumtime": 0.075,
+      "percall": 0.0
+    },
+    {
+      "function": "{method '_parse_whole' of 'xml.etree.ElementTree.XMLParser' objects}",
+      "ncalls": 2,
+      "tottime": 0.006,
+      "cumtime": 0.006,
+      "percall": 0.003
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:1491(_get_spec)",
+      "ncalls": 2031,
+      "tottime": 0.006,
+      "cumtime": 0.106,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'update' of 'dict' objects}",
+      "ncalls": 27224,
+      "tottime": 0.006,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "base.py:152(_set_flag)",
+      "ncalls": 4452,
+      "tottime": 0.006,
+      "cumtime": 0.012,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen posixpath>:41(_get_sep)",
+      "ncalls": 38692,
+      "tottime": 0.006,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method posix.fspath}",
+      "ncalls": 72311,
+      "tottime": 0.006,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "pathlib.py:407(_load_parts)",
+      "ncalls": 6447,
+      "tottime": 0.005,
+      "cumtime": 0.048,
+      "percall": 0.0
+    },
+    {
+      "function": "typing.py:175(_type_check)",
+      "ncalls": 3319,
+      "tottime": 0.005,
+      "cumtime": 0.022,
+      "percall": 0.0
+    },
+    {
+      "function": "_collections.py:32(parse)",
+      "ncalls": 7184,
+      "tottime": 0.005,
+      "cumtime": 0.01,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method math.isnan}",
+      "ncalls": 108010,
+      "tottime": 0.005,
+      "cumtime": 0.005,
+      "percall": 0.0
+    },
+    {
+      "function": "__init__.py:280(_compile)",
+      "ncalls": 10193,
+      "tottime": 0.005,
+      "cumtime": 0.087,
+      "percall": 0.0
+    },
+    {
+      "function": "typing.py:753(Literal)",
+      "ncalls": 161,
+      "tottime": 0.005,
+      "cumtime": 0.013,
+      "percall": 0.0
+    },
+    {
+      "function": "textwrap.py:419(dedent)",
+      "ncalls": 2578,
+      "tottime": 0.005,
+      "cumtime": 0.037,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'partition' of 'str' objects}",
+      "ncalls": 27005,
+      "tottime": 0.005,
+      "cumtime": 0.005,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'read' of '_io.TextIOWrapper' objects}",
+      "ncalls": 3187,
+      "tottime": 0.005,
+      "cumtime": 0.007,
+      "percall": 0.0
+    },
+    {
+      "function": "{method '__exit__' of '_io._IOBase' objects}",
+      "ncalls": 4198,
+      "tottime": 0.005,
+      "cumtime": 0.005,
+      "percall": 0.0
+    },
+    {
+      "function": "__init__.py:359(_from_text_for)",
+      "ncalls": 5600,
+      "tottime": 0.005,
+      "cumtime": 0.092,
+      "percall": 0.0
+    },
+    {
+      "function": "copy.py:247(_reconstruct)",
+      "ncalls": 3353,
+      "tottime": 0.005,
+      "cumtime": 0.054,
+      "percall": 0.0
+    },
+    {
+      "function": "dataclasses.py:921(_process_class)",
+      "ncalls": 233,
+      "tottime": 0.005,
+      "cumtime": 0.073,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.id}",
+      "ncalls": 70628,
+      "tottime": 0.005,
+      "cumtime": 0.005,
+      "percall": 0.0
+    },
+    {
+      "function": "typing.py:1215(__setattr__)",
+      "ncalls": 8398,
+      "tottime": 0.005,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "_itertools.py:4(unique_everseen)",
+      "ncalls": 5265,
+      "tottime": 0.005,
+      "cumtime": 0.069,
+      "percall": 0.0
+    }
+  ],
+  "by_calls": [
+    {
+      "function": "{built-in method builtins.isinstance}",
+      "ncalls": 586396,
+      "tottime": 0.065,
+      "cumtime": 0.082,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.len}",
+      "ncalls": 219784,
+      "tottime": 0.016,
+      "cumtime": 0.017,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'get' of 'dict' objects}",
+      "ncalls": 204029,
+      "tottime": 0.023,
+      "cumtime": 0.026,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.getattr}",
+      "ncalls": 164295,
+      "tottime": 0.019,
+      "cumtime": 0.02,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'append' of 'list' objects}",
+      "ncalls": 128932,
+      "tottime": 0.014,
+      "cumtime": 0.014,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'startswith' of 'str' objects}",
+      "ncalls": 128268,
+      "tottime": 0.019,
+      "cumtime": 0.019,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method math.isnan}",
+      "ncalls": 108010,
+      "tottime": 0.005,
+      "cumtime": 0.005,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.hasattr}",
+      "ncalls": 97909,
+      "tottime": 0.016,
+      "cumtime": 0.392,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method posix.fspath}",
+      "ncalls": 72311,
+      "tottime": 0.006,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.id}",
+      "ncalls": 70628,
+      "tottime": 0.005,
+      "cumtime": 0.005,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'rstrip' of 'str' objects}",
+      "ncalls": 61455,
+      "tottime": 0.009,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'endswith' of 'str' objects}",
+      "ncalls": 58121,
+      "tottime": 0.009,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method sys.intern}",
+      "ncalls": 56850,
+      "tottime": 0.008,
+      "cumtime": 0.008,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method _abc._abc_instancecheck}",
+      "ncalls": 54197,
+      "tottime": 0.008,
+      "cumtime": 0.01,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen abc>:117(__instancecheck__)",
+      "ncalls": 54197,
+      "tottime": 0.006,
+      "cumtime": 0.016,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.setattr}",
+      "ncalls": 54134,
+      "tottime": 0.007,
+      "cumtime": 0.008,
+      "percall": 0.0
+    },
+    {
+      "function": "multiarray.py:1106(copyto)",
+      "ncalls": 51302,
+      "tottime": 0.003,
+      "cumtime": 0.003,
+      "percall": 0.0
+    },
+    {
+      "function": "_ufunc_config.py:438(__init__)",
+      "ncalls": 51205,
+      "tottime": 0.004,
+      "cumtime": 0.004,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'set' of '_contextvars.ContextVar' objects}",
+      "ncalls": 51205,
+      "tottime": 0.01,
+      "cumtime": 0.01,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method numpy._core._multiarray_umath._make_extobj}",
+      "ncalls": 51204,
+      "tottime": 0.008,
+      "cumtime": 0.008,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'reset' of '_contextvars.ContextVar' objects}",
+      "ncalls": 51204,
+      "tottime": 0.01,
+      "cumtime": 0.01,
+      "percall": 0.0
+    },
+    {
+      "function": "_ufunc_config.py:448(__enter__)",
+      "ncalls": 51203,
+      "tottime": 0.017,
+      "cumtime": 0.035,
+      "percall": 0.0
+    },
+    {
+      "function": "_ufunc_config.py:464(__exit__)",
+      "ncalls": 51203,
+      "tottime": 0.011,
+      "cumtime": 0.021,
+      "percall": 0.0
+    },
+    {
+      "function": "sensor.py:149(_vectorized_ray_segment_intersection)",
+      "ncalls": 51200,
+      "tottime": 0.833,
+      "cumtime": 0.956,
+      "percall": 0.0
+    },
+    {
+      "function": "numeric.py:394(_full_like_dispatcher)",
+      "ncalls": 51200,
+      "tottime": 0.003,
+      "cumtime": 0.003,
+      "percall": 0.0
+    },
+    {
+      "function": "multiarray.py:115(empty_like)",
+      "ncalls": 51200,
+      "tottime": 0.003,
+      "cumtime": 0.003,
+      "percall": 0.0
+    },
+    {
+      "function": "multiarray.py:391(where)",
+      "ncalls": 51200,
+      "tottime": 0.003,
+      "cumtime": 0.003,
+      "percall": 0.0
+    },
+    {
+      "function": "numeric.py:401(full_like)",
+      "ncalls": 51200,
+      "tottime": 0.055,
+      "cumtime": 0.061,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'join' of 'str' objects}",
+      "ncalls": 47556,
+      "tottime": 0.011,
+      "cumtime": 0.013,
+      "percall": 0.0
+    },
+    {
+      "function": "copy.py:118(deepcopy)",
+      "ncalls": 46540,
+      "tottime": 0.034,
+      "cumtime": 0.111,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method __new__ of type object at 0x7f4f362e44c0}",
+      "ncalls": 41727,
+      "tottime": 0.016,
+      "cumtime": 0.023,
+      "percall": 0.0
+    },
+    {
+      "function": "inspect.py:298(ismodule)",
+      "ncalls": 39422,
+      "tottime": 0.004,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen posixpath>:41(_get_sep)",
+      "ncalls": 38692,
+      "tottime": 0.006,
+      "cumtime": 0.009,
+      "percall": 0.0
+    },
+    {
+      "function": "copy.py:172(_deepcopy_atomic)",
+      "ncalls": 34278,
+      "tottime": 0.002,
+      "cumtime": 0.002,
+      "percall": 0.0
+    },
+    {
+      "function": "_parser.py:240(__next)",
+      "ncalls": 33955,
+      "tottime": 0.003,
+      "cumtime": 0.003,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'rpartition' of 'str' objects}",
+      "ncalls": 32593,
+      "tottime": 0.006,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'strip' of 'str' objects}",
+      "ncalls": 28657,
+      "tottime": 0.004,
+      "cumtime": 0.004,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:1390(_handle_fromlist)",
+      "ncalls": 27762,
+      "tottime": 0.01,
+      "cumtime": 0.919,
+      "percall": 0.0
+    },
+    {
+      "function": "_parser.py:261(get)",
+      "ncalls": 27643,
+      "tottime": 0.004,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap>:491(_verbose_message)",
+      "ncalls": 27393,
+      "tottime": 0.004,
+      "cumtime": 0.004,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'update' of 'dict' objects}",
+      "ncalls": 27224,
+      "tottime": 0.006,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'partition' of 'str' objects}",
+      "ncalls": 27005,
+      "tottime": 0.005,
+      "cumtime": 0.005,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'items' of 'dict' objects}",
+      "ncalls": 26925,
+      "tottime": 0.004,
+      "cumtime": 0.004,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen posixpath>:71(join)",
+      "ncalls": 26909,
+      "tottime": 0.026,
+      "cumtime": 0.045,
+      "percall": 0.0
+    },
+    {
+      "function": "<frozen importlib._bootstrap_external>:126(_path_join)",
+      "ncalls": 26775,
+      "tottime": 0.019,
+      "cumtime": 0.033,
+      "percall": 0.0
+    },
+    {
+      "function": "_parser.py:168(__getitem__)",
+      "ncalls": 25703,
+      "tottime": 0.004,
+      "cumtime": 0.006,
+      "percall": 0.0
+    },
+    {
+      "function": "reader.py:87(peek)",
+      "ncalls": 25256,
+      "tottime": 0.002,
+      "cumtime": 0.002,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.issubclass}",
+      "ncalls": 24930,
+      "tottime": 0.003,
+      "cumtime": 0.004,
+      "percall": 0.0
+    },
+    {
+      "function": "{built-in method builtins.ord}",
+      "ncalls": 24196,
+      "tottime": 0.001,
+      "cumtime": 0.001,
+      "percall": 0.0
+    },
+    {
+      "function": "{method 'rfind' of 'str' objects}",
+      "ncalls": 21301,
+      "tottime": 0.004,
+      "cumtime": 0.004,
+      "percall": 0.0
+    }
+  ]
+};
+
+        // Initialize dashboard
+        function initDashboard() {
+            // Update statistics
+            document.getElementById('total-runtime').textContent = PROFILE_DATA.total_runtime.toFixed(3);
+            document.getElementById('total-calls').textContent = PROFILE_DATA.total_calls.toLocaleString();
+            document.getElementById('top-bottleneck').textContent = PROFILE_DATA.top_bottleneck;
+            document.getElementById('profiled-at').textContent = new Date(PROFILE_DATA.timestamp).toLocaleString();
+
+            // Populate tables
+            populateTable('cumulative', PROFILE_DATA.cumulative);
+            populateTable('time', PROFILE_DATA.by_time);
+            populateTable('calls', PROFILE_DATA.by_calls);
+
+            // Setup tab switching
+            setupTabs();
+
+            // Setup search
+            setupSearch();
+
+            // Setup sorting
+            setupSorting();
+        }
+
+        function populateTable(tabId, data) {
+            const tbody = document.querySelector(`#table-${tabId} tbody`);
+            tbody.innerHTML = data.map((item, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td class="mono">${escapeHtml(item.function)}</td>
+                    <td>${item.ncalls.toLocaleString()}</td>
+                    <td>${item.tottime.toFixed(4)}s</td>
+                    <td>${item.cumtime.toFixed(4)}s ${getSeverityChip(item.cumtime, PROFILE_DATA.total_runtime)}</td>
+                    <td>${item.percall.toFixed(6)}s</td>
+                </tr>
+            `).join('');
+        }
+
+        function getSeverityChip(time, totalTime) {
+            const percentage = (time / totalTime) * 100;
+            if (percentage > 10) return '<span class="chip chip-high">High</span>';
+            if (percentage > 1) return '<span class="chip chip-medium">Medium</span>';
+            return '<span class="chip chip-low">Low</span>';
+        }
+
+        function setupTabs() {
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const tabId = button.dataset.tab;
+
+                    // Update buttons
+                    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+                    button.classList.add('active');
+
+                    // Update content
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+        }
+
+        function setupSearch() {
+            ['cumulative', 'time', 'calls'].forEach(tabId => {
+                const searchInput = document.getElementById(`search-${tabId}`);
+                const table = document.getElementById(`table-${tabId}`);
+
+                searchInput.addEventListener('input', (e) => {
+                    const query = e.target.value.toLowerCase();
+                    const rows = table.querySelectorAll('tbody tr');
+
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(query) ? '' : 'none';
+                    });
+                });
+            });
+        }
+
+        function setupSorting() {
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const table = th.closest('table');
+                    const tbody = table.querySelector('tbody');
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const sortKey = th.dataset.sort;
+                    const columnIndex = Array.from(th.parentElement.children).indexOf(th);
+
+                    // Toggle sort direction
+                    const isAsc = th.classList.contains('sort-asc');
+                    table.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+                    th.classList.add(isAsc ? 'sort-desc' : 'sort-asc');
+
+                    // Sort rows
+                    rows.sort((a, b) => {
+                        let aVal = a.children[columnIndex].textContent;
+                        let bVal = b.children[columnIndex].textContent;
+
+                        // Parse numbers
+                        aVal = parseFloat(aVal.replace(/[^0-9.-]/g, '')) || aVal;
+                        bVal = parseFloat(bVal.replace(/[^0-9.-]/g, '')) || bVal;
+
+                        if (typeof aVal === 'number' && typeof bVal === 'number') {
+                            return isAsc ? bVal - aVal : aVal - bVal;
+                        }
+                        return isAsc ? bVal.localeCompare(aVal) : aVal.localeCompare(bVal);
+                    });
+
+                    // Re-append rows
+                    rows.forEach(row => tbody.appendChild(row));
+                });
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize on load
+        initDashboard();
+    </script>
+</body>
+
+</html>

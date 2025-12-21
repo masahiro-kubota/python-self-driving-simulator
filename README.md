@@ -246,6 +246,32 @@ my_algorithm = "my_package.my_module:MyAlgorithmNode"
 uv run experiment-runner --config experiment/configs/experiments/default_experiment.yaml
 ```
 
+### パフォーマンスプロファイリング
+
+`experiment-runner`の実行時間を計測し、ボトルネックを特定できます。1秒間のシミュレーションを実行してプロファイルを生成します。
+
+```bash
+# Speedscope形式で出力（推奨）
+uv run python scripts/profile_experiment.py --format speedscope
+
+# Flamegraph形式で出力
+uv run python scripts/profile_experiment.py --format flamegraph
+
+# サンプリングレートを変更（精度向上）
+uv run python scripts/profile_experiment.py --rate 200
+```
+
+実行後、以下の方法で結果を確認できます:
+
+- **Speedscope**: https://www.speedscope.app/ で `profile.speedscope.json` をドラッグ&ドロップ
+- **Flamegraph**: ブラウザで `profile_flamegraph.svg` を開く
+- **HTMLダッシュボード**: `profile_dashboard.html` をブラウザで開く（MUIスタイル）
+- **テキストサマリー**: `profile_summary.txt` で関数ごとの実行時間統計を確認（AIが読める形式）
+
+GitHub Actionsにより、最新のプロファイル結果が GitHub Pages で自動公開されます（公開用URLはリポジトリ設定を確認してください）。
+
+プロファイル結果では、横幅が広い関数ほど実行時間が長いことを示します。テキストサマリーでは`cumtime`（累積時間）が大きい関数がボトルネックです。
+
 ### テストの実行
 
 > **注意**: ROSがインストールされている環境では、`PYTHONPATH`環境変数にROSのパスが含まれているため、pytestが干渉を受けます。`PYTHONPATH=""`を付けてテストを実行してください。

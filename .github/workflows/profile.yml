@@ -1,0 +1,56 @@
+name: Performance Profiling
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'experiment/src/**'
+      - 'simulator/src/**'
+      - 'ad_components/**'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run profiling
+        run: |
+          sudo env "PATH=$PATH" uv run python scripts/profile_experiment.py --format speedscope
+          mkdir -p public
+          cp profile_dashboard.html public/index.html
+          cp profile_data.json public/
+          cp profile_summary.txt public/
+          if [ -f profile.speedscope.json ]; then cp profile.speedscope.json public/; fi
+          if [ -f profile_flamegraph.svg ]; then cp profile_flamegraph.svg public/; fi
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'public'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

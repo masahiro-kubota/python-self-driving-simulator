@@ -24,6 +24,7 @@ dependencies = [
     "tqdm>=4.67.1",
     "hydra-core>=1.3.2",
     "wandb>=0.23.1",
+    "py-spy>=0.4.1",
 ]
 
 [tool.uv]
@@ -77,7 +78,9 @@ ignore = [
     "E501",   # Line too long (handled by formatter)
     "SIM108", # Use ternary operator (allow if-else for readability)
     "ERA001", # Commented-out code (false positives on Japanese comments)
-    "RUF002", # Ambiguous unicode characters (allow fullwidth parentheses in Japanese)
+    "RUF001", # Ambiguous unicode characters in strings
+    "RUF002", # Ambiguous unicode characters in comments
+    "RUF003", # Ambiguous unicode characters in docstrings
 ]
 
 [tool.ruff.lint.per-file-ignores]
