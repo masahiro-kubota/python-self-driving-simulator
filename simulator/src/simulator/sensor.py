@@ -82,24 +82,9 @@ class LidarSensor:
                 map_boundaries.append(boundary)
 
         # Check map boundaries with vectorized intersection
-        for boundary in map_boundaries:
-            coords = np.array(boundary.coords)
-            if len(coords) < 2:
-                continue
-
-            # Process each line segment in the boundary
-            for i in range(len(coords) - 1):
-                seg_x1, seg_y1 = coords[i]
-                seg_x2, seg_y2 = coords[i + 1]
-
-                # Vectorized line-segment intersection
-                distances = self._vectorized_ray_segment_intersection(
-                    sensor_x, sensor_y, ray_end_x, ray_end_y, seg_x1, seg_y1, seg_x2, seg_y2
-                )
-
-                # Update ranges with minimum distances
-                valid_mask = (distances >= self.config.range_min) & (distances < ranges)
-                ranges = np.where(valid_mask, distances, ranges)
+        ranges = self._update_ranges_from_boundaries(
+            ranges, map_boundaries, sensor_x, sensor_y, ray_end_x, ray_end_y
+        )
 
         # Get obstacle polygons
         obstacle_polygons = []
@@ -118,17 +103,48 @@ class LidarSensor:
                     continue
 
         # Check obstacles with vectorized intersection
+        obstacle_boundaries = []
         for poly in obstacle_polygons:
             boundary = poly.boundary
             if boundary.geom_type == "LineString" or boundary.geom_type == "LinearRing":
-                coords = np.array(boundary.coords)
-            else:
-                continue
+                obstacle_boundaries.append(boundary)
 
+        ranges = self._update_ranges_from_boundaries(
+            ranges, obstacle_boundaries, sensor_x, sensor_y, ray_end_x, ray_end_y
+        )
+
+        return LidarScan(
+            timestamp=vehicle_state.timestamp, config=self.config, ranges=ranges.tolist()
+        )
+
+    def _update_ranges_from_boundaries(
+        self,
+        ranges: np.ndarray,
+        boundaries: list,
+        sensor_x: float,
+        sensor_y: float,
+        ray_end_x: np.ndarray,
+        ray_end_y: np.ndarray,
+    ) -> np.ndarray:
+        """Update sensor ranges by checking intersections with boundaries.
+
+        Args:
+            ranges: Current range data
+            boundaries: List of boundaries to check
+            sensor_x: Sensor x position
+            sensor_y: Sensor y position
+            ray_end_x: Array of ray endpoint x coordinates
+            ray_end_y: Array of ray endpoint y coordinates
+
+        Returns:
+            Updated range data
+        """
+        for boundary in boundaries:
+            coords = np.array(boundary.coords)
             if len(coords) < 2:
                 continue
 
-            # Process each line segment in the obstacle boundary
+            # Process each line segment in the boundary
             for i in range(len(coords) - 1):
                 seg_x1, seg_y1 = coords[i]
                 seg_x2, seg_y2 = coords[i + 1]
@@ -142,9 +158,7 @@ class LidarSensor:
                 valid_mask = (distances >= self.config.range_min) & (distances < ranges)
                 ranges = np.where(valid_mask, distances, ranges)
 
-        return LidarScan(
-            timestamp=vehicle_state.timestamp, config=self.config, ranges=ranges.tolist()
-        )
+        return ranges
 
     def _vectorized_ray_segment_intersection(
         self,
