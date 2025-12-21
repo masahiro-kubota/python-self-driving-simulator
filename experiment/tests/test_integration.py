@@ -88,11 +88,8 @@ def test_pure_pursuit_experiment_nodes() -> None:
     assert metrics.goal_count == 1, f"Goal count {metrics.goal_count} != 1"
 
     # Verify MCAP file contents
-    # Find any mcap file in tmp_path created recently?
-    # Since we cleared it or we just look for *simulation_*.mcap
-    mcap_files = list(tmp_path.glob("simulation_*.mcap"))
-    assert len(mcap_files) > 0, f"No MCAP file found in {tmp_path}"
-    mcap_path = mcap_files[-1]  # Take the last one (most recent usually)
+    mcap_path = tmp_path / "simulation.mcap"
+    assert mcap_path.exists(), f"MCAP file not found at {mcap_path}"
 
     # Simple verification using mcap library
     from mcap.reader import make_reader
