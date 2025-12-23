@@ -62,12 +62,19 @@ class ExtractorEngine(BaseEngine):
         accels = np.concatenate(all_accels, axis=0)
 
         # 3. Calculate statistics
+        # Filter finite values for stats calculation to avoid NaN
+        valid_scans = scans[np.isfinite(scans)]
+        if len(valid_scans) == 0:
+            logger.warning("No finite scan values found for statistics.")
+            valid_scans = np.zeros(1)
+
         stats = {
             "scans": {
-                "mean": float(np.mean(scans)),
-                "std": float(np.std(scans)),
-                "min": float(np.min(scans)),
-                "max": float(np.max(scans)),
+                "mean": float(np.mean(valid_scans)),
+                "std": float(np.std(valid_scans)),
+                # Use numpy min/max to handle potentially empty valid set if logic above fails, though caught by len check
+                "min": float(np.min(valid_scans)),
+                "max": float(np.max(valid_scans)),
             },
             "steers": {
                 "mean": float(np.mean(steers)),
@@ -178,6 +185,10 @@ class ExtractorEngine(BaseEngine):
                             ranges = np.array(msg.ranges, dtype=np.float32)
 
                         if ranges is not None:
+                            # Replace inf/nan with 0.0 or a safe value
+                            # For statistics, we might want to filter them out, but for dataset consistency we keep shape.
+                            # Standard practice: replace inf with max_range or 0.
+                            ranges = np.nan_to_num(ranges, posinf=30.0, neginf=0.0)
                             scans_list.append(ranges)
                             scan_times.append(message.log_time)
 

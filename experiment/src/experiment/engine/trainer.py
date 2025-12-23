@@ -7,6 +7,7 @@ import hydra
 import numpy as np
 import torch
 import torch.optim as optim
+import yaml
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
@@ -28,6 +29,17 @@ class TrainerEngine(BaseEngine):
         wandb_config = OmegaConf.to_container(cfg, resolve=True)
         # MLflowのRunIDをタグ付け
         wandb_config["mlflow_run_id"] = mlflow.active_run().info.run_id
+
+        # データのDVCハッシュを取得して記録
+        train_hash = self._get_dvc_hash(Path(cfg.train_data))
+        val_hash = self._get_dvc_hash(Path(cfg.val_data))
+
+        wandb_config["train_data_hash"] = train_hash
+        wandb_config["val_data_hash"] = val_hash
+
+        # MLflowにもパラメータとして記録
+        mlflow.log_param("train_data_hash", train_hash)
+        mlflow.log_param("val_data_hash", val_hash)
 
         wandb.init(
             project="e2e-playground",
@@ -66,7 +78,8 @@ class TrainerEngine(BaseEngine):
                 scans, targets = scans.to(device), targets.to(device)
 
                 _optimizer.zero_grad()
-                outputs = model(scans)
+                # model expects (batch, 1, input_dim)
+                outputs = model(scans.unsqueeze(1))
                 loss = _criterion(outputs, targets)
                 loss.backward()
                 _optimizer.step()
@@ -81,7 +94,8 @@ class TrainerEngine(BaseEngine):
             with torch.no_grad():
                 for scans, targets in _val_loader:
                     scans, targets = scans.to(device), targets.to(device)
-                    outputs = model(scans)
+                    # model expects (batch, 1, input_dim)
+                    outputs = model(scans.unsqueeze(1))
                     loss = _criterion(outputs, targets)
                     val_loss += loss.item()
 
@@ -135,3 +149,20 @@ class TrainerEngine(BaseEngine):
 
         wandb.finish()
         return model_path
+
+    def _get_dvc_hash(self, data_dir: Path) -> str:
+        """Get DVC hash from .dvc file associated with the data directory."""
+        dvc_file = data_dir.with_suffix(".dvc")
+        # また、ディレクトリ自体が .dvc ファイルである場合も考慮（通常は data_dir.dvc）
+        # ただし data_dir が "data/train_set" の場合、探すのは "data/train_set.dvc"
+
+        if not dvc_file.exists():
+            return "unknown"
+
+        try:
+            with open(dvc_file) as f:
+                dvc_data = yaml.safe_load(f)
+                return dvc_data["outs"][0]["md5"]
+        except Exception as e:
+            logger.warning(f"Failed to read DVC hash from {dvc_file}: {e}")
+            return "unknown"

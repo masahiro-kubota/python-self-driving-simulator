@@ -267,17 +267,17 @@ uv run experiment-runner experiment=extraction input_dir=outputs/latest/train/ra
 uv run experiment-runner experiment=extraction input_dir=outputs/latest/val/raw_data output_dir=data/val_set
 
 # データのバージョン管理 (DVC)
-# 抽出したデータを管理対象に追加
-dvc add data/train_set data/val_set
-
-# リモートストレージへプッシュ (設定済みの場合)
-dvc push
+# ※抽出完了時に自動で dvc add / dvc push が実行されます
+# data/train_set.dvc, data/val_set.dvc が生成/更新されるので、これらをGitコミットしてください
 ```
 
 ### 3. 学習 (Train)
 
 抽出されたデータと統計量を用いて学習します。統計量は自動的に適用されます。
-他の環境で実行する場合などは、事前にデータをpullしてください。
+
+> [!TIP]
+> **データの同期**: 他の環境で実行する場合や、データ実体がない場合は `dvc pull` を実行してください。
+> **トレーサビリティ**: 学習実行時に、使用したデータのDVCハッシュ（`train_data_hash`, `val_data_hash`）が自動的にMLflow/WandBに記録されます。
 
 ```bash
 # データ取得 (必要な場合)
@@ -289,6 +289,7 @@ uv run experiment-runner experiment=training \
     train_data=data/train_set \
     val_data=data/val_set
 ```
+
 
 ### 4. モデル変換
 
