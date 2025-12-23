@@ -26,15 +26,15 @@ cd mlflow
 docker compose up -d
 cd ..
 
-# 4. 実験を実行
+# 4. 実験を実行 (追跡用環境変数の指定が必須です)
 # デフォルト実行 (Pure Pursuit, 60秒)
-uv run experiment-runner
+MLFLOW_TRACKING_URI=http://localhost:5000 uv run experiment-runner
 
 # パラメータを上書き
-uv run experiment-runner execution.duration_sec=10.0
+MLFLOW_TRACKING_URI=http://localhost:5000 uv run experiment-runner execution.duration_sec=10.0
 
 # エージェントを切り替え (Tiny LiDAR Net)
-uv run experiment-runner agent=tiny_lidar agent.model_path=models/tinylidarnet_v2.npy
+MLFLOW_TRACKING_URI=http://localhost:5000 uv run experiment-runner agent=tiny_lidar agent.model_path=models/tinylidarnet_v2.npy
 
 # 5. 結果を確認
 # MLflow UI: http://localhost:5000
@@ -47,6 +47,33 @@ uv run experiment-runner agent=tiny_lidar agent.model_path=models/tinylidarnet_v
 cd mlflow
 docker compose down  # データを保持
 docker compose down -v  # データも削除
+```
+
+---
+
+## 🔍 生成物の確認手順
+
+実験や学習の結果が正しく保存されているかは、以下のツールで確認できます。
+
+### 1. 実験の履歴とサマリー (MLflow)
+ブラウザで [http://localhost:5000](http://localhost:5000) にアクセスします。
+- **履歴**: 実行されたすべてのフェーズ（Collect, Train, Eval等）が一覧表示されます。
+- **設定**: 各実行の `Parameters` セクションで、Hydra の設定値を確認できます。
+- **成果物 (Artifacts)**: `Artifacts` セクションに、`config.yaml` や学習済みモデル（`.pth`, `.npy`, `.onnx`）、評価ダッシュボード（`dashboard.html`）が保存されます。
+
+### 2. ファイルの実体 (MinIO)
+ブラウザで [http://localhost:9001](http://localhost:9001) にアクセスします（ID/PW: `minioadmin`）。
+- **`mlflow` バケット**: MLflow で記録したモデルやログの実体が保存されています。
+- **`dvc-storage` バケット**: `dvc push` した大容量データやモデルの重みが保存されます。
+
+### 3. 大容量データのバージョン (DVC)
+ローカルで以下のコマンドを実行します。
+```bash
+# 管理対象のファイル一覧を確認
+uv run dvc list .
+
+# リモート（MinIO）との同期状態を確認
+uv run dvc status
 ```
 
 ---
@@ -197,7 +224,7 @@ uv run python scripts/profile_experiment.py --rate 1000
 PYTHONPATH="" uv run pytest
 
 # 統合テストの実行
-PYTHONPATH="" uv run pytest -m integration -v
+PYTHONPATH="" uv run pytest -m integration -v -s
 
 # 統合テストを除外（単体テストのみ）
 PYTHONPATH="" uv run pytest -m "not integration"
@@ -221,10 +248,10 @@ Hydraを使用してパラメータをランダム化し、生データを収集
 
 ```bash
 # 学習データ
-uv run experiment-runner experiment=data_collection execution.num_episodes=100 +split=train
+MLFLOW_TRACKING_URI=http://localhost:5000 uv run experiment-runner experiment=data_collection execution.num_episodes=100 +split=train
 
 # 検証データ
-uv run experiment-runner experiment=data_collection execution.num_episodes=20 +split=val
+MLFLOW_TRACKING_URI=http://localhost:5000 uv run experiment-runner experiment=data_collection execution.num_episodes=20 +split=val
 ```
 
 ### 2. データ抽出・統計計算 (Extract)
@@ -244,7 +271,7 @@ uv run experiment-runner experiment=extraction input_dir=outputs/latest/val/raw_
 抽出されたデータと統計量を用いて学習します。統計量は自動的に適用されます。
 
 ```bash
-uv run experiment-runner experiment=training \
+MLFLOW_TRACKING_URI=http://localhost:5000 uv run experiment-runner experiment=training \
     training.num_epochs=50 \
     train_data=data/train_set \
     val_data=data/val_set
@@ -265,7 +292,7 @@ uv run python experiment/tools/convert_model.py \
 学習したモデルを使ってシミュレーションを実行します。
 
 ```bash
-uv run experiment-runner experiment=evaluation \
+MLFLOW_TRACKING_URI=http://localhost:5000 uv run experiment-runner experiment=evaluation \
     agent=tiny_lidar \
     agent.model_path=models/tinylidarnet_v1.npy
 ```

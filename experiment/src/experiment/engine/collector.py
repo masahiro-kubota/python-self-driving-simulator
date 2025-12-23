@@ -26,12 +26,18 @@ logger = logging.getLogger(__name__)
 class CollectorEngine(BaseEngine):
     """データ収集エンジン"""
 
-    def run(self, cfg: DictConfig) -> Any:
+    def _run_impl(self, cfg: DictConfig) -> Any:
         seed = cfg.get("seed", 42)
         num_episodes = cfg.execution.num_episodes
         split = cfg.get("split", "train")
 
-        output_dir = Path(hydra.core.hydra_config.HydraConfig.get().run.dir) / split / "raw_data"
+        # Safe HydraConfig access
+        try:
+            hydra_dir = Path(hydra.core.hydra_config.HydraConfig.get().run.dir)
+        except (ValueError, AttributeError):
+            hydra_dir = Path("outputs/latest")
+
+        output_dir = hydra_dir / split / "raw_data"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         logger.info(

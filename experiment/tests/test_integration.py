@@ -10,6 +10,12 @@ from core.data import VehicleParameters
 from experiment.core.orchestrator import ExperimentOrchestrator
 
 
+@pytest.fixture(autouse=True)
+def mock_mlflow(monkeypatch, tmp_path) -> None:
+    """Set a temporary MLflow tracking URI for tests."""
+    monkeypatch.setenv("MLFLOW_TRACKING_URI", f"file://{tmp_path}/mlflow")
+
+
 @pytest.mark.integration
 def test_pure_pursuit_experiment_nodes() -> None:
     """Test Pure Pursuit experiment execution with Hydra configuration."""
@@ -37,6 +43,7 @@ def test_pure_pursuit_experiment_nodes() -> None:
     # Override for testing
     cfg.execution.duration_sec = 200.0
     cfg.execution.num_episodes = 1
+    cfg.output_dir = str(tmp_path)
     cfg.postprocess.mcap.output_dir = str(tmp_path)
 
     # Manually replace Hydra interpolations before resolution

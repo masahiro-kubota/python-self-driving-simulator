@@ -2,8 +2,10 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
+import hydra
 from omegaconf import DictConfig
 
+import mlflow
 from core.clock import create_clock
 from core.data import SimulationResult
 from core.data.frame_data import collect_node_output_fields, create_frame_data_type
@@ -66,64 +68,98 @@ class SimulatorRunner:
 class EvaluatorEngine(BaseEngine):
     """評価エンジン"""
 
-    def run(self, cfg: DictConfig) -> ExperimentResult:
+    def _run_impl(self, cfg: DictConfig) -> ExperimentResult:
         logger.info("Running Evaluation Engine...")
 
-        # 動的な実験構成の生成 (Simple implementation for evaluation)
-        # Note: In a real scenario, this would involve loading nodes from EntryPoints
+        # MLflow tags
+        mlflow.set_tag("evaluation_type", cfg.get("evaluation_type", "standard"))
+
+        output_dir_raw = cfg.get("output_dir")
+        if output_dir_raw:
+            output_dir = Path(output_dir_raw)
+        else:
+            # Safe HydraConfig access
+            try:
+                hydra_dir = Path(hydra.core.hydra_config.HydraConfig.get().run.dir)
+            except (ValueError, AttributeError):
+                hydra_dir = Path("outputs/latest")
+            output_dir = hydra_dir / "evaluation"
+
+        output_dir.mkdir(parents=True, exist_ok=True)
 
         from experiment.engine.collector import CollectorEngine
 
         collector = CollectorEngine()
-        experiment_structure = collector.create_experiment_instance(
-            cfg, output_dir=Path("tmp"), episode_idx=0
-        )
 
-        runner = SimulatorRunner()
         results = []
-
-        # Run one or more episodes
         num_episodes = cfg.execution.num_episodes if hasattr(cfg.execution, "num_episodes") else 1
+
+        logger.info(f"Evaluating model on {num_episodes} episodes...")
+
         for i in range(num_episodes):
+            experiment_structure = collector.create_experiment_instance(
+                cfg, output_dir=output_dir, episode_idx=i
+            )
+            runner = SimulatorRunner()
             res = runner.run_simulation(experiment_structure)
             results.append(res)
 
-        # Calculate dummy metrics for now to satisfy test_integration.py
+            logger.info(
+                f"Episode {i+1}/{num_episodes}: {'Success' if res.success else 'Failed (' + res.reason + ')'}"
+            )
+
+        # Calculate Aggregate Metrics
+        success_count = sum(1 for r in results if r.success)
+        success_rate = success_count / num_episodes
+
         metrics = Metrics(
-            success_rate=1.0 if results[0].success else 0.0,
-            goal_count=1 if results[0].success else 0,
-            collision_count=0,
+            success_rate=success_rate,
+            goal_count=success_count,
+            collision_count=sum(1 for r in results if "collision" in r.reason.lower()),
             termination_code=0,
         )
+
+        # Log Metrics to MLflow
+        mlflow.log_metric("success_rate", success_rate)
+        mlflow.log_metric("num_episodes", num_episodes)
 
         # Artifacts (Dashboard HTML)
         artifacts = []
         if cfg.postprocess.dashboard.enabled:
             from dashboard.generator import HTMLDashboardGenerator
+            from experiment.core.structures import Experiment
 
             generator = HTMLDashboardGenerator()
-            output_dir = Path("tmp")  # Default output dir
             dashboard_path = output_dir / "results_dashboard.html"
 
             try:
+                # Provide a dummy experiment container for the dashboard generator
+                dummy_exp = Experiment(
+                    id=cfg.experiment.get("id", "unnamed"),
+                    type=cfg.experiment.type,
+                    config=cfg,
+                    nodes=[],
+                )
+                eval_result = ExperimentResult(
+                    experiment=dummy_exp,
+                    simulation_results=results,
+                    metrics=metrics,
+                    execution_time=datetime.now(),
+                    artifacts=[],
+                )
                 generator.generate(
-                    result=ExperimentResult(
-                        experiment=experiment_structure,
-                        simulation_results=results,
-                        metrics=metrics,
-                        execution_time=datetime.now(),
-                        artifacts=[],
-                    ),
+                    result=eval_result,
                     output_path=dashboard_path,
                     osm_path=Path(cfg.env.map_path),
                     vehicle_params=cfg.vehicle,
                 )
                 artifacts.append(Artifact(local_path=dashboard_path))
+                mlflow.log_artifact(str(dashboard_path), "reports")
             except Exception as e:
                 logger.warning(f"Failed to generate dashboard: {e}")
 
         return ExperimentResult(
-            experiment=experiment_structure,
+            experiment=dummy_exp if "dummy_exp" in locals() else None,
             simulation_results=results,
             metrics=metrics,
             execution_time=datetime.now(),

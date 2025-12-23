@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 class ExtractorEngine(BaseEngine):
     """データ抽出・変換・統計量計算エンジン"""
 
-    def run(self, cfg: DictConfig) -> Any:
+    def _run_impl(self, cfg: DictConfig) -> Any:
         # Resolve 'latest' path if needed, or use cfg value
         input_dir_raw = cfg.get("input_dir")
         input_dir = Path(input_dir_raw) if input_dir_raw else Path("outputs/latest/raw_data")

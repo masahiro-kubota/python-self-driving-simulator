@@ -26,6 +26,8 @@ dependencies = [
     "wandb>=0.23.1",
     "py-spy>=0.4.1",
     "ideal-sensor",
+    "mlflow>=3.7.0",
+    "dvc[s3]>=3.65.0",
 ]
 
 [tool.uv]

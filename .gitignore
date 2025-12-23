@@ -5,6 +5,9 @@ artifacts/
 # MLflow
 mlruns/
 mlartifacts/
+# Keep compose.yml but ignore data generated if artifact root is misconfigured
+mlflow/*/
+mlflow/.trash/
 # Data and Models
 /data/
 outputs/
