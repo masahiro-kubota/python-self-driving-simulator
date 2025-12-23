@@ -13,6 +13,8 @@ mlflow/.trash/
 !/data/*.dvc
 !/data/.gitignore
 
+models/
+
 outputs/
 # Python
 __pycache__/
