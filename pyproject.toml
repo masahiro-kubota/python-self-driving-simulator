@@ -28,6 +28,7 @@ dependencies = [
     "ideal-sensor",
     "mlflow>=3.7.0",
     "dvc[s3]>=3.65.0",
+    "numba>=0.63.1",
 ]
 
 [tool.uv]

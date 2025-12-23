@@ -2,6 +2,7 @@ import math
 from typing import TYPE_CHECKING
 
 import numpy as np
+from numba import jit
 
 from core.data import LidarConfig, LidarScan, VehicleState
 
@@ -153,60 +154,15 @@ class LidarSensor:
         segments: np.ndarray,
         current_ranges: np.ndarray,
     ) -> np.ndarray:
-        """2D Vectorized Ray-Segment Intersection handled in batches for memory efficiency."""
-        m_segments = segments.shape[0]
-
-        # Batch segments to stay within reasonable memory limits (N_rays * M_batch elements)
-        batch_size = 500
-        for i in range(0, m_segments, batch_size):
-            m_batch = min(batch_size, m_segments - i)
-
-            seg_a = segments[i : i + m_batch, 0, :]  # [M_batch, 2]
-            seg_b = segments[i : i + m_batch, 1, :]  # [M_batch, 2]
-            seg_v = seg_b - seg_a  # [M_batch, 2]
-
-            # Determinant: ray_dx * seg_dy - ray_dy * seg_dx
-            det = (
-                ray_dirs[:, np.newaxis, 0] * seg_v[np.newaxis, :, 1]
-                - ray_dirs[:, np.newaxis, 1] * seg_v[np.newaxis, :, 0]
-            )
-
-            # Intersection parameters
-            dx = sensor_pos[0] - seg_a[:, 0]  # [M_batch]
-            dy = sensor_pos[1] - seg_a[:, 1]  # [M_batch]
-
-            # Param u: ( (O_y-A_y)D_x - (O_x-A_x)D_y ) / det
-            u_num = (
-                dy[np.newaxis, :] * ray_dirs[:, np.newaxis, 0]
-                - dx[np.newaxis, :] * ray_dirs[:, np.newaxis, 1]
-            )
-
-            # Param t: ( (O_y-A_y)V_x - (O_x-A_x)V_y ) / det
-            t_num = (
-                dy[np.newaxis, :] * seg_v[np.newaxis, :, 0]
-                - dx[np.newaxis, :] * seg_v[np.newaxis, :, 1]
-            )
-
-            with np.errstate(divide="ignore", invalid="ignore"):
-                u = u_num / det
-                t = t_num / det
-
-            # Valid intersection mask
-            mask = (
-                (np.abs(det) > 1e-10)
-                & (t >= self.config.range_min)
-                & (t <= self.config.range_max)
-                & (u >= 0.0)
-                & (u <= 1.0)
-            )
-
-            # Find minimum t for each ray in this batch
-            batch_min_t = np.where(mask, t, np.inf)
-            batch_min = np.min(batch_min_t, axis=1)
-
-            current_ranges = np.minimum(current_ranges, batch_min)
-
-        return current_ranges
+        """2D Vectorized Ray-Segment Intersection using Numba JIT."""
+        return _numba_intersection_kernel(
+            sensor_pos,
+            ray_dirs,
+            segments,
+            current_ranges,
+            self.config.range_min,
+            self.config.range_max,
+        )
 
     def _get_map_boundaries(self) -> list:
         """Extract boundaries from the map."""
@@ -258,3 +214,75 @@ class LidarSensor:
         gx = vehicle_state.x + rx
         gy = vehicle_state.y + ry
         return gx, gy
+
+
+@jit(nopython=True, cache=True)
+def _numba_intersection_kernel(
+    sensor_pos: np.ndarray,
+    ray_dirs: np.ndarray,
+    segments: np.ndarray,
+    ranges: np.ndarray,
+    range_min: float,
+    range_max: float,
+) -> np.ndarray:
+    """JIT-compiled kernel for ray-segment intersection.
+
+    Args:
+        sensor_pos: [2] (x, y)
+        ray_dirs: [N, 2] (cos, sin)
+        segments: [M, 2, 2] (start/end, x/y)
+        ranges: [N] Current ranges (modified in-place or returned)
+        range_min: Minimum valid range
+        range_max: Maximum valid range
+    """
+    n_rays = ray_dirs.shape[0]
+    m_segments = segments.shape[0]
+
+    sensor_x = sensor_pos[0]
+    sensor_y = sensor_pos[1]
+
+    # Loop over rays
+    for i in range(n_rays):
+        ray_dx = ray_dirs[i, 0]
+        ray_dy = ray_dirs[i, 1]
+
+        min_dist = ranges[i]  # Start with current best
+
+        # Loop over segments
+        for j in range(m_segments):
+            p1_x = segments[j, 0, 0]
+            p1_y = segments[j, 0, 1]
+            p2_x = segments[j, 1, 0]
+            p2_y = segments[j, 1, 1]
+
+            # Segment vector
+            seg_dx = p2_x - p1_x
+            seg_dy = p2_y - p1_y
+
+            # Cross product (Determinant)
+            det = ray_dx * seg_dy - ray_dy * seg_dx
+
+            # Parallel check
+            if abs(det) < 1e-10:
+                continue
+
+            # Calculate relative position (Sensor - SegmentStart)
+            # Matches NumPy implementation: dx = sensor_pos[0] - seg_a[:, 0]
+            dx = sensor_x - p1_x
+            dy = sensor_y - p1_y
+
+            # Intersection parameters
+            u_num = dy * ray_dx - dx * ray_dy
+            t_num = dy * seg_dx - dx * seg_dy
+
+            u = u_num / det
+            t = t_num / det
+
+            # Validity check
+            # Validity check
+            if t >= range_min and t <= range_max and u >= 0.0 and u <= 1.0 and t < min_dist:
+                min_dist = t
+
+        ranges[i] = min_dist
+
+    return ranges
