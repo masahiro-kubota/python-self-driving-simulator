@@ -183,7 +183,11 @@ graph TD
 `experiment-runner`の実行時間を計測し、ボトルネックを特定できます。
 
 ```bash
+# 実行時間を指定（例：5秒間実行してプロファイリング）
 uv run python experiment/tools/profile_experiment.py --duration 5
+
+# rateを指定（例：1000Hzでプロファイリング）
+uv run python scripts/profile_experiment.py --rate 1000
 ```
 
 ### テストの実行
@@ -191,6 +195,18 @@ uv run python experiment/tools/profile_experiment.py --duration 5
 ```bash
 # 全テストの実行
 PYTHONPATH="" uv run pytest
+
+# 統合テストの実行
+PYTHONPATH="" uv run pytest -m integration -v
+
+# 統合テストを除外（単体テストのみ）
+PYTHONPATH="" uv run pytest -m "not integration"
+
+# 特定のテストファイルを実行
+PYTHONPATH="" uv run pytest core/tests/test_config.py -v
+
+# Pre-commitフックの実行（全ファイル）
+uv run pre-commit run --all-files
 ```
 
 ---

@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 
 import pytest
@@ -80,8 +81,15 @@ def test_pure_pursuit_experiment_nodes() -> None:
     # Goal reached
     assert metrics.goal_count == 1, f"Goal count {metrics.goal_count} != 1"
 
-    # Verify MCAP file contents
+    # Move MCAP file from episode subdirectory to tmp root for user visibility
+    mcap_source = tmp_path / "episode_0000" / "simulation.mcap"
     mcap_path = tmp_path / "simulation.mcap"
+
+    if mcap_source.exists():
+        if mcap_path.exists():
+            mcap_path.unlink()
+        shutil.move(mcap_source, mcap_path)
+
     assert mcap_path.exists(), f"MCAP file not found at {mcap_path}"
 
     # Simple verification using mcap library
@@ -123,8 +131,6 @@ def test_pure_pursuit_experiment_nodes() -> None:
     assert dashboard_artifact is not None, "Dashboard HTML artifact not found"
 
     # Copy dashboard to tmp for user visibility
-    import shutil
-
     target_dashboard = tmp_path / "dashboard.html"
     shutil.copy(dashboard_artifact.local_path, target_dashboard)
     print(f"  Dashboard copied to {target_dashboard}")
