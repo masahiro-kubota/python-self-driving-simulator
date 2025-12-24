@@ -7,6 +7,9 @@ defaults:
   - agent: pure_pursuit
   - _self_
 
+seed: 42
+split: "train"
+
 hydra:
   run:
     dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

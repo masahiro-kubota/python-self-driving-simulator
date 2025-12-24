@@ -6,8 +6,8 @@ experiment:
   type: "extraction"
   description: "Extract features from MCAP and calculate statistics"
 
-input_dir: null
-output_dir: null
+input_dir: "outputs/latest/raw_data"
+output_dir: "outputs/latest/processed_data"
 
 normalization:
   enabled: true

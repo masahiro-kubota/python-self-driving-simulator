@@ -15,15 +15,10 @@ class PurePursuitConfig(ComponentConfig):
     """Configuration for PurePursuitNode."""
 
     track_path: Path = Field(..., description="Path to reference trajectory CSV")
-    lookahead_distance: float | None = Field(
-        None, description="Detailed fixed lookahead (deprecated in favor of dynamic/min/max)"
-    )
     min_lookahead_distance: float = Field(..., description="Minimum lookahead distance [m]")
     max_lookahead_distance: float = Field(..., description="Maximum lookahead distance [m]")
     lookahead_speed_ratio: float = Field(..., description="Lookahead distance speed ratio [s]")
     vehicle_params: VehicleParameters = Field(..., description="Vehicle parameters")
-
-    # If lookahead_distance is set, it overrides the dynamic logic (backward compatibility)
 
 
 class PurePursuitNode(Node[PurePursuitConfig]):
@@ -39,17 +34,16 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         self.reference_trajectory: Trajectory | None = None
         # self.config is set by base class
 
-        if self.config.track_path:
-            # Path resolution is handled by node_factory.create_node()
-            from planning_utils import load_track_csv
+        # Path resolution is handled by node_factory.create_node()
+        from planning_utils import load_track_csv
 
-            from core.utils import get_project_root
+        from core.utils import get_project_root
 
-            track_path = self.config.track_path
-            if not track_path.is_absolute():
-                track_path = get_project_root() / track_path
+        track_path = self.config.track_path
+        if not track_path.is_absolute():
+            track_path = get_project_root() / track_path
 
-            self.reference_trajectory = load_track_csv(track_path)
+        self.reference_trajectory = load_track_csv(track_path)
 
     def get_node_io(self) -> NodeIO:
         return NodeIO(
@@ -81,15 +75,13 @@ class PurePursuitNode(Node[PurePursuitConfig]):
 
         # 1. Calculate dynamic lookahead
         current_speed = vehicle_state.velocity
-        lookahead = self.config.lookahead_distance
-        if lookahead is None:
-            lookahead = max(
-                self.config.min_lookahead_distance,
-                min(
-                    self.config.max_lookahead_distance,
-                    current_speed * self.config.lookahead_speed_ratio,
-                ),
-            )
+        lookahead = max(
+            self.config.min_lookahead_distance,
+            min(
+                self.config.max_lookahead_distance,
+                current_speed * self.config.lookahead_speed_ratio,
+            ),
+        )
 
         # 2. Find nearest point
         min_dist = float("inf")

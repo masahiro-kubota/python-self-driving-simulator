@@ -26,11 +26,18 @@ system:
         vehicle_params: ${vehicle}
         initial_state: ${env.initial_state}
         obstacles: ${env.obstacles}
+    - name: "Sensor"
+      type: "ideal_sensor.sensor_node.IdealSensorNode"
+      rate_hz: 10.0
+      params: {}
     - name: "Logger"
       type: "LoggerNode"
       rate_hz: ${execution.clock_rate_hz}
       params:
+        # Must be a file path, not directory
+        output_mcap_path: ${postprocess.mcap.output_dir}/simulation.mcap
         map_path: ${env.map_path}
+        track_path: ${env.track_path}
         vehicle_params: ${vehicle}
 
 postprocess:

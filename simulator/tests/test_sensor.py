@@ -19,7 +19,17 @@ class TestLidarSensor:
 
     @pytest.fixture
     def config(self) -> LidarConfig:
-        return LidarConfig(num_beams=4, fov=360.0, range_max=10.0, x=0.0, y=0.0, yaw=0.0)
+        return LidarConfig(
+            num_beams=4,
+            fov=360.0,
+            range_min=0.0,
+            range_max=10.0,
+            angle_increment=math.pi / 2,
+            x=0.0,
+            y=0.0,
+            z=0.0,
+            yaw=0.0,
+        )
 
     @pytest.fixture
     def vehicle_state(self) -> VehicleState:

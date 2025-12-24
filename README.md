@@ -59,7 +59,11 @@ docker compose down -v  # データも削除
 ブラウザで [http://localhost:5000](http://localhost:5000) にアクセスします。
 - **履歴**: 実行されたすべてのフェーズ（Collect, Train, Eval等）が一覧表示されます。
 - **設定**: 各実行の `Parameters` セクションで、Hydra の設定値を確認できます。
-- **成果物 (Artifacts)**: `Artifacts` セクションに、`config.yaml` や学習済みモデル（`.pth`, `.npy`, `.onnx`）、評価ダッシュボード（`dashboard.html`）が保存されます。
+- **成果物 (Artifacts)**: `Artifacts` セクションに、以下のものが保存されます。
+  - `model`: MLflow Model Registry対応のモデルフォルダ（`MLmodel`, `python_model.pkl` 等）。これを "Models" タブで登録することでバージョン管理できます。
+  - `models`: その他の形式のモデルファイル（`.npy`, `.onnx`）。
+  - `config.yaml`: 使用した設定ファイル。
+  - `dashboard.html`: 評価ダッシュボード（評価フェーズ時）。
 
 ### 2. ファイルの実体 (MinIO)
 ブラウザで [http://localhost:9001](http://localhost:9001) にアクセスします（ID/PW: `minioadmin`）。
@@ -87,6 +91,25 @@ uv run dvc status
 | [![codecov](https://codecov.io/gh/masahiro-kubota/e2e_aichallenge_playground/branch/main/graph/badge.svg)](https://codecov.io/gh/masahiro-kubota/e2e_aichallenge_playground) | テストカバレッジ |
 | [**Simulation Dashboard**](https://masahiro-kubota.github.io/e2e_aichallenge_playground/) | 最新のテスト結果（シミュレーションダッシュボード） |
 | [**Sphinx Documentation**](https://masahiro-kubota.github.io/e2e_aichallenge_playground/docs/) | プロジェクトドキュメント (API Reference) |
+
+---
+
+## 開発ルール (Development Rules)
+
+本プロジェクトでは、設定の安全性と再現性を担保するため、以下のルールを厳格に適用しています。
+
+### 1. 厳格な設定管理 (Strict Configuration)
+
+*   **ハードコード禁止**: コード内にデフォルト値（例: `val = cfg.get("key", 10)`）を埋め込むことは禁止です。すべてのパラメータは YAML ファイルで明示的に定義するか、Pydantic モデルで必須フィールド（`Field(...)`）として定義してください。
+*   **Pydanticによるバリデーション**: 設定クラスは `pydantic.BaseModel` または `ComponentConfig` を継承し、`extra="forbid"` 等を用いて未定義のパラメータを許容しないようにします。
+
+### 2. YAML設定のオーバーライド
+
+*   **明示的なキー指定**: Hydra の `+` プレフィックス（キーの追加）は原則として使用せず、既存のキーに対するオーバーライド（例: `split=val`）を使用してください。`config.yaml` 等でデフォルト値を `null` や適切な値で初期化しておく必要があります。
+
+### 3. ファイルパスの扱い
+
+*   **明示的なファイルパス**: 出力パス等は、ディレクトリパスではなく、具体的なファイル名まで含むフルパスを指定してください（例: `output_dir/simulation.mcap`）。プログラム側での「ファイル名の自動補完」や「ディレクトリ判定」は、予期せぬ挙動を防ぐために排除されています。
 
 ---
 
@@ -248,10 +271,10 @@ Hydraを使用してパラメータをランダム化し、生データを収集
 
 ```bash
 # 学習データ
-uv run experiment-runner experiment=data_collection execution.num_episodes=100 +split=train
+uv run experiment-runner experiment=data_collection execution.num_episodes=100 split=train
 
 # 検証データ
-uv run experiment-runner experiment=data_collection execution.num_episodes=20 +split=val
+uv run experiment-runner experiment=data_collection execution.num_episodes=20 split=val
 ```
 
 ### 2. データ抽出・統計計算 (Extract)
@@ -276,12 +299,12 @@ uv run experiment-runner experiment=extraction input_dir=outputs/latest/val/raw_
 抽出されたデータと統計量を用いて学習します。統計量は自動的に適用されます。
 
 > [!TIP]
-> **データの同期**: 他の環境で実行する場合や、データ実体がない場合は `dvc pull` を実行してください。
+> **データの同期**: 他の環境で実行する場合や、データ実体がない場合は `uv run dvc pull` を実行してください。
 > **トレーサビリティ**: 学習実行時に、使用したデータのDVCハッシュ（`train_data_hash`, `val_data_hash`）が自動的にMLflow/WandBに記録されます。
 
 ```bash
 # データ取得 (必要な場合)
-dvc pull
+uv run dvc pull
 
 # 学習実行
 uv run experiment-runner experiment=training \

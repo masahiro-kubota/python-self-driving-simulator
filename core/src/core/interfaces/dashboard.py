@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from core.data import VehicleParameters
     from core.data.experiment import ExperimentResult
 
 
@@ -21,8 +22,8 @@ class DashboardGenerator(ABC):
         self,
         result: "ExperimentResult",
         output_path: Path,
-        osm_path: Path | None = None,
-        vehicle_params: dict | None = None,
+        osm_path: Path,
+        vehicle_params: "dict | VehicleParameters",
     ) -> Path:
         """Generate interactive dashboard from experiment result.
 

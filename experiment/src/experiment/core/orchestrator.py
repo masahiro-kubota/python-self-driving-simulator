@@ -8,7 +8,20 @@ class ExperimentOrchestrator:
 
     def run_from_hydra(self, cfg: DictConfig) -> Any:
         """Hydra設定から実験フェーズを実行"""
-        phase = cfg.experiment.type
+        from omegaconf import OmegaConf
+
+        from experiment.core.config import ExperimentConfig
+
+        # Validate configuration using Pydantic
+        # Resolve OmegaConf to primitive types for Pydantic validation
+        cfg_container = OmegaConf.to_container(cfg, resolve=True)
+        validated_config = ExperimentConfig(**cfg_container)
+
+        # Convert back to OmegaConf to support dot access in existing codebase (e.g. cfg.system.nodes)
+        # and ensure we are using the validated/sanitized configuration.
+        strict_cfg = OmegaConf.create(validated_config.model_dump())
+
+        phase = strict_cfg.experiment.type
 
         if phase == "data_collection":
             from experiment.engine.collector import CollectorEngine
@@ -29,4 +42,4 @@ class ExperimentOrchestrator:
         else:
             raise ValueError(f"Unknown experiment phase: {phase}")
 
-        return engine.run(cfg)
+        return engine.run(strict_cfg)

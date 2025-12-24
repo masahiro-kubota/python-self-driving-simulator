@@ -1,4 +1,4 @@
-lookahead_distance: 5.0
-min_lookahead: 2.0
-max_lookahead: 15.0
+min_lookahead_distance: 2.0
+max_lookahead_distance: 15.0
+lookahead_speed_ratio: 1.0
 track_path: null

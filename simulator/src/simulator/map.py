@@ -17,6 +17,8 @@ class LaneletMap:
             osm_path: Path to the .osm file
         """
         self.drivable_area: Polygon | None = parse_osm_for_collision(osm_path)
+        if self.drivable_area is None:
+            raise ValueError(f"Failed to load drivable area from {osm_path}")
 
     def is_drivable(self, x: float, y: float) -> bool:
         """Check if the point is within the drivable area.
@@ -28,9 +30,7 @@ class LaneletMap:
         Returns:
             True if within drivable area, False otherwise
         """
-        if self.drivable_area is None:
-            return True  # If map failed to load, assume everywhere is drivable
-
+        # Drivable area is guaranteed to be loaded in init
         point = Point(x, y)
         return self.drivable_area.contains(point)
 

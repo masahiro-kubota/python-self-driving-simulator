@@ -1,6 +1,7 @@
 # Default Environment Configuration
 
-map_path: "simulator/tests/assets/lanelet2_map.osm"
+map_path: "experiment/assets/lanelet2_map.osm"
+track_path: "experiment/assets/raceline_awsim_15km.csv"
 
 # Initial State
 initial_state:
@@ -16,49 +17,54 @@ goal_position:
 goal_tolerance: 5.0
 
 # Obstacles
+# Obstacles
 obstacles:
-  - type: static
-    shape:
-      type: rectangle
-      width: 2
-      length: 4
-    position:
-      x: 89635.303
-      y: 43148.381
-      yaw: 0
-  - type: static
-    shape:
-      type: rectangle
-      width: 2
-      length: 4
-    position:
-      x: 89642.364
-      y: 43156.666
-      yaw: 0
-  - type: static
-    shape:
-      type: rectangle
-      width: 2
-      length: 4
-    position:
-      x: 89640.387
-      y: 43139.626
-      yaw: 0
-  - type: static
-    shape:
-      type: rectangle
-      width: 2
-      length: 4
-    position:
-      x: 89639.822
-      y: 43149.417
-      yaw: 0
-  - type: static
-    shape:
-      type: rectangle
-      width: 2
-      length: 4
-    position:
-      x: 89645.0
-      y: 43132.0
-      yaw: 0
+  generation:
+    enabled: false
+    groups: []
+  list:
+    - type: static
+      shape:
+        type: rectangle
+        width: 2
+        length: 4
+      position:
+        x: 89635.303
+        y: 43148.381
+        yaw: 0
+    - type: static
+      shape:
+        type: rectangle
+        width: 2
+        length: 4
+      position:
+        x: 89642.364
+        y: 43156.666
+        yaw: 0
+    - type: static
+      shape:
+        type: rectangle
+        width: 2
+        length: 4
+      position:
+        x: 89640.387
+        y: 43139.626
+        yaw: 0
+    - type: static
+      shape:
+        type: rectangle
+        width: 2
+        length: 4
+      position:
+        x: 89639.822
+        y: 43149.417
+        yaw: 0
+    - type: static
+      shape:
+        type: rectangle
+        width: 2
+        length: 4
+      position:
+        x: 89645.0
+        y: 43132.0
+        yaw: 0

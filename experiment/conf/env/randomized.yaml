@@ -1,0 +1,40 @@
+# Randomized Environment Configuration
+defaults:
+  - default
+  - _self_
+
+obstacles:
+  generation:
+    enabled: true
+    groups:
+      - name: "random_static_on_track"
+        type: static
+        count: 10
+        shape:
+          type: rectangle
+          width: 2.0
+          length: 4.0
+        placement:
+          strategy: random_track
+          offset:
+            min: -1.0
+            max: 1.0
+          yaw_mode: aligned
+
+      - name: "random_static_scattered"
+        type: static
+        count: 5
+        shape:
+          type: rectangle
+          width: 1.0
+          length: 1.0
+        placement:
+          strategy: random_map
+          bounds:
+             x_min: 89620
+             x_max: 89660
+             y_min: 43120
+             y_max: 43160
+
+  # You can also include specific fixed obstacles here using the list key
+  list: []

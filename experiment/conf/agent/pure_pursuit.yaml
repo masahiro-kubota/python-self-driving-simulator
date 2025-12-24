@@ -11,7 +11,7 @@ nodes:
       min_lookahead_distance: 2.0
       max_lookahead_distance: 15.0
       lookahead_speed_ratio: 1.5
-      track_path: "ad_components/planning/pure_pursuit/src/pure_pursuit/data/tracks/raceline_awsim_15km.csv"
+      track_path: ${env.track_path}
 
   - name: "Control"
     type: "pid_controller.PIDControllerNode"

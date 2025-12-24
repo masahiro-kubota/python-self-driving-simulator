@@ -28,6 +28,10 @@ tire_params: {}
 lidar:
   num_beams: 1080
   range_max: 30.0
+  range_min: 0.1
   fov: 270.0
+  angle_increment: 0.0
   x: 1.5   # Front of vehicle
+  y: 0.0
   z: 1.8
+  yaw: 0.0

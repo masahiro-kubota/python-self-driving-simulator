@@ -56,7 +56,7 @@ class VehicleParameters(BaseModel):
     front_overhang: float  # フロントオーバーハング [m]
     rear_overhang: float  # リアオーバーハング [m]
 
-    tire_params: dict[str, Any] = Field(default_factory=dict)  # タイヤパラメータ(将来の拡張用)
+    tire_params: dict[str, Any] = Field(..., description="Tire parameters")
 
     # センサー設定
     lidar: LidarConfig | None = None

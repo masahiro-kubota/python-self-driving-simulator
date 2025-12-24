@@ -6,7 +6,7 @@ from typing import Any
 
 import hydra
 import numpy as np
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 from core.data.experiment.config import (
     ExecutionConfig,
@@ -27,10 +27,11 @@ class CollectorEngine(BaseEngine):
     """データ収集エンジン"""
 
     def _run_impl(self, cfg: DictConfig) -> Any:
-        seed = cfg.get("seed", 42)
+        if "seed" not in cfg:
+            raise ValueError("Configuration must include 'seed' parameter.")
+        seed = cfg.seed
         num_episodes = cfg.execution.num_episodes
-        split = cfg.get("split", "train")
-
+        split = cfg.split
         # Safe HydraConfig access
         try:
             hydra_dir = Path(hydra.core.hydra_config.HydraConfig.get().run.dir)
@@ -63,6 +64,17 @@ class CollectorEngine(BaseEngine):
                 logger.info("Episode successful.")
             else:
                 logger.warning(f"Episode failed: {result.reason}")
+
+        # Create convenience symlink to this run
+        try:
+            project_root = Path.cwd()
+            symlink_path = project_root / "latest_output"
+            if symlink_path.is_symlink() or symlink_path.exists():
+                symlink_path.unlink()
+            symlink_path.symlink_to(output_dir)
+            logger.info(f"Created/Updated symlink: {symlink_path} -> {output_dir}")
+        except Exception as e:
+            logger.warning(f"Failed to create latest_output symlink: {e}")
 
         logger.info(f"Data collection completed. Output: {output_dir}")
         return output_dir
@@ -98,7 +110,7 @@ class CollectorEngine(BaseEngine):
 
         for node in nodes_data:
             if node["name"] == "Logger":
-                node["params"]["output_mcap_path"] = str(episode_dir)
+                node["params"]["output_mcap_path"] = str(episode_dir / "simulation.mcap")
 
         resolved_nodes = [NodeConfig(**node) for node in nodes_data]
         resolved_config = ResolvedExperimentConfig(
@@ -125,7 +137,7 @@ class CollectorEngine(BaseEngine):
             nodes=nodes,
         )
 
-    def _randomize_simulation_config(self, cfg: DictConfig, rng: np.random.Generator) -> None:
+    def randomize_simulation_config(self, cfg: DictConfig, rng: np.random.Generator) -> None:
         nodes = cfg.system.nodes
         sim_node = next((n for n in nodes if n.name == "Simulator"), None)
         if not sim_node:
@@ -137,7 +149,27 @@ class CollectorEngine(BaseEngine):
         initial_state.yaw += rng.uniform(-0.5, 0.5)
 
         obstacles = sim_node.params.obstacles
-        for obs in obstacles:
-            obs["position"]["x"] += rng.uniform(-1.0, 1.0)
-            obs["position"]["y"] += rng.uniform(-1.0, 1.0)
-            obs["position"]["yaw"] = rng.uniform(0, 6.28)
+
+        # Check for generator config (Dict input instead of List)
+        if isinstance(obstacles, dict | DictConfig) and "generation" in obstacles:
+            from experiment.engine.obstacle_generator import ObstacleGenerator
+
+            map_path = Path(sim_node.params.map_path)
+            gen_seed = int(rng.integers(0, 2**32 - 1))
+
+            generator = ObstacleGenerator(map_path, seed=gen_seed)
+            generated_obstacles = generator.generate(obstacles.generation)
+
+            # Support mixing explicit list with generated obstacles
+            if "list" in obstacles and obstacles.list:
+                generated_obstacles.extend(OmegaConf.to_container(obstacles.list, resolve=True))
+
+            # Replace with flat list for Simulator
+            sim_node.params.obstacles = generated_obstacles
+
+        # Legacy behavior: perturb existing list
+        elif isinstance(obstacles, list | ListConfig):
+            for obs in obstacles:
+                obs["position"]["x"] += rng.uniform(-1.0, 1.0)
+                obs["position"]["y"] += rng.uniform(-1.0, 1.0)
+                obs["position"]["yaw"] = rng.uniform(0, 6.28)

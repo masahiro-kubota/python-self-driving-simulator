@@ -35,7 +35,14 @@ def test_pure_pursuit_experiment_nodes(_mock_mlflow_eval, _mock_mlflow_base) -> 
 
     # Merge configs
     cfg = OmegaConf.merge(
-        experiment_cfg, {"env": env_cfg, "vehicle": vehicle_cfg, "agent": agent_cfg}
+        experiment_cfg,
+        {
+            "env": env_cfg,
+            "vehicle": vehicle_cfg,
+            "agent": agent_cfg,
+            "seed": 42,
+            "split": "test",
+        },
     )
 
     # Override for testing
@@ -164,6 +171,7 @@ def test_node_instantiation(tmp_path) -> None:
         c_roll=0.015,
         max_drive_force=5000.0,
         max_brake_force=8000.0,
+        tire_params={},
     )
     # Create dummy track
     dummy_track = tmp_path / "test_track.csv"

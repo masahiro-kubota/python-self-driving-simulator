@@ -28,14 +28,9 @@ if TYPE_CHECKING:
 class SimulatorConfig(ComponentConfig):
     """Configuration for Simulator."""
 
-    vehicle_params: VehicleParameters = Field(
-        default_factory=VehicleParameters, description="Vehicle parameters"
-    )
-    initial_state: VehicleState = Field(
-        default_factory=lambda: VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=0.0, timestamp=0.0),
-        description="Initial vehicle state",
-    )
-    map_path: Path | None = Field(None, description="Path to Lanelet2 map file")
+    vehicle_params: VehicleParameters = Field(..., description="Vehicle parameters")
+    initial_state: VehicleState = Field(..., description="Initial vehicle state")
+    map_path: Path = Field(..., description="Path to Lanelet2 map file")
     obstacles: list = Field(default_factory=list, description="List of obstacles")
 
 
@@ -90,15 +85,9 @@ class Simulator(Node[SimulatorConfig]):
         metadata = {}
 
         # Add vehicle parameters to metadata
-        if self.config.vehicle_params:
-            if hasattr(self.config.vehicle_params, "model_dump"):
-                vp_dict = self.config.vehicle_params.model_dump()
-            elif isinstance(self.config.vehicle_params, dict):
-                vp_dict = self.config.vehicle_params
-            else:
-                # Fallback: convert to dict using vars()
-                vp_dict = vars(self.config.vehicle_params)
-            metadata.update(vp_dict)
+        # Pydantic ensures vehicle_params is not None and is a VehicleParameters object
+        vp_dict = self.config.vehicle_params.model_dump()
+        metadata.update(vp_dict)
 
         # Add obstacles to metadata
         if self.config.obstacles:
@@ -111,13 +100,12 @@ class Simulator(Node[SimulatorConfig]):
 
         self.log = SimulationLog(steps=[], metadata=metadata)
 
-        # Load map if specified
-        if self.config.map_path:
-            from pathlib import Path
+        # Load map
+        from pathlib import Path
 
-            from simulator.map import LaneletMap
+        from simulator.map import LaneletMap
 
-            self.map = LaneletMap(Path(self.config.map_path))
+        self.map = LaneletMap(Path(self.config.map_path))
 
         # Initialize obstacle manager
         if self.config.obstacles:
@@ -133,15 +121,8 @@ class Simulator(Node[SimulatorConfig]):
             self.obstacle_manager = ObstacleManager(obstacles)
 
         # Initialize Lidar config
-        # Priority 1: Direct config (deprecated)
-        # Priority 2: Vehicle parameters
-        lidar_config = None
-        if hasattr(self.config, "lidar_config") and self.config.lidar_config:
-            lidar_config = self.config.lidar_config
-        elif self.config.vehicle_params and self.config.vehicle_params.lidar:
+        if self.config.vehicle_params.lidar:
             lidar_config = self.config.vehicle_params.lidar
-
-        if lidar_config:
             from simulator.sensor import LidarSensor
 
             self.lidar_sensor = LidarSensor(

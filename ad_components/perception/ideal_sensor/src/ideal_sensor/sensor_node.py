@@ -1,21 +1,16 @@
-from pydantic import Field
-
-from core.data.experiment.config import NodeConfig
+from core.data import ComponentConfig
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult
 
 
-class IdealSensorConfig(NodeConfig):
-    name: str = "Sensor"
-    type: str = "IdealSensorNode"
-    rate_hz: float = 10.0
-    params: dict = Field(default_factory=dict)
+class IdealSensorConfig(ComponentConfig):
+    pass
 
 
 class IdealSensorNode(Node[IdealSensorConfig]):
     """テスト用のパススルーセンサーノード"""
 
-    def __init__(self, config: IdealSensorConfig, rate_hz: float = 10.0):
+    def __init__(self, config: IdealSensorConfig, rate_hz: float):
         super().__init__("Sensor", rate_hz, config)
 
     def get_node_io(self) -> NodeIO:

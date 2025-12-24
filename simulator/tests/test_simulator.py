@@ -1,9 +1,15 @@
 """Tests for Simulator Node."""
 
+import unittest.mock
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
 from core.data import Action, VehicleParameters, VehicleState
 from core.data.node_io import NodeIO
 from core.interfaces.node import NodeExecutionResult
-from simulator.simulator import Simulator
+from simulator.simulator import Simulator, SimulatorConfig
 
 DUMMY_VP = VehicleParameters(
     wheelbase=2.5,
@@ -23,19 +29,31 @@ DUMMY_VP = VehicleParameters(
     c_roll=0.015,
     max_drive_force=5000.0,
     max_brake_force=8000.0,
+    tire_params={},
 )
+
+DUMMY_INITIAL_STATE = VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=0.0, timestamp=0.0)
+
+
+@pytest.fixture
+def _mock_map():
+    """Mock LaneletMap to avoid needing real map files for generic tests."""
+    with unittest.mock.patch("simulator.map.LaneletMap") as mock_map_class:
+        instance = mock_map_class.return_value
+        instance.is_drivable.return_value = True
+        instance.is_drivable_polygon.return_value = True
+        yield mock_map_class
 
 
 class TestSimulatorNode:
     """Tests for Simulator as a Node."""
 
-    def test_initialization(self) -> None:
+    def test_initialization(self, _mock_map) -> None:
         """Test Simulator initialization with config."""
-        from simulator.simulator import SimulatorConfig
-
         config = SimulatorConfig(
             vehicle_params=DUMMY_VP,
             initial_state=VehicleState(x=10.0, y=5.0, yaw=1.0, velocity=2.0, timestamp=0.0),
+            map_path=Path("dummy_map.osm"),
         )
 
         sim = Simulator(config=config, rate_hz=10.0)
@@ -46,11 +64,13 @@ class TestSimulatorNode:
         assert sim.config.initial_state.y == 5.0
         assert isinstance(sim.config.vehicle_params, VehicleParameters)
 
-    def test_node_io(self) -> None:
+    def test_node_io(self, _mock_map) -> None:
         """Test that Simulator defines correct node IO."""
-        from simulator.simulator import SimulatorConfig
-
-        config = SimulatorConfig(vehicle_params=DUMMY_VP)
+        config = SimulatorConfig(
+            vehicle_params=DUMMY_VP,
+            initial_state=DUMMY_INITIAL_STATE,
+            map_path=Path("dummy_map.osm"),
+        )
         sim = Simulator(config=config, rate_hz=10.0)
 
         node_io = sim.get_node_io()
@@ -59,13 +79,12 @@ class TestSimulatorNode:
         assert "action" in node_io.inputs
         assert "sim_state" in node_io.outputs
 
-    def test_on_init(self) -> None:
+    def test_on_init(self, _mock_map) -> None:
         """Test on_init initializes state correctly."""
-        from simulator.simulator import SimulatorConfig
-
         config = SimulatorConfig(
             vehicle_params=DUMMY_VP,
             initial_state=VehicleState(x=5.0, y=3.0, yaw=0.5, velocity=1.0, timestamp=0.0),
+            map_path=Path("dummy_map.osm"),
         )
 
         sim = Simulator(config=config, rate_hz=10.0)
@@ -78,13 +97,13 @@ class TestSimulatorNode:
         assert sim.current_time == 0.0
         assert len(sim.log.steps) == 0
 
-    def test_on_run_basic(self) -> None:
+    def test_on_run_basic(self, _mock_map) -> None:
         """Test on_run executes physics step."""
-        from types import SimpleNamespace
-
-        from simulator.simulator import SimulatorConfig
-
-        config = SimulatorConfig(vehicle_params=DUMMY_VP)
+        config = SimulatorConfig(
+            vehicle_params=DUMMY_VP,
+            initial_state=DUMMY_INITIAL_STATE,
+            map_path=Path("dummy_map.osm"),
+        )
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -102,15 +121,12 @@ class TestSimulatorNode:
         assert frame_data.sim_state is not None
         assert isinstance(frame_data.sim_state, VehicleState)
 
-    def test_on_run_updates_state(self) -> None:
+    def test_on_run_updates_state(self, _mock_map) -> None:
         """Test that on_run updates vehicle state."""
-        from types import SimpleNamespace
-
-        from simulator.simulator import SimulatorConfig
-
         config = SimulatorConfig(
             vehicle_params=DUMMY_VP,
             initial_state=VehicleState(x=0.0, y=0.0, yaw=0.0, velocity=0.0, timestamp=0.0),
+            map_path=Path("dummy_map.osm"),
         )
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
@@ -129,13 +145,13 @@ class TestSimulatorNode:
         final_state = frame_data.sim_state
         assert final_state.velocity > 0.0  # Should have accelerated
 
-    def test_on_run_without_action(self) -> None:
+    def test_on_run_without_action(self, _mock_map) -> None:
         """Test on_run with no action (should use default)."""
-        from types import SimpleNamespace
-
-        from simulator.simulator import SimulatorConfig
-
-        config = SimulatorConfig(vehicle_params=DUMMY_VP)
+        config = SimulatorConfig(
+            vehicle_params=DUMMY_VP,
+            initial_state=DUMMY_INITIAL_STATE,
+            map_path=Path("dummy_map.osm"),
+        )
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -150,13 +166,13 @@ class TestSimulatorNode:
         assert result == NodeExecutionResult.SUCCESS
         assert frame_data.sim_state is not None
 
-    def test_on_run_with_termination_signal(self) -> None:
+    def test_on_run_with_termination_signal(self, _mock_map) -> None:
         """Test that on_run skips when termination signal is set."""
-        from types import SimpleNamespace
-
-        from simulator.simulator import SimulatorConfig
-
-        config = SimulatorConfig(vehicle_params=DUMMY_VP)
+        config = SimulatorConfig(
+            vehicle_params=DUMMY_VP,
+            initial_state=DUMMY_INITIAL_STATE,
+            map_path=Path("dummy_map.osm"),
+        )
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -169,13 +185,13 @@ class TestSimulatorNode:
         # Should succeed but not update
         assert result == NodeExecutionResult.SUCCESS
 
-    def test_logging(self) -> None:
+    def test_logging(self, _mock_map) -> None:
         """Test that simulation steps are logged."""
-        from types import SimpleNamespace
-
-        from simulator.simulator import SimulatorConfig
-
-        config = SimulatorConfig(vehicle_params=DUMMY_VP)
+        config = SimulatorConfig(
+            vehicle_params=DUMMY_VP,
+            initial_state=DUMMY_INITIAL_STATE,
+            map_path=Path("dummy_map.osm"),
+        )
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -197,13 +213,13 @@ class TestSimulatorNode:
             assert step.vehicle_state is not None
             assert step.action is not None
 
-    def test_reset_via_on_init(self) -> None:
+    def test_reset_via_on_init(self, _mock_map) -> None:
         """Test that on_init resets state."""
-        from types import SimpleNamespace
-
-        from simulator.simulator import SimulatorConfig
-
-        config = SimulatorConfig(vehicle_params=DUMMY_VP)
+        config = SimulatorConfig(
+            vehicle_params=DUMMY_VP,
+            initial_state=DUMMY_INITIAL_STATE,
+            map_path=Path("dummy_map.osm"),
+        )
         sim = Simulator(config=config, rate_hz=10.0)
         sim.on_init()
 
@@ -234,29 +250,45 @@ class TestSimulatorWithMap:
         # Create a minimal OSM file
         osm_content = """<?xml version="1.0" encoding="UTF-8"?>
 <osm version="0.6">
-  <node id="1" lat="0.0" lon="0.0"/>
-  <node id="2" lat="0.0" lon="0.001"/>
-  <node id="3" lat="0.001" lon="0.001"/>
-  <node id="4" lat="0.001" lon="0.0"/>
-  <way id="1">
+  <node id="1">
+    <tag k="local_x" v="0.0"/>
+    <tag k="local_y" v="0.0"/>
+  </node>
+  <node id="2">
+    <tag k="local_x" v="10.0"/>
+    <tag k="local_y" v="0.0"/>
+  </node>
+  <node id="3">
+    <tag k="local_x" v="10.0"/>
+    <tag k="local_y" v="5.0"/>
+  </node>
+  <node id="4">
+    <tag k="local_x" v="0.0"/>
+    <tag k="local_y" v="5.0"/>
+  </node>
+  <way id="10">
     <nd ref="1"/>
     <nd ref="2"/>
-    <nd ref="3"/>
+  </way>
+  <way id="11">
     <nd ref="4"/>
-    <nd ref="1"/>
+    <nd ref="3"/>
+  </way>
+  <relation id="100">
     <tag k="type" v="lanelet"/>
     <tag k="subtype" v="road"/>
-  </way>
+    <member type="way" ref="10" role="left"/>
+    <member type="way" ref="11" role="right"/>
+  </relation>
 </osm>"""
 
         map_file = tmp_path / "test_map.osm"
         map_file.write_text(osm_content)
 
-        from simulator.simulator import SimulatorConfig
-
         config = SimulatorConfig(
             vehicle_params=DUMMY_VP,
-            map_path=str(map_file),
+            initial_state=DUMMY_INITIAL_STATE,
+            map_path=map_file,
         )
 
         sim = Simulator(config=config, rate_hz=10.0)

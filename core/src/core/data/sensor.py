@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from core.data.node import ComponentConfig
 
@@ -6,16 +6,16 @@ from core.data.node import ComponentConfig
 class LidarConfig(ComponentConfig):
     """Configuration for LiDAR sensor."""
 
-    num_beams: int = 720
-    fov: float = 270.0  # degrees
-    range_min: float = 0.1
-    range_max: float = 30.0
-    angle_increment: float = 0.0  # If 0, calculated from num_beams and fov
+    num_beams: int = Field(..., gt=0)
+    fov: float = Field(..., gt=0)
+    range_min: float = Field(...)
+    range_max: float = Field(...)
+    angle_increment: float = Field(...)
     # Mounting position relative to vehicle center
-    x: float = 0.0
-    y: float = 0.0
-    z: float = 2.0  # 3D only, but good to have
-    yaw: float = 0.0
+    x: float = Field(...)
+    y: float = Field(...)
+    z: float = Field(...)
+    yaw: float = Field(...)
 
 
 class LidarScan(BaseModel):

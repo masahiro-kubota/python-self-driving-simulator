@@ -24,9 +24,9 @@ class SimulatorRunner:
         config = experiment_structure.config
         nodes = experiment_structure.nodes
 
-        clock_rate = config.execution.clock_rate_hz if config.execution else 100.0
-        duration = config.execution.duration_sec if config.execution else 20.0
-        clock_type = config.execution.clock_type if config.execution else "stepped"
+        clock_rate = config.execution.clock_rate_hz
+        duration = config.execution.duration_sec
+        clock_type = config.execution.clock_type
 
         fields = collect_node_output_fields(nodes)
         dynamic_frame_data_type = create_frame_data_type(fields)
@@ -72,7 +72,7 @@ class EvaluatorEngine(BaseEngine):
         logger.info("Running Evaluation Engine...")
 
         # MLflow tags
-        mlflow.set_tag("evaluation_type", cfg.get("evaluation_type", "standard"))
+        mlflow.set_tag("evaluation_type", cfg.experiment.get("type", "standard"))
 
         output_dir_raw = cfg.get("output_dir")
         if output_dir_raw:
@@ -92,13 +92,26 @@ class EvaluatorEngine(BaseEngine):
         collector = CollectorEngine()
 
         results = []
-        num_episodes = cfg.execution.num_episodes if hasattr(cfg.execution, "num_episodes") else 1
+        num_episodes = cfg.execution.num_episodes
 
         logger.info(f"Evaluating model on {num_episodes} episodes...")
 
+        import numpy as np
+
+        if "seed" not in cfg:
+            raise ValueError("Configuration must include 'seed' parameter.")
+
         for i in range(num_episodes):
+            episode_cfg = cfg.copy()
+            # Set seed for reproducibility/randomization in evaluation
+            seed = cfg.seed + i
+            rng = np.random.default_rng(seed)
+
+            # Apply configuration randomization/resolution (handles obstacle dict->list conversion)
+            collector.randomize_simulation_config(episode_cfg, rng)
+
             experiment_structure = collector.create_experiment_instance(
-                cfg, output_dir=output_dir, episode_idx=i
+                episode_cfg, output_dir=output_dir, episode_idx=i
             )
             runner = SimulatorRunner()
             res = runner.run_simulation(experiment_structure)

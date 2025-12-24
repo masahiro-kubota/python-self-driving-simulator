@@ -345,6 +345,7 @@ class TestGetBicycleModelPolygon:
             c_roll=0.015,
             max_drive_force=5000.0,
             max_brake_force=8000.0,
+            tire_params={},
         )
 
         polygon = get_bicycle_model_polygon(state, params)
@@ -380,6 +381,7 @@ class TestGetBicycleModelPolygon:
             c_roll=0.015,
             max_drive_force=5000.0,
             max_brake_force=8000.0,
+            tire_params={},
         )
 
         polygon = get_bicycle_model_polygon(state, params)
@@ -412,6 +414,7 @@ class TestGetBicycleModelPolygon:
             c_roll=0.015,
             max_drive_force=5000.0,
             max_brake_force=8000.0,
+            tire_params={},
         )
 
         polygon = get_bicycle_model_polygon(state, params)

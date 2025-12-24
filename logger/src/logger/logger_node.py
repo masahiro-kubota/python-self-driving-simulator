@@ -2,9 +2,17 @@
 
 import json
 from pathlib import Path
-from typing import Any
 
-from core.data import Action, ComponentConfig, SimulationLog, SimulationStep, VehicleState
+from pydantic import Field
+
+from core.data import (
+    Action,
+    ComponentConfig,
+    SimulationLog,
+    SimulationStep,
+    VehicleParameters,
+    VehicleState,
+)
 from core.data.node_io import NodeIO
 from core.data.ros import MarkerArray, String
 from core.interfaces.node import Node, NodeExecutionResult
@@ -17,55 +25,58 @@ from logger.ros_message_builder import (
     build_odometry_message,
     build_tf_message,
 )
+from logger.track_loader import load_track_csv_simple
 from logger.visualization.map_visualizer import MapVisualizer
 from logger.visualization.obstacle_visualizer import ObstacleVisualizer
+from logger.visualization.trajectory_visualizer import TrajectoryVisualizer
 from logger.visualization.vehicle_visualizer import VehicleVisualizer
 
 
 class LoggerConfig(ComponentConfig):
     """Configuration for LoggerNode."""
 
-    output_mcap_path: str | None = None
-    map_path: str | None = None
-    vehicle_params: Any = None
+    output_mcap_path: str = Field(..., description="Path to output MCAP file")
+    map_path: str = Field(..., description="Path to map file")
+    track_path: str = Field(..., description="Path to track file")
+    vehicle_params: VehicleParameters = Field(..., description="Vehicle parameters")
 
 
 class LoggerNode(Node[LoggerConfig]):
     """Node responsible for recording FrameData to simulation log."""
 
-    def __init__(self, config: LoggerConfig = LoggerConfig(), rate_hz: float = 10.0):
+    def __init__(self, config: LoggerConfig, rate_hz: float = 10.0):
         """Initialize LoggerNode."""
         super().__init__("Logger", rate_hz, config)
         self.current_time = 0.0
         self.mcap_logger: MCAPLogger | None = None
         self.log = SimulationLog(steps=[], metadata={})
         self.map_published = False
+        self.track_published = False
 
         # Initialize visualizers
         self.vehicle_visualizer = VehicleVisualizer(config.vehicle_params)
         self.obstacle_visualizer = ObstacleVisualizer()
+        self.trajectory_visualizer = TrajectoryVisualizer()
         self.map_visualizer: MapVisualizer | None = None
 
     def on_init(self) -> None:
         """Initialize resources."""
-        if self.config.output_mcap_path:
-            mcap_path = Path(self.config.output_mcap_path)
+        mcap_path = Path(self.config.output_mcap_path)
+        # Ensure parent directory exists
+        mcap_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # Handle directory path or file path
-            if mcap_path.is_dir() or (not mcap_path.exists() and not mcap_path.suffix):
-                mcap_path.mkdir(parents=True, exist_ok=True)
-                # Use fixed filename to avoid accumulation
-                mcap_path = mcap_path / "simulation.mcap"
+        self.mcap_logger = MCAPLogger(mcap_path)
+        self.mcap_logger.__enter__()
 
-            self.mcap_logger = MCAPLogger(mcap_path)
-            self.mcap_logger.__enter__()
+        # Initialize map visualizer and publish map once
+        parser = Lanelet2Parser(self.config.map_path)
+        self.map_visualizer = MapVisualizer(parser)
+        self._publish_map()
+        self.map_published = True
 
-            # Initialize map visualizer and publish map once
-            if self.config.map_path:
-                parser = Lanelet2Parser(self.config.map_path)
-                self.map_visualizer = MapVisualizer(parser)
-                self._publish_map()
-                self.map_published = True
+        # Initialize track visualization and publish once
+        self._publish_track()
+        self.track_published = True
 
     def on_shutdown(self) -> None:
         """Cleanup resources."""
@@ -111,6 +122,7 @@ class LoggerNode(Node[LoggerConfig]):
         # Log ROS 2 messages to MCAP
         self._log_vehicle_state(sim_state, current_time)
         self._log_lidar_scan(current_time)
+        self._log_trajectory(current_time)
         self._log_control_command(action, current_time)
         self._log_simulation_info(simulation_info, current_time)
 
@@ -166,6 +178,14 @@ class LoggerNode(Node[LoggerConfig]):
                 "/simulation/info", String(data=json.dumps(simulation_info)), timestamp
             )
 
+    def _log_trajectory(self, timestamp: float) -> None:
+        """Log trajectory (lookahead point) markers."""
+        trajectory = getattr(self.frame_data, "trajectory", None)
+        if trajectory:
+            marker = self.trajectory_visualizer.create_marker(trajectory, timestamp)
+            if marker:
+                self.mcap_logger.log("/planning/marker", MarkerArray(markers=[marker]), timestamp)
+
     def _publish_map(self) -> None:
         """Publish map markers."""
         if not self.map_visualizer:
@@ -177,6 +197,25 @@ class LoggerNode(Node[LoggerConfig]):
                 self.mcap_logger.log("/map/vector", marker_array, self.current_time)
         except Exception as e:
             print(f"Failed to load/publish map: {e}")
+
+    def _publish_track(self) -> None:
+        """Publish global track centerline markers."""
+        if not self.config.track_path:
+            return
+
+        try:
+            track = load_track_csv_simple(Path(self.config.track_path))
+            marker = self.trajectory_visualizer.create_marker(track, self.current_time)
+            if marker:
+                # Override namespace/color for global track
+                marker.ns = "global_track"
+                marker.id = 999
+                marker.color.r = 1.0
+                marker.color.g = 1.0
+                marker.color.b = 0.0  # Yellow
+                self.mcap_logger.log("/map/track", MarkerArray(markers=[marker]), self.current_time)
+        except Exception as e:
+            print(f"Failed to load/publish track: {e}")
 
     def get_log(self) -> SimulationLog:
         """Get simulation log."""

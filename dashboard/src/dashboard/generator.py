@@ -23,8 +23,8 @@ class HTMLDashboardGenerator(DashboardGenerator):
         self,
         result: ExperimentResult,
         output_path: Path,
-        osm_path: Path | None = None,
-        vehicle_params: dict[str, Any] | None = None,
+        osm_path: Path,
+        vehicle_params: dict[str, Any] | Any,  # Any to support VehicleParameters
     ) -> Path:
         """Generate interactive HTML dashboard.
 
@@ -75,31 +75,36 @@ class HTMLDashboardGenerator(DashboardGenerator):
                 sanitized_metadata[k] = v
 
         # Extract vehicle parameters for dashboard visualization
-        # Use provided vehicle_params if available, otherwise extract from metadata
-        if vehicle_params:
-            # Use provided parameters, with fallback to defaults
+        if hasattr(vehicle_params, "model_dump"):
+            # Pydantic model
             dashboard_vehicle_params = {
-                "width": vehicle_params.get("width", 1.8),
-                "wheelbase": vehicle_params.get("wheelbase", 2.5),
-                "front_overhang": vehicle_params.get("front_overhang", 0.9),
-                "rear_overhang": vehicle_params.get("rear_overhang", 1.1),
+                "width": vehicle_params.width,
+                "wheelbase": vehicle_params.wheelbase,
+                "front_overhang": vehicle_params.front_overhang,
+                "rear_overhang": vehicle_params.rear_overhang,
             }
-            # Calculate length from components
-            length = (
-                dashboard_vehicle_params["wheelbase"]
-                + dashboard_vehicle_params["front_overhang"]
-                + dashboard_vehicle_params["rear_overhang"]
-            )
-            dashboard_vehicle_params["length"] = length
         else:
-            # Fallback to metadata extraction
+            # Strictly expect dict with all keys if no model provided
+            required_keys = ["width", "wheelbase", "front_overhang", "rear_overhang"]
+            missing = [k for k in required_keys if k not in vehicle_params]
+            if missing:
+                raise ValueError(f"Missing required vehicle parameters: {missing}")
+
+            # Create explicit dict to ensure JSON serializability (handle DictConfig)
             dashboard_vehicle_params = {
-                "width": sanitized_metadata.get("width", 1.8),
-                "length": sanitized_metadata.get("length", 4.5),
-                "wheelbase": sanitized_metadata.get("wheelbase", 2.5),
-                "front_overhang": sanitized_metadata.get("front_overhang", 0.9),
-                "rear_overhang": sanitized_metadata.get("rear_overhang", 1.1),
+                "width": float(vehicle_params["width"]),
+                "wheelbase": float(vehicle_params["wheelbase"]),
+                "front_overhang": float(vehicle_params["front_overhang"]),
+                "rear_overhang": float(vehicle_params["rear_overhang"]),
             }
+
+        # Calculate length from components
+        length = (
+            dashboard_vehicle_params["wheelbase"]
+            + dashboard_vehicle_params["front_overhang"]
+            + dashboard_vehicle_params["rear_overhang"]
+        )
+        dashboard_vehicle_params["length"] = length
 
         data: dict[str, Any] = {
             "metadata": {

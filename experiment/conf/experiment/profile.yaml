@@ -63,7 +63,7 @@ system:
           x: ${env.goal_position.x}
           y: ${env.goal_position.y}
           radius: ${env.goal_tolerance}
-          min_elapsed_time: 0.0
+          min_elapsed_time: 20.0
         off_track:
           enabled: false
         collision:

@@ -12,6 +12,7 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 
 import mlflow
+import mlflow.pytorch
 import wandb
 from experiment.data.dataset import ScanControlDataset
 from experiment.engine.base import BaseEngine
@@ -143,7 +144,13 @@ class TrainerEngine(BaseEngine):
         logger.info(f"Training completed. Models saved to {output_dir}")
 
         # Log artifacts to MLflow
-        mlflow.log_artifact(str(model_path), "models")
+        # 1. Log the PyTorch model using log_model to enable Model Registry features
+        mlflow.pytorch.log_model(model, "model")
+
+        # 2. Log other artifacts
+        # Note: best_model.pth is already included in the MLflow model format if we use log_model,
+        # but we can keep logging these specific formats if needed for other consumptions.
+        # mlflow.log_artifact(str(model_path), "models") # Redundant if using log_model
         mlflow.log_artifact(str(numpy_path), "models")
         mlflow.log_artifact(str(onnx_path), "models")
 

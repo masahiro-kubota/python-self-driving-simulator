@@ -21,15 +21,9 @@ class ExtractorEngine(BaseEngine):
     """データ抽出・変換・統計量計算エンジン"""
 
     def _run_impl(self, cfg: DictConfig) -> Any:
-        # Resolve 'latest' path if needed, or use cfg value
-        input_dir_raw = cfg.get("input_dir")
-        input_dir = Path(input_dir_raw) if input_dir_raw else Path("outputs/latest/raw_data")
-
-        output_dir_raw = cfg.get("output_dir")
-        if output_dir_raw:
-            output_dir = Path(output_dir_raw)
-        else:
-            output_dir = input_dir.parent / "processed_data"
+        input_dir = Path(cfg.input_dir)
+        # output_dir is mandatory in strict config
+        output_dir = Path(cfg.output_dir)
 
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -101,8 +95,8 @@ class ExtractorEngine(BaseEngine):
         logger.info(f"Dataset saved to {output_dir}")
 
         # 6. DVC Automation
-        if cfg.get("dvc", {}).get("auto_add", False):
-            self._run_dvc_commands(output_dir, cfg.get("dvc", {}).get("auto_push", False))
+        if cfg.dvc and cfg.dvc.auto_add:
+            self._run_dvc_commands(output_dir, cfg.dvc.auto_push)
 
         return output_dir
 

@@ -1,5 +1,7 @@
 """Supervisor node for simulation judgment and monitoring."""
 
+from pydantic import Field
+
 from core.data import (
     ComponentConfig,
     VehicleState,
@@ -21,21 +23,21 @@ class GoalConfig(ComponentConfig):
 class OffTrackConfig(ComponentConfig):
     """Off-track termination configuration."""
 
-    enabled: bool = True
+    enabled: bool = Field(...)
 
 
 class CollisionConfig(ComponentConfig):
     """Collision termination configuration."""
 
-    enabled: bool = True
+    enabled: bool = Field(...)
 
 
 class SupervisorConfig(ComponentConfig):
     """Configuration for SupervisorNode."""
 
     goal: GoalConfig
-    off_track: OffTrackConfig = OffTrackConfig()
-    collision: CollisionConfig = CollisionConfig()
+    off_track: OffTrackConfig
+    collision: CollisionConfig
 
 
 class SupervisorNode(Node[SupervisorConfig]):

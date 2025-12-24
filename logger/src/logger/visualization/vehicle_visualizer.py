@@ -10,37 +10,24 @@ from logger.ros_message_builder import quaternion_from_yaw, to_ros_time
 class VehicleVisualizer:
     """Creates visualization markers for the vehicle."""
 
-    def __init__(self, vehicle_params: Any = None) -> None:
+    def __init__(self, vehicle_params: Any) -> None:
         """Initialize vehicle visualizer.
 
         Args:
-            vehicle_params: Vehicle parameters (dict or VehicleParameters object).
+            vehicle_params: Vehicle parameters (VehicleParameters object).
         """
         self.vehicle_params = vehicle_params
         self._calculate_dimensions()
 
     def _calculate_dimensions(self) -> None:
         """Calculate vehicle dimensions from parameters."""
-        if self.vehicle_params:
-            # Handle both dict and VehicleParameters object
-            if hasattr(self.vehicle_params, "wheelbase"):
-                self.length = (
-                    self.vehicle_params.wheelbase
-                    + self.vehicle_params.front_overhang
-                    + self.vehicle_params.rear_overhang
-                )
-                self.width = self.vehicle_params.width
-            else:
-                self.length = (
-                    self.vehicle_params.get("wheelbase", 1.087)
-                    + self.vehicle_params.get("front_overhang", 0.467)
-                    + self.vehicle_params.get("rear_overhang", 0.51)
-                )
-                self.width = self.vehicle_params.get("width", 1.3)
-        else:
-            # Default dimensions
-            self.length = 2.5
-            self.width = 1.3
+        # Assume object/DictConfig access
+        self.length = (
+            self.vehicle_params.wheelbase
+            + self.vehicle_params.front_overhang
+            + self.vehicle_params.rear_overhang
+        )
+        self.width = self.vehicle_params.width
 
         self.height = 1.5
 
