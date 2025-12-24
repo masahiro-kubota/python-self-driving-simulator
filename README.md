@@ -237,7 +237,7 @@ graph TD
 uv run python experiment/tools/profile_experiment.py --duration 5
 
 # rateを指定（例：1000Hzでプロファイリング）
-uv run python scripts/profile_experiment.py --rate 1000
+uv run python experiment/tools/profile_experiment.py --rate 1000
 ```
 
 ### テストの実行
