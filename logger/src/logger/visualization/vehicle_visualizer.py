@@ -41,8 +41,24 @@ class VehicleVisualizer:
         Returns:
             Marker representing the vehicle.
         """
+        import math
+
         ros_time = to_ros_time(timestamp)
         q = quaternion_from_yaw(vehicle_state.yaw)
+
+        # vehicle_state (x, y) is at rear axle center (base_link)
+        # CUBE marker is centered at its pose, so we need to offset it
+        # to the geometric center of the vehicle
+        # Offset from rear axle to geometric center in vehicle frame (x-forward)
+        offset_x = (
+            self.vehicle_params.wheelbase
+            + self.vehicle_params.front_overhang
+            - self.vehicle_params.rear_overhang
+        ) / 2.0
+
+        # Transform offset to global frame
+        marker_x = vehicle_state.x + offset_x * math.cos(vehicle_state.yaw)
+        marker_y = vehicle_state.y + offset_x * math.sin(vehicle_state.yaw)
 
         return Marker(
             header=Header(stamp=ros_time, frame_id="map"),
@@ -51,7 +67,7 @@ class VehicleVisualizer:
             type=1,  # CUBE
             action=0,
             pose=Pose(
-                position=Point(x=vehicle_state.x, y=vehicle_state.y, z=self.height / 2),
+                position=Point(x=marker_x, y=marker_y, z=self.height / 2),
                 orientation=q,
             ),
             scale=Vector3(x=self.length, y=self.width, z=self.height),

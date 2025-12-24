@@ -11,6 +11,30 @@ from dashboard.injector import inject_simulation_data
 logger = logging.getLogger(__name__)
 
 
+def downsample_steps(steps_data: list[dict], max_steps: int = 1000) -> list[dict]:
+    """Downsample step data to reduce dashboard file size.
+
+    Args:
+        steps_data: Full step data
+        max_steps: Maximum number of steps to keep (default: 1000)
+
+    Returns:
+        Downsampled step data with uniform sampling
+    """
+    if len(steps_data) <= max_steps:
+        return steps_data
+
+    # Uniform sampling
+    step_size = len(steps_data) / max_steps
+    indices = [int(i * step_size) for i in range(max_steps)]
+
+    # Always include the last step
+    if indices[-1] != len(steps_data) - 1:
+        indices[-1] = len(steps_data) - 1
+
+    return [steps_data[i] for i in indices]
+
+
 class HTMLDashboardGenerator(DashboardGenerator):
     """HTML dashboard generator using React template.
 
@@ -138,14 +162,7 @@ class HTMLDashboardGenerator(DashboardGenerator):
                     ):
                         step_dict = json.loads(message.data)
 
-                        # Sanitize lidar_scan to handle Infinity (replace with None/null)
-                        lidar_scan = step_dict.get("info", {}).get("lidar_scan")
-                        if lidar_scan and "ranges" in lidar_scan:
-                            lidar_scan["ranges"] = [
-                                r if r != float("inf") and r != float("-inf") else None
-                                for r in lidar_scan["ranges"]
-                            ]
-
+                        # LiDAR data is not needed for dashboard visualization
                         steps_data.append(
                             {
                                 "timestamp": step_dict["timestamp"],
@@ -156,7 +173,7 @@ class HTMLDashboardGenerator(DashboardGenerator):
                                 "velocity": step_dict["vehicle_state"]["velocity"],
                                 "acceleration": step_dict["action"]["acceleration"],
                                 "steering": step_dict["action"]["steering"],
-                                "lidar_scan": lidar_scan,
+                                "lidar_scan": None,
                                 "ad_component_log": step_dict.get("ad_component_log"),
                             }
                         )
@@ -185,22 +202,14 @@ class HTMLDashboardGenerator(DashboardGenerator):
                         }
                         if step.ad_component_log
                         else None,
-                        "lidar_scan": None,
+                        "lidar_scan": None,  # LiDAR data not needed for dashboard
                     }
                 )
 
-                # Extract and sanitize lidar_scan
-                if hasattr(step, "info") and step.info and "lidar_scan" in step.info:
-                    lidar_scan = step.info["lidar_scan"]
-                    # If it's a dict (from memory log it should be already dumped or object?
-                    # SimulationLog stores SimulationStep which stores dict in info.)
-                    if lidar_scan and isinstance(lidar_scan, dict) and "ranges" in lidar_scan:
-                        lidar_scan = lidar_scan.copy()  # Avoid modifying original log
-                        lidar_scan["ranges"] = [
-                            r if r != float("inf") and r != float("-inf") else None
-                            for r in lidar_scan["ranges"]
-                        ]
-                    steps_data[-1]["lidar_scan"] = lidar_scan
+        # Downsample step data to reduce file size
+        logger.info("Original steps count: %d", len(steps_data))
+        steps_data = downsample_steps(steps_data, max_steps=1000)
+        logger.info("Downsampled steps count: %d", len(steps_data))
 
         data["steps"] = steps_data
 

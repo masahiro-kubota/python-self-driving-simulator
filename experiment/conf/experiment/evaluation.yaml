@@ -14,7 +14,7 @@ experiment:
 execution:
   num_episodes: 1
   clock_rate_hz: 100.0
-  duration_sec: 20.0
+  duration_sec: 200.0
   clock_type: "stepped"
 
 system:
