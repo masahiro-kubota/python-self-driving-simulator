@@ -22,6 +22,11 @@ class MPPIController:
         noise_sigma_steering: float = 0.5,
         u_min_steering: float = -0.8,
         u_max_steering: float = 0.8,
+        seed: int | None = None,
+        obstacle_cost_weight: float = 1000.0,
+        collision_threshold: float = 0.5,
+        lanelet_map=None,
+        off_track_cost_weight: float = 10000.0,
     ):
         self.vp = vehicle_params
         self.K = num_samples
@@ -43,6 +48,17 @@ class MPPIController:
         # Previous control for smoothing (optional)
         self.prev_u = np.zeros(1)
 
+        # Random number generator for reproducibility
+        self.rng = np.random.default_rng(seed)
+
+        # Obstacle avoidance parameters
+        self.obstacle_cost_weight = obstacle_cost_weight
+        self.collision_threshold = collision_threshold
+
+        # Map boundary parameters
+        self.lanelet_map = lanelet_map
+        self.off_track_cost_weight = off_track_cost_weight
+
     def solve(
         self,
         initial_state: VehicleState,
@@ -60,7 +76,7 @@ class MPPIController:
         self.U[-1] = np.zeros(1)  # Initialize last step with zero
 
         # 1. Sample Controls: u_k = U + noise
-        noise = np.random.normal(loc=0.0, scale=self.sigma, size=(self.K, self.T, 1))
+        noise = self.rng.normal(loc=0.0, scale=self.sigma, size=(self.K, self.T, 1))
 
         # Apply noise to base control sequence
         u_samples = self.U + noise
@@ -253,10 +269,72 @@ class MPPIController:
         costs += np.sum(yaw_diff**2, axis=1) * 0.0  # Heading Weight (Disabled)
 
         # 2. Obstacle Cost
-        # Disabled for raceline tracking
-        _ = obstacles  # Unused for now
+        if obstacles:
+            # Vehicle approximation with 3 circles (front, center, rear)
+            vehicle_width = self.vp.width
+            vehicle_wheelbase = self.vp.wheelbase
+            circle_radius = vehicle_width / 2.0
 
-        # 3. Input Cost (Smoothness/Effort)
+            # Circle offsets from rear axle (along vehicle x-axis)
+            circle_offsets = np.array([0.0, vehicle_wheelbase / 2.0, vehicle_wheelbase])
+
+            # For each trajectory sample and timestep, compute vehicle circle positions
+            # traj_xy: (K, T, 2), traj_yaw: (K, T)
+            # We need to compute 3 circle positions for each (k, t)
+
+            obstacle_cost = np.zeros(num_samples)
+
+            for obs in obstacles:
+                # Get obstacle position and radius
+                if obs.type == "static":
+                    obs_x = obs.position.x
+                    obs_y = obs.position.y
+                elif obs.type == "dynamic":
+                    # For dynamic obstacles, we would need current_time
+                    # For now, skip dynamic obstacles or use initial position
+                    continue
+                else:
+                    continue
+
+                obs_radius = obs.shape.radius if obs.shape.type == "circle" else 0.5
+
+                # Compute distance from each trajectory point to obstacle
+                # For each circle offset
+                for offset in circle_offsets:
+                    # Compute circle center positions
+                    # Circle is at (x + offset*cos(yaw), y + offset*sin(yaw))
+                    circle_x = traj_xy[:, :, 0] + offset * np.cos(traj_yaw)
+                    circle_y = traj_xy[:, :, 1] + offset * np.sin(traj_yaw)
+
+                    # Distance to obstacle center
+                    dist_x = circle_x - obs_x
+                    dist_y = circle_y - obs_y
+                    dist = np.sqrt(dist_x**2 + dist_y**2)
+
+                    # Minimum clearance (distance between circle edges)
+                    clearance = dist - (circle_radius + obs_radius)
+
+                    # Apply cost if clearance is below threshold
+                    violation = np.maximum(0.0, self.collision_threshold - clearance)
+                    obstacle_cost += np.sum(violation**2, axis=1) * self.obstacle_cost_weight
+
+            costs += obstacle_cost
+
+        # 3. Map Boundary Cost (Off-track penalty)
+        if self.lanelet_map is not None:
+            off_track_cost = np.zeros(num_samples)
+            _, horizon_steps = traj_xy.shape[:2]  # Get horizon from trajectory shape
+
+            for k in range(num_samples):
+                for t in range(horizon_steps):
+                    x, y = traj_xy[k, t, 0], traj_xy[k, t, 1]
+                    if not self.lanelet_map.is_drivable(x, y):
+                        # Very high penalty for off-track trajectories
+                        off_track_cost[k] += self.off_track_cost_weight
+
+            costs += off_track_cost
+
+        # 4. Input Cost (Smoothness/Effort)
         costs += np.sum(controls[:, :, 0] ** 2, axis=1) * 0.1  # Steering penalty (Reduced)
 
         return costs

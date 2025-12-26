@@ -42,13 +42,17 @@ def vehicle_params():
 def mppi_config(vehicle_params):
     return MPPIPlannerConfig(
         track_path="dummy.csv",
+        map_path="dummy.osm",
         vehicle_params=vehicle_params,
         horizon=10,
         dt=0.1,
         num_samples=5,
         temperature=1.0,
         noise_sigma_steering=0.1,
-        # noise_sigma_accel removed
+        seed=42,  # Fixed seed for reproducible tests
+        obstacle_cost_weight=1000.0,
+        collision_threshold=0.5,
+        off_track_cost_weight=10000.0,
     )
 
 
@@ -64,6 +68,11 @@ def mppi_controller(vehicle_params, mppi_config):
         noise_sigma_steering=mppi_config.noise_sigma_steering,
         u_min_steering=-vehicle_params.max_steering_angle,
         u_max_steering=vehicle_params.max_steering_angle,
+        seed=mppi_config.seed,
+        obstacle_cost_weight=mppi_config.obstacle_cost_weight,
+        collision_threshold=mppi_config.collision_threshold,
+        lanelet_map=None,  # No map for unit tests
+        off_track_cost_weight=mppi_config.off_track_cost_weight,
     )
 
 

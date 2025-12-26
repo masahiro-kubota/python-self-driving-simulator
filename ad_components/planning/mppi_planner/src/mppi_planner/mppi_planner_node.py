@@ -15,13 +15,22 @@ class MPPIPlannerConfig(ComponentConfig):
 
     track_path: Path = Field(..., description="Path to reference trajectory CSV")
     vehicle_params: VehicleParameters = Field(..., description="Vehicle parameters")
+    map_path: Path = Field(..., description="Path to Lanelet2 map file")
 
     # MPPI Parameters
-    horizon: int = Field(30, description="Prediction horizon steps")
-    dt: float = Field(0.1, description="Time step [s]")
-    num_samples: int = Field(200, description="Number of samples")
-    temperature: float = Field(1.0, description="Temperature (lambda)")
-    noise_sigma_steering: float = Field(0.5, description="Steering noise sigma")
+    horizon: int = Field(..., description="Prediction horizon steps")
+    dt: float = Field(..., description="Time step [s]")
+    num_samples: int = Field(..., description="Number of samples")
+    temperature: float = Field(..., description="Temperature (lambda)")
+    noise_sigma_steering: float = Field(..., description="Steering noise sigma")
+    seed: int | None = Field(None, description="Random seed for reproducibility")
+
+    # Obstacle avoidance parameters
+    obstacle_cost_weight: float = Field(..., description="Obstacle avoidance cost weight")
+    collision_threshold: float = Field(..., description="Collision threshold distance [m]")
+
+    # Map boundary parameters
+    off_track_cost_weight: float = Field(..., description="Off-track penalty weight")
 
 
 class MPPIPlannerNode(Node[MPPIPlannerConfig]):
@@ -30,10 +39,19 @@ class MPPIPlannerNode(Node[MPPIPlannerConfig]):
     def __init__(self, config: MPPIPlannerConfig, rate_hz: float):
         super().__init__("MPPIPlanner", rate_hz, config)
 
+        from core.utils import get_project_root
+
+        # Load Map
+        from simulator.map import LaneletMap
+
+        map_path = self.config.map_path
+        if not map_path.is_absolute():
+            map_path = get_project_root() / map_path
+
+        self.lanelet_map = LaneletMap(map_path)
+
         # Load Reference Trajectory
         from planning_utils import load_track_csv
-
-        from core.utils import get_project_root
 
         track_path = self.config.track_path
         if not track_path.is_absolute():
@@ -51,6 +69,11 @@ class MPPIPlannerNode(Node[MPPIPlannerConfig]):
             noise_sigma_steering=config.noise_sigma_steering,
             u_min_steering=-config.vehicle_params.max_steering_angle,
             u_max_steering=config.vehicle_params.max_steering_angle,
+            seed=config.seed,
+            obstacle_cost_weight=config.obstacle_cost_weight,
+            collision_threshold=config.collision_threshold,
+            lanelet_map=self.lanelet_map,
+            off_track_cost_weight=config.off_track_cost_weight,
         )
 
     def get_node_io(self) -> NodeIO:

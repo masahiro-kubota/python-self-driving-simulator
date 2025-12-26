@@ -33,7 +33,17 @@ uv run experiment-runner
 # パラメータを上書き
 uv run experiment-runner execution.duration_sec=10.0
 
-# エージェントを切り替え (Tiny LiDAR Net)
+# エージェントを切り替え
+# Pure Pursuit (一体型: Planning + Control統合)
+uv run experiment-runner agent=pure_pursuit
+
+# Centerline + Pure Pursuit (分離型: Planning と Control が独立)
+uv run experiment-runner agent=centerline_pure_pursuit
+
+# MPPI Planner (Model Predictive Path Integral)
+uv run experiment-runner agent=mppi
+
+# Tiny LiDAR Net (学習ベースのEnd-to-End制御)
 uv run experiment-runner agent=tiny_lidar agent.model_path=models/tinylidarnet_v2.npy
 
 # 5. 結果を確認
@@ -79,6 +89,74 @@ uv run dvc list .
 # リモート（MinIO）との同期状態を確認
 uv run dvc status
 ```
+
+---
+
+## 🤖 利用可能なエージェント
+
+本プラットフォームでは、以下のエージェント構成を切り替えて実験できます。
+
+### 1. Pure Pursuit (一体型)
+**設定**: `agent=pure_pursuit`
+
+Planning と Control が統合された従来型の Pure Pursuit 実装です。
+
+```bash
+uv run experiment-runner agent=pure_pursuit
+```
+
+**構成**:
+- **Planning**: `PurePursuitNode` (経路計画 + ステアリング制御)
+- **Control**: `PIDControllerNode` (加速度制御のみ)
+
+### 2. Centerline + Pure Pursuit (分離型)
+**設定**: `agent=centerline_pure_pursuit`
+
+Planning と Control を完全に分離したモジュラー構成です。
+
+```bash
+uv run experiment-runner agent=centerline_pure_pursuit
+```
+
+**構成**:
+- **Planning**: `CenterlinePlannerNode` (センターライン軌道の読み込み)
+- **Control**: `PurePursuitControllerNode` (Pure Pursuit による軌道追従制御)
+
+### 3. MPPI Planner
+**設定**: `agent=mppi`
+
+Model Predictive Path Integral (MPPI) ベースの最適化プランナーです。
+
+```bash
+uv run experiment-runner agent=mppi
+```
+
+**構成**:
+- **Planning**: `MPPIPlannerNode` (MPPI による最適軌道生成)
+- **Control**: `PIDControllerNode` (加速度制御)
+
+**特徴**:
+- サンプリングベースの確率的最適化
+- 障害物回避機能（現在は無効化）
+- リアルタイム軌道最適化
+
+### 4. Tiny LiDAR Net
+**設定**: `agent=tiny_lidar`
+
+学習ベースの End-to-End 制御エージェントです。
+
+```bash
+uv run experiment-runner agent=tiny_lidar agent.model_path=models/tinylidarnet_v2.npy
+```
+
+**構成**:
+- **Planning**: `TinyLidarNetNode` (LiDAR → 制御指令の直接推論)
+- **Control**: なし (End-to-End)
+
+**特徴**:
+- LiDAR スキャンから直接ステアリング角を予測
+- 軽量なニューラルネットワーク
+- 模倣学習による学習
 
 ---
 
@@ -145,7 +223,12 @@ e2e_aichallenge_playground/
 ├── core/                           # プロジェクト基盤（データ構造・インターフェース）
 ├── ad_components/             # コンポーネントパッケージ
 │   ├── planning/                  # 計画コンポーネント
+│   │   ├── centerline_planner/   # センターライン軌道プランナー
+│   │   ├── mppi_planner/         # MPPIベースプランナー
+│   │   └── planning_utils/       # 計画ユーティリティ
 │   └── control/                   # 制御コンポーネント
+│       ├── pure_pursuit_controller/  # Pure Pursuitコントローラー
+│       └── pid_controller/       # PIDコントローラー
 ├── simulator/                     # シミュレータ実装
 ├── experiment/                    # 実験フレームワーク
 │   ├── conf/                     # Hydra設定 (YAML)
@@ -204,8 +287,12 @@ graph TD
     subgraph group_ad_components [ad_components]
         ad_component_core["ad-component-core<br/>Core interfaces and .."]
         class ad_component_core base;
-        pure_pursuit["pure-pursuit<br/>Pure Pursuit path tr.."]
-        class pure_pursuit impl;
+        centerline_planner["centerline-planner<br/>Centerline trajectory planner"]
+        class centerline_planner impl;
+        pure_pursuit_controller["pure-pursuit-controller<br/>Pure Pursuit controller"]
+        class pure_pursuit_controller impl;
+        mppi_planner["mppi-planner<br/>MPPI-based planner"]
+        class mppi_planner impl;
         planning_utils["planning-utils<br/>Planning utilities"]
         class planning_utils impl;
         pid_controller["pid-controller<br/>PID controller"]
@@ -222,10 +309,12 @@ graph TD
     experiment --> supervisor
     dashboard --> core
     supervisor --> core
-    ad_component_core --      | 0/20000 Simulation:   0%|                                        > core
-    pure_pursuit --> core
-    pure_pursuit --> planning_utils
-    pure_pursuit --> simulator
+    ad_component_core --> core
+    centerline_planner --> core
+    centerline_planner --> planning_utils
+    pure_pursuit_controller --> core
+    mppi_planner --> core
+    mppi_planner --> simulator
     planning_utils --> core
     pid_controller --> core
     tiny_lidar_net --> core

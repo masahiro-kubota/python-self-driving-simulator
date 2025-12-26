@@ -7,6 +7,7 @@ nodes:
     params:
       vehicle_params: ${vehicle}
       track_path: ${env.track_path}
+      map_path: ${env.map_path}
 
       # MPPI Parameters
       horizon: 50
@@ -14,6 +15,14 @@ nodes:
       num_samples: 50
       temperature: 1000.0   # Higher temperature for better averaging
       noise_sigma_steering: 0.4 # Reduced noise for stability
+      seed: 43  # Random seed for reproducible results
+
+      # Obstacle avoidance
+      obstacle_cost_weight: 1000.0  # High penalty for collision risk
+      collision_threshold: 0.5  # Safety margin [m]
+
+      # Map boundary
+      off_track_cost_weight: 10000.0  # Very high penalty for off-track
 
   control:
     type: PurePursuitControllerNode

@@ -12,4 +12,4 @@ experiment:
 
 # Override execution for 1-step profiling
 execution:
-  duration_sec: 1  # 1 step at 100Hz = 0.01 seconds
+  duration_sec: 5  # 1 step at 100Hz = 0.01 seconds
