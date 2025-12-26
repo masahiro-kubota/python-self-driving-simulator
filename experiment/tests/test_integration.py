@@ -83,6 +83,8 @@ def test_pure_pursuit_experiment_nodes(_mock_mlflow_eval, _mock_mlflow_base) -> 
 
     if not sim_result.success:
         print(f"Simulation failed with reason: {sim_result.reason}")
+        print(f"Metrics: {metrics}")
+        print(f"Sim Result Metrics: {sim_result.metrics}")
 
     # We aim for success now
     assert sim_result.success, f"Simulation failed: {sim_result.reason}"
@@ -92,7 +94,10 @@ def test_pure_pursuit_experiment_nodes(_mock_mlflow_eval, _mock_mlflow_base) -> 
         metrics.termination_code != 5
     ), f"Termination code {metrics.termination_code} should not be 5 (Collision)"
     # Goal reached
-    assert metrics.goal_count == 1, f"Goal count {metrics.goal_count} != 1"
+    assert metrics.goal_count == 1, f"Goal count {metrics.goal_count} != 1 (Goal)"
+    assert metrics.checkpoint_count == 3, f"Checkpoint count {metrics.checkpoint_count} != 3 (Checkpoints)"
+    assert sim_result.metrics.get("goal_count") == 1, "Per-episode goal count mismatch"
+    assert sim_result.metrics.get("checkpoint_count") == 3, "Per-episode checkpoint count mismatch"
 
     # Move MCAP file from episode subdirectory to tmp root for user visibility
     mcap_source = tmp_path / "episode_0000" / "simulation.mcap"

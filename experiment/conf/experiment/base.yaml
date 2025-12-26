@@ -48,6 +48,7 @@ system:
           y: ${env.goal_position.y}
           radius: ${env.goal_tolerance}
           min_elapsed_time: 20.0
+        checkpoints: ${env.checkpoints}
         collision:
           enabled: true
         off_track:

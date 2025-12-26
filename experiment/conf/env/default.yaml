@@ -16,6 +16,18 @@ goal_position:
   y: 43130.695
 goal_tolerance: 1.0
 
+# Checkpoints
+checkpoints:
+  - x: 89625.0
+    y: 43140.0
+    tolerance: 6.0
+  - x: 89625.0
+    y: 43160.0
+    tolerance: 6.0
+  - x: 89663.0
+    y: 43178.0
+    tolerance: 6.0
+
 # Obstacles
 # Obstacles
 obstacles:

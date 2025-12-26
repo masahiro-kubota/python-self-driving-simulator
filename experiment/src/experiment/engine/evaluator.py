@@ -71,6 +71,10 @@ class SimulatorRunner:
             reason=getattr(frame_data, "done_reason", None),
             final_state=getattr(frame_data, "sim_state", None),
             log=log,
+            metrics={
+                "goal_count": getattr(frame_data, "goal_count", 0),
+                "checkpoint_count": getattr(frame_data, "checkpoint_count", 0),
+            },
         )
 
 
@@ -127,8 +131,10 @@ class EvaluatorEngine(BaseEngine):
             results.append(res)
 
             reason = res.reason or "unknown"
+            goal_count = res.metrics.get("goal_count", 0)
+            checkpoint_count = res.metrics.get("checkpoint_count", 0)
             logger.info(
-                f"Episode {i+1}/{num_episodes}: {'Success' if res.success else 'Failed (' + reason + ')'}"
+                f"Episode {i+1}/{num_episodes}: {'Success' if res.success else 'Failed (' + reason + ')'} (Checkpoints: {checkpoint_count}, Goals: {goal_count})"
             )
 
         # Calculate Aggregate Metrics
@@ -137,7 +143,8 @@ class EvaluatorEngine(BaseEngine):
 
         metrics = Metrics(
             success_rate=success_rate,
-            goal_count=success_count,
+            goal_count=sum(r.metrics.get("goal_count", 0) for r in results),
+            checkpoint_count=sum(r.metrics.get("checkpoint_count", 0) for r in results),
             collision_count=sum(1 for r in results if r.reason and "collision" in r.reason.lower()),
             termination_code=0,
         )
@@ -145,6 +152,8 @@ class EvaluatorEngine(BaseEngine):
         # Log Metrics to MLflow
         mlflow.log_metric("success_rate", success_rate)
         mlflow.log_metric("num_episodes", num_episodes)
+        mlflow.log_metric("goal_count", metrics.goal_count)
+        mlflow.log_metric("checkpoint_count", metrics.checkpoint_count)
 
         # Artifacts (Dashboard HTML)
         artifacts = []

@@ -20,6 +20,14 @@ class GoalConfig(ComponentConfig):
     min_elapsed_time: float
 
 
+class CheckpointConfig(ComponentConfig):
+    """Checkpoint configuration."""
+
+    x: float
+    y: float
+    tolerance: float = 1.0
+
+
 class OffTrackConfig(ComponentConfig):
     """Off-track termination configuration."""
 
@@ -36,6 +44,7 @@ class SupervisorConfig(ComponentConfig):
     """Configuration for SupervisorNode."""
 
     goal: GoalConfig
+    checkpoints: list[CheckpointConfig] = Field(default_factory=list)
     off_track: OffTrackConfig
     collision: CollisionConfig
 
@@ -53,7 +62,9 @@ class SupervisorNode(Node[SupervisorConfig]):
         super().__init__("Supervisor", rate_hz, config)
         self.step_count = 0
         self.goal_count = 0
+        self.checkpoint_count = 0
         self.is_in_goal = False
+        self.current_checkpoint_idx = 0
 
     def get_node_io(self) -> NodeIO:
         """Define node IO."""
@@ -69,6 +80,7 @@ class SupervisorNode(Node[SupervisorConfig]):
                 "termination_signal": bool,
                 "termination_reason": str,
                 "goal_count": int,
+                "checkpoint_count": int,
             },
         )
 
@@ -97,6 +109,7 @@ class SupervisorNode(Node[SupervisorConfig]):
 
         # Initialize outputs if not present
         self.frame_data.goal_count = self.goal_count
+        self.frame_data.checkpoint_count = self.checkpoint_count
 
         # 1. Check off-track (collision with non-drivable area)
         if (
@@ -124,30 +137,42 @@ class SupervisorNode(Node[SupervisorConfig]):
             self.frame_data.termination_reason = "collision"
             return NodeExecutionResult.SUCCESS
 
-        # 3. Check goal reached
-        dist = (
-            (sim_state.x - self.config.goal.x) ** 2 + (sim_state.y - self.config.goal.y) ** 2
-        ) ** 0.5
-        elapsed_time = self.step_count * (1.0 / self.rate_hz)
-
-        if dist <= self.config.goal.radius:
-            if not self.is_in_goal and elapsed_time >= self.config.goal.min_elapsed_time:
-                # Entered goal
-                self.goal_count += 1
-                self.is_in_goal = True
-                self.frame_data.goal_count = self.goal_count
-
-                # Check termination
-                if self.config.goal.enabled:
-                    self.frame_data.done = True
-                    self.frame_data.done_reason = "goal_reached"
-                    self.frame_data.success = True
-                    self.frame_data.termination_signal = True
-                    self.frame_data.termination_reason = "goal_reached"
-                    return NodeExecutionResult.SUCCESS
+        # 3. Check checkpoints or goal reached
+        if self.current_checkpoint_idx < len(self.config.checkpoints):
+            # Checkpoint logic
+            checkpoint = self.config.checkpoints[self.current_checkpoint_idx]
+            dist = ((sim_state.x - checkpoint.x) ** 2 + (sim_state.y - checkpoint.y) ** 2) ** 0.5
+            
+            if dist <= checkpoint.tolerance:
+                self.checkpoint_count += 1
+                self.frame_data.checkpoint_count = self.checkpoint_count
+                self.current_checkpoint_idx += 1
+                # Log checkpoint reached?
         else:
-            # Left goal area
-            self.is_in_goal = False
+            # Final Goal logic
+            dist = (
+                (sim_state.x - self.config.goal.x) ** 2 + (sim_state.y - self.config.goal.y) ** 2
+            ) ** 0.5
+            elapsed_time = self.step_count * (1.0 / self.rate_hz)
+
+            if dist <= self.config.goal.radius:
+                if not self.is_in_goal and elapsed_time >= self.config.goal.min_elapsed_time:
+                    # Entered goal
+                    self.goal_count += 1
+                    self.is_in_goal = True
+                    self.frame_data.goal_count = self.goal_count
+
+                    # Check termination
+                    if self.config.goal.enabled:
+                        self.frame_data.done = True
+                        self.frame_data.done_reason = "goal_reached"
+                        self.frame_data.success = True
+                        self.frame_data.termination_signal = True
+                        self.frame_data.termination_reason = "goal_reached"
+                        return NodeExecutionResult.SUCCESS
+            else:
+                # Left goal area
+                self.is_in_goal = False
 
         # No termination condition met
         if not hasattr(self.frame_data, "success"):

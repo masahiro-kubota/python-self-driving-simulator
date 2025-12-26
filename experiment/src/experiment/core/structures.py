@@ -23,6 +23,7 @@ class Metrics:
     success_rate: float = 0.0
     collision_count: int = 0
     goal_count: int = 0
+    checkpoint_count: int = 0
     termination_code: int = 0
 
 

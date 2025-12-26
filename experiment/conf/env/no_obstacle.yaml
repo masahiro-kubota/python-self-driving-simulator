@@ -1,0 +1,9 @@
+# Environment configuration with NO obstacles (for planner validation)
+defaults:
+  - default
+
+obstacles:
+  generation:
+    enabled: false
+    groups: []
+  list: []

@@ -53,6 +53,16 @@ class ObstacleGenerationConfig(BaseModel):
     groups: list[ObstacleGroup] = Field(default_factory=list)
 
 
+class Checkpoint(BaseModel):
+    """Configuration for a checkpoint."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    x: float = Field(..., description="Checkpoint x position")
+    y: float = Field(..., description="Checkpoint y position")
+    tolerance: float | None = Field(None, gt=0, description="Checkpoint tolerance radius")
+
+
 class ObstaclesConfig(BaseModel):
     """Configuration for all obstacles."""
 
@@ -77,6 +87,9 @@ class EnvironmentConfig(BaseModel):
     )
     goal_position: dict[str, float] = Field(..., description="Goal position (x, y)")
     goal_tolerance: float = Field(..., gt=0, description="Goal tolerance radius")
+    checkpoints: list[Checkpoint] = Field(
+        default_factory=list, description="List of intermediate checkpoints"
+    )
     obstacles: ObstaclesConfig = Field(..., description="Obstacle configuration")
 
 

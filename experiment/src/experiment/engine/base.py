@@ -45,7 +45,11 @@ class BaseEngine(ABC):
                     chunk = dict(list(flat_params.items())[i : i + 100])
                     mlflow.log_params(chunk)
 
-            mlflow.log_dict(container, "config.yaml")
+            try:
+                mlflow.log_dict(container, "config.yaml")
+            except Exception as e:
+                # Fallback if storage is full
+                print(f"Warning: Failed to upload config.yaml to MLflow: {e}")
 
             return self._run_impl(cfg)
 
