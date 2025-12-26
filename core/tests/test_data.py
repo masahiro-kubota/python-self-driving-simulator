@@ -1,7 +1,6 @@
 """Tests for core data structures."""
 
 import numpy as np
-
 from core.data import Action, Observation, Trajectory, TrajectoryPoint, VehicleState
 
 

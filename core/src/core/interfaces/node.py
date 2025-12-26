@@ -1,7 +1,7 @@
 """Node interface."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Generic, Protocol, TypeVar
+from typing import Any, Protocol
 
 from core.data import ComponentConfig, NodeExecutionResult
 from core.data.frame_data import FrameData
@@ -13,10 +13,7 @@ class FrameDataProtocol(Protocol):
 
 
 # Type variable for ComponentConfig
-T = TypeVar("T", bound=ComponentConfig)
-
-
-class Node(ABC, Generic[T]):
+class Node[T: ComponentConfig](ABC):
     """Base class for schedulable nodes."""
 
     def __init__(

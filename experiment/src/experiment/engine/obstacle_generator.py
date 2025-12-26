@@ -4,11 +4,10 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from core.utils.osm_parser import parse_osm_file
 from omegaconf import DictConfig, OmegaConf
 from shapely.affinity import rotate, translate
 from shapely.geometry import Polygon
-
-from core.utils.osm_parser import parse_osm_file
 
 logger = logging.getLogger(__name__)
 

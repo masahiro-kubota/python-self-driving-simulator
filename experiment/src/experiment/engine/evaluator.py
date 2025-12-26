@@ -3,15 +3,15 @@ from datetime import datetime
 from pathlib import Path
 
 import hydra
-from omegaconf import DictConfig
-
-import mlflow
 from core.clock import create_clock
 from core.data import SimulationResult
 from core.data.frame_data import collect_node_output_fields, create_frame_data_type
 from core.executor import SingleProcessExecutor
 from experiment.core.structures import Artifact, ExperimentResult, Metrics
 from experiment.engine.base import BaseEngine
+from omegaconf import DictConfig
+
+import mlflow
 from logger import LoggerNode
 
 logger = logging.getLogger(__name__)
@@ -144,7 +144,7 @@ class EvaluatorEngine(BaseEngine):
 
             banner = "=" * 40
             logger.info(
-                f"\n{banner}\nEPISODE {i+1}/{num_episodes}: {result_str}\nCheckpoints: {checkpoint_count}\nGoals: {goal_count}\n{banner}"
+                f"\n{banner}\nEPISODE {i + 1}/{num_episodes}: {result_str}\nCheckpoints: {checkpoint_count}\nGoals: {goal_count}\n{banner}"
             )
 
         # Calculate Aggregate Metrics

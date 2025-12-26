@@ -2,9 +2,8 @@
 
 from pathlib import Path
 
-from pydantic import Field
-
 from core.data import ComponentConfig, VehicleParameters
+from pydantic import Field
 
 
 class TinyLidarNetConfig(ComponentConfig):

@@ -2,9 +2,8 @@
 
 from pathlib import Path
 
-from shapely.geometry import Point, Polygon
-
 from core.utils.osm_parser import parse_osm_for_collision
+from shapely.geometry import Point, Polygon
 
 
 class LaneletMap:

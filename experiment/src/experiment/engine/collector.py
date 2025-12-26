@@ -6,8 +6,6 @@ from typing import Any
 
 import hydra
 import numpy as np
-from omegaconf import DictConfig, ListConfig, OmegaConf
-
 from core.data.experiment.config import (
     ExecutionConfig,
     ExperimentMetadata,
@@ -19,6 +17,7 @@ from core.utils.node_factory import NodeFactory
 from experiment.core.structures import Experiment as ExperimentStructure
 from experiment.engine.base import BaseEngine
 from experiment.engine.evaluator import SimulatorRunner
+from omegaconf import DictConfig, ListConfig, OmegaConf
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ class CollectorEngine(BaseEngine):
 
         for i in range(num_episodes):
             episode_seed = seed + i
-            logger.info(f"--- Episode {i+1}/{num_episodes} (Seed: {episode_seed}) ---")
+            logger.info(f"--- Episode {i + 1}/{num_episodes} (Seed: {episode_seed}) ---")
 
             random.seed(episode_seed)
             np.random.seed(episode_seed)

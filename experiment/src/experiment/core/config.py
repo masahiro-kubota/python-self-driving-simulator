@@ -3,9 +3,8 @@
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from core.data import VehicleParameters
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ExecutionConfig(BaseModel):

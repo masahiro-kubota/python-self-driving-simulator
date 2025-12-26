@@ -3,7 +3,6 @@
 import math
 
 import numpy as np
-
 from core.utils.transforms import (
     global_to_local,
     local_to_global,

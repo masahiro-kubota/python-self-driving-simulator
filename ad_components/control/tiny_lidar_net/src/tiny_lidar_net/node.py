@@ -3,10 +3,10 @@
 import logging
 
 import numpy as np
-
 from core.data import Action, LidarScan
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult
+
 from tiny_lidar_net.config import TinyLidarNetConfig
 from tiny_lidar_net.core import TinyLidarNetCore
 

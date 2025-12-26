@@ -3,8 +3,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from pydantic import Field
-
 from core.data import (
     Action,
     ComponentConfig,
@@ -15,6 +13,8 @@ from core.data import (
 from core.data.node_io import NodeIO
 from core.data.ros import MarkerArray, String
 from core.interfaces.node import Node, NodeExecutionResult
+from pydantic import Field
+
 from logger.mcap_logger import MCAPLogger
 from logger.parsers.lanelet2_parser import Lanelet2Parser
 from logger.ros_message_builder import (

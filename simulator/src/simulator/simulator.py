@@ -3,8 +3,6 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from pydantic import Field
-
 from core.data import (
     Action,
     ADComponentLog,
@@ -17,12 +15,13 @@ from core.data import (
 )
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult  # Removed NodeConfig
+from pydantic import Field
+
 from simulator.state import SimulationVehicleState
 
 if TYPE_CHECKING:
-    from shapely.geometry import Polygon
-
     from core.data import ADComponentLog
+    from shapely.geometry import Polygon
 
 
 class SimulatorConfig(ComponentConfig):
@@ -110,6 +109,7 @@ class Simulator(Node[SimulatorConfig]):
         # Initialize obstacle manager
         if self.config.obstacles:
             from core.data import SimulatorObstacle
+
             from simulator.obstacle import ObstacleManager
 
             # Convert dict obstacles to SimulatorObstacle instances

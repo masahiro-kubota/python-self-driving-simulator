@@ -8,9 +8,8 @@ class ExperimentOrchestrator:
 
     def run_from_hydra(self, cfg: DictConfig) -> Any:
         """Hydra設定から実験フェーズを実行"""
-        from omegaconf import OmegaConf
-
         from experiment.core.config import ExperimentConfig
+        from omegaconf import OmegaConf
 
         # Validate configuration using Pydantic
         # Resolve OmegaConf to primitive types for Pydantic validation

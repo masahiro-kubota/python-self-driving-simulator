@@ -6,9 +6,8 @@ from typing import TYPE_CHECKING
 from core.data import CsvPathTrajectory, ObstacleTrajectory, TrajectoryWaypoint
 
 if TYPE_CHECKING:
-    from shapely.geometry import Polygon
-
     from core.data import ObstacleState, SimulatorObstacle
+    from shapely.geometry import Polygon
 import csv
 from pathlib import Path
 

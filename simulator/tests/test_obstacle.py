@@ -1,8 +1,6 @@
 """Tests for obstacle management and collision detection."""
 
 import pytest
-from shapely.geometry import Point, Polygon
-
 from core.data import (
     ObstacleShape,
     ObstacleState,
@@ -11,6 +9,7 @@ from core.data import (
     StaticObstaclePosition,
     TrajectoryWaypoint,
 )
+from shapely.geometry import Point, Polygon
 from simulator.obstacle import (
     ObstacleManager,
     check_collision,

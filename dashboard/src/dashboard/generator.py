@@ -6,6 +6,7 @@ from typing import Any
 
 from core.data.experiment import ExperimentResult
 from core.interfaces import DashboardGenerator
+
 from dashboard.injector import inject_simulation_data
 
 logger = logging.getLogger(__name__)

@@ -1,9 +1,8 @@
 import pytest
-from pydantic import ValidationError
-
 from core.data import ComponentConfig
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult
+from pydantic import ValidationError
 
 
 class MockNodeConfig(ComponentConfig):

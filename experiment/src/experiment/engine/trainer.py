@@ -4,20 +4,20 @@ from pathlib import Path
 from typing import Any
 
 import hydra
+import mlflow.pytorch
 import numpy as np
 import torch
 import torch.optim as optim
 import yaml
-from omegaconf import DictConfig, OmegaConf
-from torch.utils.data import DataLoader
-
-import mlflow
-import mlflow.pytorch
-import wandb
 from experiment.data.dataset import ScanControlDataset
 from experiment.engine.base import BaseEngine
 from experiment.engine.loss import WeightedSmoothL1Loss
 from experiment.models.tiny_lidar import TinyLidarNet
+from omegaconf import DictConfig, OmegaConf
+from torch.utils.data import DataLoader
+
+import mlflow
+import wandb
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class TrainerEngine(BaseEngine):
             avg_val_loss = val_loss / len(_val_loader) if len(_val_loader) > 0 else 0.0
 
             logger.info(
-                f"Epoch {epoch+1}/{cfg.training.num_epochs} | Train Loss: {avg_train_loss:.6f} | Val Loss: {avg_val_loss:.6f}"
+                f"Epoch {epoch + 1}/{cfg.training.num_epochs} | Train Loss: {avg_train_loss:.6f} | Val Loss: {avg_val_loss:.6f}"
             )
 
             wandb.log(

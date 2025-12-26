@@ -4,12 +4,12 @@ import math
 from typing import TYPE_CHECKING
 
 from core.utils.geometry import normalize_angle
+
 from simulator.state import SimulationVehicleState
 
 if TYPE_CHECKING:
-    from shapely.geometry import Polygon
-
     from core.data import VehicleParameters, VehicleState
+    from shapely.geometry import Polygon
 
 
 def update_bicycle_model(

@@ -2,13 +2,12 @@
 
 from pathlib import Path
 
-from pydantic import Field
-
 from core.data import ComponentConfig, VehicleState
 from core.data.ad_components import Trajectory
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult
 from core.utils.geometry import distance
+from pydantic import Field
 
 
 class CenterlinePlannerConfig(ComponentConfig):
@@ -25,9 +24,8 @@ class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
         super().__init__("CenterlinePlanner", rate_hz, config)
 
         # Load reference trajectory
-        from planning_utils import load_track_csv
-
         from core.utils import get_project_root
+        from planning_utils import load_track_csv
 
         track_path = self.config.track_path
         if not track_path.is_absolute():

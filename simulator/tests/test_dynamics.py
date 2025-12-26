@@ -3,9 +3,8 @@
 import math
 
 import pytest
-from shapely.geometry import Polygon
-
 from core.data import VehicleParameters, VehicleState
+from shapely.geometry import Polygon
 from simulator.dynamics import (
     create_vehicle_polygon,
     get_bicycle_model_polygon,

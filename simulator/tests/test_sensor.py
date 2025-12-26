@@ -2,8 +2,6 @@ import math
 from unittest.mock import MagicMock
 
 import pytest
-from shapely.geometry import LinearRing, Polygon
-
 from core.data import (
     LidarConfig,
     ObstacleShape,
@@ -11,6 +9,7 @@ from core.data import (
     StaticObstaclePosition,
     VehicleState,
 )
+from shapely.geometry import LinearRing, Polygon
 from simulator.sensor import LidarSensor
 
 

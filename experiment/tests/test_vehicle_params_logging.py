@@ -9,10 +9,9 @@ def test_metadata_injection(_mock_mlflow_eval, _mock_mlflow_base) -> None:
     """Test that vehicle parameters are injected into log metadata."""
     # This test validates that the orchestrator properly validates Hydra config
     # before starting simulation (fail-fast behavior)
+    from experiment.core.orchestrator import ExperimentOrchestrator
     from hydra import compose, initialize_config_dir
     from omegaconf import OmegaConf
-
-    from experiment.core.orchestrator import ExperimentOrchestrator
 
     workspace_root = get_project_root()
     config_dir = str(workspace_root / "experiment/conf")

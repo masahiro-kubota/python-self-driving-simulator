@@ -1,12 +1,11 @@
 import numpy as np
 import pytest
-from tiny_lidar_net.config import TinyLidarNetConfig
-from tiny_lidar_net.core import TinyLidarNetCore
-from tiny_lidar_net.node import TinyLidarNetNode
-
 from core.data import Action, LidarConfig, LidarScan, VehicleParameters
 from core.data.frame_data import FrameData
 from core.interfaces.node import NodeExecutionResult
+from tiny_lidar_net.config import TinyLidarNetConfig
+from tiny_lidar_net.core import TinyLidarNetCore
+from tiny_lidar_net.node import TinyLidarNetNode
 
 
 class TestTinyLidarNetCore:

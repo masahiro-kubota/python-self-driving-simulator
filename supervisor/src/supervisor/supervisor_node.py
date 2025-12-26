@@ -1,13 +1,12 @@
 """Supervisor node for simulation judgment and monitoring."""
 
-from pydantic import Field
-
 from core.data import (
     ComponentConfig,
     VehicleState,
 )
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult
+from pydantic import Field
 
 
 class GoalConfig(ComponentConfig):

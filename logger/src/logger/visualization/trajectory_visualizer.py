@@ -2,6 +2,7 @@
 
 from core.data import Trajectory
 from core.data.ros import ColorRGBA, Header, Marker, Point, Pose, Quaternion, Vector3
+
 from logger.ros_message_builder import to_ros_time
 
 

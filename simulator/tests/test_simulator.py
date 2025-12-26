@@ -5,7 +5,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-
 from core.data import Action, VehicleParameters, VehicleState
 from core.data.node_io import NodeIO
 from core.interfaces.node import NodeExecutionResult

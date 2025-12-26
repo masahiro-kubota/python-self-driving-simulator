@@ -1,14 +1,13 @@
 import math
 from pathlib import Path
 
-from pydantic import Field
-
 from core.data import ComponentConfig, SimulatorObstacle, VehicleParameters, VehicleState
 from core.data.ad_components import Trajectory, TrajectoryPoint
 from core.data.ad_components.log import ADComponentLog
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult
 from core.utils.geometry import distance
+from pydantic import Field
 from simulator.obstacle import get_obstacle_polygon, get_obstacle_state
 
 
@@ -37,9 +36,8 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         # self.config is set by base class
 
         # Path resolution is handled by node_factory.create_node()
-        from planning_utils import load_track_csv
-
         from core.utils import get_project_root
+        from planning_utils import load_track_csv
 
         track_path = self.config.track_path
         if not track_path.is_absolute():
@@ -74,10 +72,9 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         self.frame_data.trajectory = trajectory
 
         # Output Debug Marker
-        from planning_utils.visualization import create_trajectory_marker
-
         from core.data.ad_components.log import ADComponentLog
         from core.data.ros import ColorRGBA, MarkerArray
+        from planning_utils.visualization import create_trajectory_marker
 
         marker = create_trajectory_marker(
             trajectory=trajectory,

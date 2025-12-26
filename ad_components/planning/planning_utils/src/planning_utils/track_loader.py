@@ -3,9 +3,8 @@
 import csv
 from pathlib import Path
 
-from scipy.spatial.transform import Rotation
-
 from core.data.ad_components import Trajectory, TrajectoryPoint
+from scipy.spatial.transform import Rotation
 
 
 def load_track_csv(file_path: str | Path) -> Trajectory:

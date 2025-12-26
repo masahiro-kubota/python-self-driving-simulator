@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from core.utils.config import (
     get_nested_value,
     load_yaml,

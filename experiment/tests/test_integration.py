@@ -4,12 +4,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from core.data import VehicleParameters
+from experiment.core.orchestrator import ExperimentOrchestrator
 from ideal_sensor.sensor_node import IdealSensorConfig, IdealSensorNode
 from pid_controller.pid_controller_node import PIDConfig, PIDControllerNode
 from pure_pursuit.pure_pursuit_node import PurePursuitConfig, PurePursuitNode
-
-from core.data import VehicleParameters
-from experiment.core.orchestrator import ExperimentOrchestrator
 
 
 @pytest.mark.integration
@@ -90,14 +89,14 @@ def test_pure_pursuit_experiment_nodes(_mock_mlflow_eval, _mock_mlflow_base) -> 
     assert sim_result.success, f"Simulation failed: {sim_result.reason}"
 
     assert metrics.collision_count == 0, f"Collision count {metrics.collision_count} should be 0"
-    assert (
-        metrics.termination_code != 5
-    ), f"Termination code {metrics.termination_code} should not be 5 (Collision)"
+    assert metrics.termination_code != 5, (
+        f"Termination code {metrics.termination_code} should not be 5 (Collision)"
+    )
     # Goal reached
     assert metrics.goal_count == 1, f"Goal count {metrics.goal_count} != 1 (Goal)"
-    assert (
-        metrics.checkpoint_count == 3
-    ), f"Checkpoint count {metrics.checkpoint_count} != 3 (Checkpoints)"
+    assert metrics.checkpoint_count == 3, (
+        f"Checkpoint count {metrics.checkpoint_count} != 3 (Checkpoints)"
+    )
     assert sim_result.metrics.get("goal_count") == 1, "Per-episode goal count mismatch"
     assert sim_result.metrics.get("checkpoint_count") == 3, "Per-episode checkpoint count mismatch"
 

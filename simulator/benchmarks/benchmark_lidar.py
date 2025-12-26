@@ -11,7 +11,6 @@ import time
 from pathlib import Path
 
 import numpy as np
-
 from core.data import LidarConfig, SimulatorObstacle, VehicleState
 from simulator.map import LaneletMap
 from simulator.obstacle import ObstacleManager

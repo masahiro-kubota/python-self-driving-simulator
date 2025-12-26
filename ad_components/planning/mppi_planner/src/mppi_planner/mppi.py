@@ -1,5 +1,4 @@
 import numpy as np
-
 from core.data import (
     SimulatorObstacle,
     Trajectory,
@@ -115,7 +114,7 @@ class MPPIController:
         max_cost = np.max(costs)
         best_idx = np.argmin(costs)
         print(
-            f"DEBUG: MinCost={min_cost:.2f}, MaxCost={max_cost:.2f}, Spread={max_cost-min_cost:.2f}"
+            f"DEBUG: MinCost={min_cost:.2f}, MaxCost={max_cost:.2f}, Spread={max_cost - min_cost:.2f}"
         )
         print(f"DEBUG: MaxWeight={np.max(weights):.4f}")
         print(f"DEBUG: BestIdx={best_idx}, BestCost={costs[best_idx]:.2f}")

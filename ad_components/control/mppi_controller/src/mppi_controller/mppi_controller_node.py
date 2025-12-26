@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from pydantic import Field
-
 from core.data import Action, ComponentConfig, VehicleParameters, VehicleState
 from core.data.node_io import NodeIO
 from core.data.ros import ColorRGBA, Header, Marker, MarkerArray, Point, Time, Vector3
 from core.interfaces.node import Node, NodeExecutionResult
+from pydantic import Field
+
 from mppi_controller.mppi import MPPIController
 
 

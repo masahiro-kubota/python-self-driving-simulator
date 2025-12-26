@@ -1,5 +1,4 @@
 import numpy as np
-
 from core.data import (
     SimulatorObstacle,
     Trajectory,

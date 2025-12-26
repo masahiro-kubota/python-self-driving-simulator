@@ -11,14 +11,13 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from core.utils.config import get_nested_value
+from core.utils.osm_parser import parse_osm_for_visualization
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-
-from core.utils.config import get_nested_value
-from core.utils.osm_parser import parse_osm_for_visualization
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

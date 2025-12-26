@@ -1,5 +1,4 @@
 import pytest
-
 from core.data.ros import ColorRGBA
 
 

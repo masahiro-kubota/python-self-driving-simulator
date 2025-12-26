@@ -1,8 +1,5 @@
 import numpy as np
 import pytest
-from mppi_controller.mppi import MPPIController
-from mppi_controller.mppi_controller_node import MPPIControllerConfig
-
 from core.data import (
     ObstacleShape,
     SimulatorObstacle,
@@ -12,6 +9,8 @@ from core.data import (
     VehicleParameters,
     VehicleState,
 )
+from mppi_controller.mppi import MPPIController
+from mppi_controller.mppi_controller_node import MPPIControllerConfig
 
 
 @pytest.fixture

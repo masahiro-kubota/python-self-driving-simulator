@@ -2,12 +2,12 @@ import math
 from typing import TYPE_CHECKING
 
 import numpy as np
-from numba import jit
-
 from core.data import LidarConfig, LidarScan, VehicleState
+from numba import jit
 
 if TYPE_CHECKING:
     from core.data import LidarConfig, LidarScan, VehicleState
+
     from simulator.map import LaneletMap
     from simulator.obstacle import ObstacleManager
 

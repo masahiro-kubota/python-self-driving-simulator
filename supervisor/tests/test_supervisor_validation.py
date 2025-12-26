@@ -1,6 +1,5 @@
 import pytest
 from pydantic import ValidationError
-
 from supervisor.supervisor_node import SupervisorNode
 
 

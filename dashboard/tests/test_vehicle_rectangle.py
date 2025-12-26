@@ -9,12 +9,11 @@ dashboard_root = Path(__file__).parent.parent
 sys.path.insert(0, str(dashboard_root / "src"))
 sys.path.insert(0, str(dashboard_root / "tests"))
 
+from dashboard.generator import HTMLDashboardGenerator  # noqa: E402
 from dummy_data import (  # noqa: E402
     create_experiment_result_from_log,
     generate_circular_trajectory,
 )
-
-from dashboard.generator import HTMLDashboardGenerator  # noqa: E402
 
 
 def main():

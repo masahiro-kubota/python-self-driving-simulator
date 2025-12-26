@@ -4,8 +4,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from core.data import Action, SimulationLog, SimulationStep, VehicleState
+
 from simulator import JsonSimulationLogRepository
 
 
