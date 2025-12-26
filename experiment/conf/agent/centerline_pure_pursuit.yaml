@@ -7,6 +7,7 @@ nodes:
     params:
       track_path: ${env.track_path}
       lookahead_points: 100
+      trajectory_color: "#4DB6ACCC" # Teal (The active plan)
 
   control:
     type: PurePursuitControllerNode

@@ -28,7 +28,10 @@ system:
     sensor:
       type: "ideal_sensor.sensor_node.IdealSensorNode"
       rate_hz: 50.0
-      params: {}
+
+      params:
+        vehicle_params: ${vehicle}
+        vehicle_color: ${visualization.colors.vehicle}
     logger:
       type: "LoggerNode"
       rate_hz: ${execution.clock_rate_hz}
@@ -38,10 +41,8 @@ system:
         map_path: ${env.map_path}
         track_path: ${env.track_path}
         vehicle_params: ${vehicle}
-        vehicle_color: ${visualization.colors.vehicle}
         obstacle_color: ${visualization.colors.obstacle}
-        trajectory_color: ${visualization.colors.trajectory}
-        lookahead_point_color: ${visualization.colors.lookahead}
+
         path_color: ${visualization.colors.path}
         map_left_color: ${visualization.colors.map_left}
         map_right_color: ${visualization.colors.map_right}

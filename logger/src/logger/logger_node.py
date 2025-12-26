@@ -23,13 +23,12 @@ from logger.ros_message_builder import (
     build_lidar_tf_message,
     build_odometry_message,
     build_tf_message,
+    to_ros_time,
 )
 from logger.track_loader import load_track_csv_simple
 from logger.visualization.map_visualizer import MapVisualizer
 from logger.visualization.obstacle_visualizer import ObstacleVisualizer
 from logger.visualization.path_visualizer import PathVisualizer
-from logger.visualization.trajectory_visualizer import TrajectoryVisualizer
-from logger.visualization.vehicle_visualizer import VehicleVisualizer
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +42,7 @@ class LoggerConfig(ComponentConfig):
     vehicle_params: VehicleParameters = Field(..., description="Vehicle parameters")
 
     # Visualization colors (Hex strings #RRGGBB or #RRGGBBAA)
-    vehicle_color: str = Field(..., description="Vehicle color")
     obstacle_color: str = Field(..., description="Obstacle color")
-    trajectory_color: str = Field(..., description="Trajectory color")
-    lookahead_point_color: str = Field(..., description="Lookahead point color")
     path_color: str = Field(..., description="Vehicle path history color")
     map_left_color: str = Field(..., description="Map left boundary color")
     map_right_color: str = Field(..., description="Map right boundary color")
@@ -68,15 +64,8 @@ class LoggerNode(Node[LoggerConfig]):
         from core.data.ros import ColorRGBA
 
         # Initialize visualizers with configured colors
-        self.vehicle_visualizer = VehicleVisualizer(
-            config.vehicle_params, color=ColorRGBA.from_hex(config.vehicle_color)
-        )
         self.obstacle_visualizer = ObstacleVisualizer(
             color=ColorRGBA.from_hex(config.obstacle_color)
-        )
-        self.trajectory_visualizer = TrajectoryVisualizer(
-            lookahead_color=ColorRGBA.from_hex(config.lookahead_point_color),
-            trajectory_color=ColorRGBA.from_hex(config.trajectory_color),
         )
         self.path_visualizer = PathVisualizer(
             max_history=0, color=ColorRGBA.from_hex(config.path_color)
@@ -209,17 +198,7 @@ class LoggerNode(Node[LoggerConfig]):
         if action:
             self._log_control_command(action, current_time)
 
-        trajectory = getattr(self.frame_data, "trajectory", None)
-        if trajectory:
-            self._log_trajectory(trajectory, current_time)
-
         return NodeExecutionResult.SUCCESS
-
-    def _log_trajectory(self, trajectory: Any, timestamp: float) -> None:
-        """Log trajectory (lookahead point) markers."""
-        marker = self.trajectory_visualizer.create_marker(trajectory, timestamp)
-        if marker:
-            self.mcap_logger.log("/planning/marker", MarkerArray(markers=[marker]), timestamp)
 
     def _log_vehicle_state(self, vehicle_state: VehicleState, timestamp: float) -> None:
         """Log vehicle state messages."""
@@ -230,11 +209,6 @@ class LoggerNode(Node[LoggerConfig]):
         # Odometry
         odom_msg = build_odometry_message(vehicle_state, timestamp)
         self.mcap_logger.log("/localization/kinematic_state", odom_msg, timestamp)
-
-        # Vehicle marker (real-time)
-        vehicle_marker = self.vehicle_visualizer.create_marker(vehicle_state, timestamp)
-        vehicle_marker_array = MarkerArray(markers=[vehicle_marker])
-        self.mcap_logger.log("/vehicle/marker", vehicle_marker_array, timestamp)
 
         # Obstacle markers (real-time)
         obstacles = getattr(self.frame_data, "obstacles", None)
@@ -303,15 +277,36 @@ class LoggerNode(Node[LoggerConfig]):
 
         try:
             track = load_track_csv_simple(Path(self.config.track_path))
-            marker = self.trajectory_visualizer.create_marker(track, self.current_time)
-            if marker:
-                # Override namespace/color for global track
-                marker.ns = "global_track"
-                marker.id = 999
-                from core.data.ros import ColorRGBA
+            # Just log the track as a generic marker if needed or using a dedicated visualizer?
+            # Since TrajectoryVisualizer is removed, we must decide how to visualize the global track.
+            # However, the user request implied removing generic trajectory visualization.
+            # Global track is static and might need its own visualizer or use a simple logic here.
+            # Let's import TrajectoryVisualizer locally if really needed OR implement a simple marker creation here.
+            # Actually, let's keep it simple and just use the same logic as before but implementation inline or
+            # admit that we removed TrajectoryVisualizer and we need it back JUST for this?
+            # Or better: Global track is a "trajectory" essentially.
+            # The prompt said "trajectory node records...", but global track is loaded by logger.
+            # So LoggerNode should probably still handle global track visualization if it loads it?
+            # BUT, the user said "trajectory color" is planner's responsibility.
+            # global_track_color is still in Config? Yes.
+            # So we should probably keep TrajectoryVisualizer imported but ONLY use it for global track?
+            # OR we inline the logic since it's simple.
 
-                marker.color = ColorRGBA.from_hex(self.config.global_track_color)
-                self.mcap_logger.log("/map/track", MarkerArray(markers=[marker]), self.current_time)
+            from core.data.ros import ColorRGBA, Header, Marker, MarkerArray, Point, Vector3
+
+            points = [Point(x=p.x, y=p.y, z=0.0) for p in track.points]
+            marker = Marker(
+                header=Header(stamp=to_ros_time(self.current_time), frame_id="map"),
+                ns="global_track",
+                id=999,
+                type=4,  # LINE_STRIP
+                action=0,
+                scale=Vector3(x=0.2, y=0.0, z=0.0),
+                color=ColorRGBA.from_hex(self.config.global_track_color),
+                points=points,
+                frame_locked=True,
+            )
+            self.mcap_logger.log("/map/track", MarkerArray(markers=[marker]), self.current_time)
         except Exception as e:
             print(f"Failed to load/publish track: {e}")
 

@@ -15,6 +15,7 @@ class CenterlinePlannerConfig(ComponentConfig):
 
     track_path: Path = Field(..., description="Path to reference trajectory CSV")
     lookahead_points: int = Field(100, description="Number of points to output ahead of vehicle")
+    trajectory_color: str = Field("#00FF00CC", description="Trajectory color")
 
 
 class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
@@ -34,9 +35,14 @@ class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
         self.reference_trajectory = load_track_csv(track_path)
 
     def get_node_io(self) -> NodeIO:
+        from core.data.ros import MarkerArray
+
         return NodeIO(
             inputs={"vehicle_state": VehicleState},
-            outputs={"trajectory": Trajectory},
+            outputs={
+                "trajectory": Trajectory,
+                "planning_marker": MarkerArray,
+            },
         )
 
     def on_run(self, _current_time: float) -> NodeExecutionResult:
@@ -66,5 +72,28 @@ class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
         if len(trajectory_points) == 0:
             trajectory_points = self.reference_trajectory.points[-self.config.lookahead_points :]
 
-        self.frame_data.trajectory = Trajectory(points=trajectory_points)
+        trajectory = Trajectory(points=trajectory_points)
+        self.frame_data.trajectory = trajectory
+
+        # Visualization
+        from core.data.ros import ColorRGBA, Header, Marker, MarkerArray, Point, Vector3
+        from logger.ros_message_builder import to_ros_time
+
+        ros_time = to_ros_time(_current_time)
+        points = [Point(x=p.x, y=p.y, z=0.0) for p in trajectory.points]
+
+        marker = Marker(
+            header=Header(stamp=ros_time, frame_id="map"),
+            ns="trajectory",
+            id=0,
+            type=4,  # LINE_STRIP
+            action=0,
+            scale=Vector3(x=0.2, y=0.0, z=0.0),
+            color=ColorRGBA.from_hex(self.config.trajectory_color),
+            points=points,
+            frame_locked=True,
+        )
+
+        setattr(self.frame_data, "planning/marker", MarkerArray(markers=[marker]))
+
         return NodeExecutionResult.SUCCESS
