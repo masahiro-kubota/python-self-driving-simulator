@@ -14,10 +14,11 @@ from core.data.experiment.config import (
 )
 from core.interfaces.node import Node
 from core.utils.node_factory import NodeFactory
+from omegaconf import DictConfig, ListConfig, OmegaConf
+
 from experiment.core.structures import Experiment as ExperimentStructure
 from experiment.engine.base import BaseEngine
 from experiment.engine.evaluator import SimulatorRunner
-from omegaconf import DictConfig, ListConfig, OmegaConf
 
 logger = logging.getLogger(__name__)
 

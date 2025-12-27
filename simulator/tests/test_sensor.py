@@ -1,6 +1,7 @@
 import math
 from unittest.mock import MagicMock
 
+import numpy as np
 import pytest
 from core.data import (
     LidarConfig,
@@ -54,10 +55,10 @@ class TestLidarSensor:
     def test_no_obstacles_no_map(self, config: LidarConfig, vehicle_state: VehicleState) -> None:
         """Test scan with no obstacles and no map."""
         sensor = LidarSensor(config)
-        scan = sensor.scan(vehicle_state)
+        ranges = sensor.scan(vehicle_state)
 
-        assert len(scan.ranges) == 4
-        assert all(r == float("inf") for r in scan.ranges)
+        assert len(ranges) == 4
+        assert np.all(np.isinf(ranges))
 
     def test_map_boundary_hit(self, config: LidarConfig, vehicle_state: VehicleState) -> None:
         """Test scan hitting map boundary."""
@@ -68,7 +69,7 @@ class TestLidarSensor:
         mock_map.drivable_area = Polygon(boundary)
 
         sensor = LidarSensor(config, map_instance=mock_map)
-        scan = sensor.scan(vehicle_state)
+        ranges = sensor.scan(vehicle_state)
 
         # Beams are at -180, -90, 0, 90 (approx, depending on implementation details)
         # Assuming star_angle = -pi, fov=2pi, num=4
@@ -85,7 +86,7 @@ class TestLidarSensor:
         # i=2: 0
         # i=3: pi/2
 
-        for r in scan.ranges:
+        for r in ranges:
             assert r == pytest.approx(5.0, abs=0.1)
 
     def test_obstacle_hit(self, config: LidarConfig, vehicle_state: VehicleState) -> None:
@@ -105,7 +106,7 @@ class TestLidarSensor:
         # Since we run this in environment where simulator is installed/available via pythonpath
 
         sensor = LidarSensor(config, obstacle_manager=mock_manager)
-        scan = sensor.scan(vehicle_state)
+        ranges = sensor.scan(vehicle_state)
 
         # Ray 2 (angle 0) points to positive X.
         # Sensor at 0,0. Obstacle center at 5,0. Radius 1.0.
@@ -113,8 +114,8 @@ class TestLidarSensor:
 
         # Find the range corresponding to angle 0
         found_hit = False
-        for r in scan.ranges:
-            if r != float("inf"):
+        for r in ranges:
+            if not np.isinf(r):
                 assert r == pytest.approx(4.0, abs=0.1)
                 found_hit = True
 
@@ -137,12 +138,12 @@ class TestLidarSensor:
         mock_manager.obstacles = [obs]
 
         sensor = LidarSensor(config, map_instance=mock_map, obstacle_manager=mock_manager)
-        scan = sensor.scan(vehicle_state)
+        ranges = sensor.scan(vehicle_state)
 
         # Ray towards x-axis should hit Obstacle (3.0m) not Wall (8.0m)
         found_hit = False
-        for r in scan.ranges:
-            if math.isinf(r):
+        for r in ranges:
+            if np.isinf(r):
                 continue
             # If hit, it must be the obstacle (dist ~ 3.0)
             assert r == pytest.approx(3.0, abs=0.1)

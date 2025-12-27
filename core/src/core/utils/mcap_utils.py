@@ -50,15 +50,18 @@ def _discover_models():
             _SCHEMA_TO_MODEL_CACHE[alias] = _SCHEMA_TO_MODEL_CACHE[target]
 
 
-def parse_mcap_message(schema_name: str, data: bytes) -> BaseModel | dict[str, Any]:
+def parse_mcap_message(
+    schema_name: str, data: bytes, validate: bool = True
+) -> BaseModel | dict[str, Any]:
     """Parse MCAP message data using dynamically discovered schemas.
 
     Args:
         schema_name: Schema name from MCAP channel/schema.
         data: Raw byte data (usually JSON) from MCAP message.
+        validate: Whether to validate using Pydantic models.
 
     Returns:
-        Pydantic model instance if schema is matched, otherwise raw dict from JSON.
+        Pydantic model instance if schema is matched and validate=True, otherwise raw dict.
     """
     _discover_models()
 
@@ -69,7 +72,7 @@ def parse_mcap_message(schema_name: str, data: bytes) -> BaseModel | dict[str, A
         return {}
 
     model_cls = _SCHEMA_TO_MODEL_CACHE.get(schema_name)
-    if model_cls:
+    if model_cls and validate:
         try:
             return model_cls.model_validate(payload)
         except Exception as e:

@@ -19,7 +19,7 @@ from core.data.ros import (
     TwistWithCovariance,
     Vector3,
 )
-from core.data.sensor import LidarScan
+from core.data.vehicle.params import LidarConfig
 
 
 def to_ros_time(t: float) -> Time:
@@ -110,18 +110,17 @@ def build_odometry_message(vehicle_state: VehicleState, timestamp: float) -> Odo
     )
 
 
-def build_lidar_tf_message(lidar_scan: LidarScan, timestamp: float) -> TFMessage:
+def build_lidar_tf_message(config: LidarConfig, timestamp: float) -> TFMessage:
     """Build TF message for base_link -> lidar_link transform.
 
     Args:
-        lidar_scan: LiDAR scan data with configuration.
+        config: LiDAR configuration.
         timestamp: Current timestamp.
 
     Returns:
         TF message containing the transform.
     """
     ros_time = to_ros_time(timestamp)
-    config = lidar_scan.config
     q_lidar = quaternion_from_yaw(config.yaw)
 
     return TFMessage(
@@ -138,19 +137,21 @@ def build_lidar_tf_message(lidar_scan: LidarScan, timestamp: float) -> TFMessage
     )
 
 
-def build_laser_scan_message(lidar_scan: LidarScan) -> LaserScan:
+def build_laser_scan_message(
+    config: LidarConfig, ranges: list[float], timestamp: float
+) -> LaserScan:
     """Build LaserScan message from LiDAR scan data.
 
     Args:
-        lidar_scan: LiDAR scan data.
+        config: LiDAR configuration.
+        ranges: List of ranges.
+        timestamp: Current timestamp.
 
     Returns:
         LaserScan message.
     """
-    config = lidar_scan.config
-
     return LaserScan(
-        header=Header(stamp=to_ros_time(lidar_scan.timestamp), frame_id="lidar_link"),
+        header=Header(stamp=to_ros_time(timestamp), frame_id="lidar_link"),
         angle_min=-math.radians(config.fov) / 2,
         angle_max=math.radians(config.fov) / 2,
         angle_increment=math.radians(config.fov) / config.num_beams
@@ -158,9 +159,6 @@ def build_laser_scan_message(lidar_scan: LidarScan) -> LaserScan:
         else 0.0,
         range_min=config.range_min,
         range_max=config.range_max,
-        ranges=[
-            r if r != float("inf") and not math.isnan(r) else float("inf")
-            for r in lidar_scan.ranges
-        ],
-        intensities=lidar_scan.intensities or [],
+        ranges=[r if r != float("inf") and not math.isnan(r) else float("inf") for r in ranges],
+        intensities=[],
     )

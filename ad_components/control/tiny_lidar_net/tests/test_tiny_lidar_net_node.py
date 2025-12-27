@@ -1,7 +1,8 @@
 import numpy as np
 import pytest
-from core.data import LidarConfig, LidarScan, VehicleParameters
+from core.data import VehicleParameters
 from core.data.frame_data import FrameData
+from core.data.ros import LaserScan
 from core.interfaces.node import NodeExecutionResult
 from tiny_lidar_net.config import TinyLidarNetConfig
 from tiny_lidar_net.core import TinyLidarNetCore
@@ -177,11 +178,9 @@ class TestTinyLidarNetNode:
 
     def test_on_run_success(self, node: TinyLidarNetNode) -> None:
         """Test successful execution."""
-        # Create frame data with LiDAR scan
-        lidar_config = LidarConfig(num_beams=720, fov=270.0, range_max=30.0)
-        lidar_scan = LidarScan(
-            timestamp=0.0,
-            config=lidar_config,
+        # Create frame data with LaserScan
+        lidar_scan = LaserScan(
+            range_max=30.0,
             ranges=[10.0] * 720,
         )
 

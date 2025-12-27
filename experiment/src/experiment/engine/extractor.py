@@ -5,10 +5,11 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from experiment.engine.base import BaseEngine
 from mcap.reader import make_reader
 from mcap_ros2.decoder import DecoderFactory
 from omegaconf import DictConfig
+
+from experiment.engine.base import BaseEngine
 
 # 既存の抽出ロジック（ad_components配下）を参照する代わりに、ここに統合していく方針
 # 今回は構造のデモとして骨格を実装

@@ -2,11 +2,11 @@ import math
 from typing import TYPE_CHECKING
 
 import numpy as np
-from core.data import LidarConfig, LidarScan, VehicleState
+from core.data import LidarConfig, VehicleState
 from numba import jit
 
 if TYPE_CHECKING:
-    from core.data import LidarConfig, LidarScan, VehicleState
+    from core.data import LidarConfig, VehicleState
 
     from simulator.map import LaneletMap
     from simulator.obstacle import ObstacleManager
@@ -44,14 +44,14 @@ class LidarSensor:
         # Cache for map segments [M, 2, 2]
         self._cached_map_segments: np.ndarray | None = None
 
-    def scan(self, vehicle_state: VehicleState) -> LidarScan:
+    def scan(self, vehicle_state: VehicleState) -> np.ndarray:
         """Perform LiDAR scan using 2D vectorized NumPy operations and spatial culling.
 
         Args:
             vehicle_state: Current vehicle state
 
         Returns:
-            LidarScan data
+            Numpy array of ranges [num_beams]
         """
         sensor_x, sensor_y = self._get_sensor_pose(vehicle_state)
         sensor_pos = np.array([sensor_x, sensor_y], dtype=np.float64)
@@ -79,9 +79,7 @@ class LidarSensor:
                 sensor_pos, ray_dirs, all_segments, ranges
             )
 
-        return LidarScan(
-            timestamp=vehicle_state.timestamp, config=self.config, ranges=ranges.tolist()
-        )
+        return ranges
 
     def _get_culled_segments(
         self, sensor_pos: np.ndarray, vehicle_state: VehicleState

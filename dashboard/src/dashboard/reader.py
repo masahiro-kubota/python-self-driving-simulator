@@ -22,6 +22,13 @@ TOPIC_MAPPING = {
 # Dynamic topics (prefix based)
 DYNAMIC_TOPIC_PREFIXES = ["/mppi_", "/pure_pursuit_", "/pid_"]
 
+# Blacklisted topics that are too large for the dashboard overview
+BLACKLISTED_TOPICS = {
+    "/mppi_candidates",  # Very large visualization data
+    "/lidar_scan",  # Raw sensor data
+    "/perception/lidar/scan",
+}
+
 
 # Removed local _get_yaw_from_quat, using core.utils instead
 
@@ -68,6 +75,9 @@ def load_simulation_data(mcap_path: Path, vehicle_params: dict[str, Any] | Any) 
             available_topics = set()
             if summary and summary.channels:
                 for c in summary.channels.values():
+                    # Skip blacklisted topics
+                    if c.topic in BLACKLISTED_TOPICS:
+                        continue
                     # Check mapping or dynamic prefix
                     if c.topic in TOPIC_MAPPING or any(
                         c.topic.startswith(p) for p in DYNAMIC_TOPIC_PREFIXES
@@ -84,6 +94,7 @@ def load_simulation_data(mcap_path: Path, vehicle_params: dict[str, Any] | Any) 
 
                 ts = message.log_time / 1e9
                 topic = channel.topic
+                is_ad_log = any(topic.startswith(prefix) for prefix in DYNAMIC_TOPIC_PREFIXES)
 
                 # Check for new step
                 if current_timestamp < 0:
@@ -112,7 +123,9 @@ def load_simulation_data(mcap_path: Path, vehicle_params: dict[str, Any] | Any) 
                 data_seen_in_step = True
 
                 # Parse using schema and model
-                msg = parse_mcap_message(schema.name, message.data)
+                # Skip validation for ad_logs to speed up processing
+                validate = not is_ad_log
+                msg = parse_mcap_message(schema.name, message.data, validate=validate)
                 extracted = extract_dashboard_state(msg)
 
                 if schema.name in ["Odometry", "nav_msgs/Odometry"]:

@@ -3,8 +3,8 @@
 import logging
 
 import numpy as np
-from core.data import LidarScan
 from core.data.node_io import NodeIO
+from core.data.ros import LaserScan
 from core.interfaces.node import Node, NodeExecutionResult
 
 from tiny_lidar_net.config import TinyLidarNetConfig
@@ -57,7 +57,7 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
         from core.data.ros import AckermannDriveStamped
 
         return NodeIO(
-            inputs={"lidar_scan": LidarScan},
+            inputs={"lidar_scan": LaserScan},
             outputs={"control_cmd": AckermannDriveStamped},
         )
 
@@ -73,7 +73,7 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
         if self.frame_data is None:
             return NodeExecutionResult.FAILED
 
-        # Get LiDAR scan from frame_data
+        # Get LiDAR scan from frame_data (now a LaserScan message)
         lidar_scan = getattr(self.frame_data, "lidar_scan", None)
 
         if lidar_scan is None:

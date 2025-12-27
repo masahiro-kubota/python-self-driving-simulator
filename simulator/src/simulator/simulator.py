@@ -61,7 +61,6 @@ class Simulator(Node[SimulatorConfig]):
         """Define node IO."""
         # Use lazy import for LidarScan because it might be circular if imported at top-level
         # (Though currently it's safe as it's in core.data)
-        from core.data import LidarScan
         from core.data.ros import AckermannDriveStamped, LaserScan, MarkerArray, TFMessage
 
         return NodeIO(
@@ -72,7 +71,6 @@ class Simulator(Node[SimulatorConfig]):
                 "sim_state": VehicleState,
                 "obstacles": list[SimulatorObstacle],
                 "obstacle_markers": MarkerArray,
-                "lidar_scan": LidarScan,
                 "perception_lidar_scan": LaserScan,
                 "tf_lidar": TFMessage,
             },
@@ -225,9 +223,9 @@ class Simulator(Node[SimulatorConfig]):
                 pass
 
         # Scan Lidar if available
-        lidar_scan = None
+        ranges = None
         if self.lidar_sensor:
-            lidar_scan = self.lidar_sensor.scan(vehicle_state)
+            ranges = self.lidar_sensor.scan(vehicle_state)
 
         # Logging
         drive_action = AckermannDrive(steering_angle=steering, acceleration=acceleration)
@@ -236,7 +234,7 @@ class Simulator(Node[SimulatorConfig]):
             vehicle_state=vehicle_state,
             action=drive_action,
             ad_component_log=self._create_ad_component_log(),
-            info={"lidar_scan": lidar_scan} if lidar_scan else {},
+            info={"lidar_ranges": ranges.tolist()} if ranges is not None else {},
         )
         self.log.steps.append(step_log)
 
@@ -255,22 +253,22 @@ class Simulator(Node[SimulatorConfig]):
             self.frame_data.obstacle_markers = MarkerArray(markers=[])
         self.frame_data.obstacle_states = obstacle_states
 
-        # Expose Lidar data to frame_data (NodeIO) if needed
-        # Currently NodeIO doesn't explicitly define 'scan' output, but we can add it to info or frame_data dynamic
-        if lidar_scan:
-            self.frame_data.lidar_scan = lidar_scan
-
+        if ranges is not None:
             from core.utils.ros_message_builder import (
                 build_laser_scan_message,
                 build_lidar_tf_message,
             )
 
             # LaserScan message
-            scan_msg = build_laser_scan_message(lidar_scan)
+            # Create a dict that looks like LidarScan for the builder if needed,
+            # but let's check build_laser_scan_message first
+            scan_msg = build_laser_scan_message(
+                self.config.vehicle_params.lidar, ranges, self.current_time
+            )
             self.frame_data.perception_lidar_scan = scan_msg
 
             # TF (base_link -> lidar_link)
-            tf_msg = build_lidar_tf_message(lidar_scan, self.current_time)
+            tf_msg = build_lidar_tf_message(self.config.vehicle_params.lidar, self.current_time)
             self.frame_data.tf_lidar = tf_msg
 
         return NodeExecutionResult.SUCCESS

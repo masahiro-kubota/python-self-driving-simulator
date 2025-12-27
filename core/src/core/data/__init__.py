@@ -25,9 +25,8 @@ from core.data.environment import (
 from core.data.experiment import Artifact, EvaluationMetrics, ExperimentResult
 from core.data.node import ComponentConfig, NodeExecutionResult
 from core.data.observation import Observation
-from core.data.sensor import LidarConfig, LidarScan
 from core.data.simulator import SimulationLog, SimulationResult, SimulationStep
-from core.data.vehicle import VehicleParameters
+from core.data.vehicle.params import LidarConfig, VehicleParameters
 
 __all__ = [
     "ADComponentConfig",
@@ -41,7 +40,6 @@ __all__ = [
     "EvaluationMetrics",
     "ExperimentResult",
     "LidarConfig",
-    "LidarScan",
     "NodeExecutionResult",
     "Observation",
     "Obstacle",
