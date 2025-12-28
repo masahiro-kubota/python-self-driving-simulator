@@ -5,7 +5,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from core.data import VehicleParameters, VehicleState
+from core.data import TopicSlot, VehicleParameters, VehicleState
 from core.data.node_io import NodeIO
 from core.interfaces.node import NodeExecutionResult
 from simulator.simulator import Simulator, SimulatorConfig
@@ -13,6 +13,7 @@ from simulator.simulator import Simulator, SimulatorConfig
 DUMMY_VP = VehicleParameters(
     wheelbase=2.5,
     width=1.8,
+    vehicle_height=2.2,
     front_overhang=1.0,
     rear_overhang=1.0,
     max_steering_angle=0.6,
@@ -56,7 +57,7 @@ class TestSimulatorNode:
             obstacle_color="#FF5252B3",
         )
 
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
 
         assert sim.name == "Simulator"
         assert sim.rate_hz == 10.0
@@ -72,7 +73,7 @@ class TestSimulatorNode:
             map_path=Path("dummy_map.osm"),
             obstacle_color="#FF5252B3",
         )
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
 
         node_io = sim.get_node_io()
 
@@ -89,7 +90,7 @@ class TestSimulatorNode:
             obstacle_color="#FF5252B3",
         )
 
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
         # Check internal state is initialized
@@ -107,17 +108,22 @@ class TestSimulatorNode:
             map_path=Path("dummy_map.osm"),
             obstacle_color="#FF5252B3",
         )
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
         # Create frame data manually
         from core.data.ros import AckermannDrive, AckermannDriveStamped
 
         frame_data = SimpleNamespace()
-        frame_data.control_cmd = AckermannDriveStamped(
-            drive=AckermannDrive(steering_angle=0.1, acceleration=1.0)
+        frame_data.control_cmd = TopicSlot(
+            AckermannDriveStamped(drive=AckermannDrive(steering_angle=0.1, acceleration=1.0))
         )
-        frame_data.termination_signal = False
+        frame_data.termination_signal = TopicSlot(False)
+        frame_data.sim_state = TopicSlot(None)
+        frame_data.obstacles = TopicSlot([])
+        frame_data.obstacle_states = TopicSlot([])
+        frame_data.obstacle_markers = TopicSlot(None)
+        frame_data.perception_lidar_scan = TopicSlot(None)
         sim.set_frame_data(frame_data)
 
         # Execute
@@ -126,7 +132,7 @@ class TestSimulatorNode:
         assert result == NodeExecutionResult.SUCCESS
         assert hasattr(frame_data, "sim_state")
         assert frame_data.sim_state is not None
-        assert isinstance(frame_data.sim_state, VehicleState)
+        assert isinstance(frame_data.sim_state.data, VehicleState)
 
     def test_on_run_updates_state(self, _mock_map) -> None:
         """Test that on_run updates vehicle state."""
@@ -136,16 +142,21 @@ class TestSimulatorNode:
             map_path=Path("dummy_map.osm"),
             obstacle_color="#FF5252B3",
         )
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
         from core.data.ros import AckermannDrive, AckermannDriveStamped
 
         frame_data = SimpleNamespace()
-        frame_data.control_cmd = AckermannDriveStamped(
-            drive=AckermannDrive(steering_angle=0.0, acceleration=1.0)
+        frame_data.control_cmd = TopicSlot(
+            AckermannDriveStamped(drive=AckermannDrive(steering_angle=0.0, acceleration=1.0))
         )
-        frame_data.termination_signal = False
+        frame_data.termination_signal = TopicSlot(False)
+        frame_data.sim_state = TopicSlot(None)
+        frame_data.obstacles = TopicSlot([])
+        frame_data.obstacle_states = TopicSlot([])
+        frame_data.obstacle_markers = TopicSlot(None)
+        frame_data.perception_lidar_scan = TopicSlot(None)
         sim.set_frame_data(frame_data)
 
         # Run multiple steps
@@ -154,7 +165,7 @@ class TestSimulatorNode:
             assert result == NodeExecutionResult.SUCCESS
 
         # State should have changed
-        final_state = frame_data.sim_state
+        final_state = frame_data.sim_state.data
         assert final_state.velocity > 0.0  # Should have accelerated
 
     def test_on_run_without_action(self, _mock_map) -> None:
@@ -165,11 +176,17 @@ class TestSimulatorNode:
             map_path=Path("dummy_map.osm"),
             obstacle_color="#FF5252B3",
         )
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
         frame_data = SimpleNamespace()
-        frame_data.termination_signal = False
+        frame_data.control_cmd = TopicSlot(None)  # Default
+        frame_data.termination_signal = TopicSlot(False)
+        frame_data.sim_state = TopicSlot(None)
+        frame_data.obstacles = TopicSlot([])
+        frame_data.obstacle_states = TopicSlot([])
+        frame_data.obstacle_markers = TopicSlot(None)
+        frame_data.perception_lidar_scan = TopicSlot(None)
         # Don't set action
         sim.set_frame_data(frame_data)
 
@@ -187,11 +204,11 @@ class TestSimulatorNode:
             map_path=Path("dummy_map.osm"),
             obstacle_color="#FF5252B3",
         )
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
         frame_data = SimpleNamespace()
-        frame_data.termination_signal = True
+        frame_data.termination_signal = TopicSlot(True)
         sim.set_frame_data(frame_data)
 
         result = sim.on_run(0.0)
@@ -207,16 +224,21 @@ class TestSimulatorNode:
             map_path=Path("dummy_map.osm"),
             obstacle_color="#FF5252B3",
         )
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
         from core.data.ros import AckermannDrive, AckermannDriveStamped
 
         frame_data = SimpleNamespace()
-        frame_data.control_cmd = AckermannDriveStamped(
-            drive=AckermannDrive(steering_angle=0.1, acceleration=0.5)
+        frame_data.control_cmd = TopicSlot(
+            AckermannDriveStamped(drive=AckermannDrive(steering_angle=0.1, acceleration=0.5))
         )
-        frame_data.termination_signal = False
+        frame_data.termination_signal = TopicSlot(False)
+        frame_data.sim_state = TopicSlot(None)
+        frame_data.obstacles = TopicSlot([])
+        frame_data.obstacle_states = TopicSlot([])
+        frame_data.obstacle_markers = TopicSlot(None)
+        frame_data.perception_lidar_scan = TopicSlot(None)
         sim.set_frame_data(frame_data)
 
         # Run 3 steps
@@ -240,16 +262,21 @@ class TestSimulatorNode:
             map_path=Path("dummy_map.osm"),
             obstacle_color="#FF5252B3",
         )
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
         from core.data.ros import AckermannDrive, AckermannDriveStamped
 
         frame_data = SimpleNamespace()
-        frame_data.control_cmd = AckermannDriveStamped(
-            drive=AckermannDrive(steering_angle=0.0, acceleration=1.0)
+        frame_data.control_cmd = TopicSlot(
+            AckermannDriveStamped(drive=AckermannDrive(steering_angle=0.0, acceleration=1.0))
         )
-        frame_data.termination_signal = False
+        frame_data.termination_signal = TopicSlot(False)
+        frame_data.sim_state = TopicSlot(None)
+        frame_data.obstacles = TopicSlot([])
+        frame_data.obstacle_states = TopicSlot([])
+        frame_data.obstacle_markers = TopicSlot(None)
+        frame_data.perception_lidar_scan = TopicSlot(None)
         sim.set_frame_data(frame_data)
 
         # Run some steps
@@ -316,7 +343,7 @@ class TestSimulatorWithMap:
             obstacle_color="#FF5252B3",
         )
 
-        sim = Simulator(config=config, rate_hz=10.0)
+        sim = Simulator(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
         # Map should be loaded

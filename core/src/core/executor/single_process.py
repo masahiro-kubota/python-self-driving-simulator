@@ -19,8 +19,15 @@ class SingleProcessExecutor:
     """
 
     def __init__(self, nodes: list[Node], clock: Clock):
-        self.nodes = nodes
+        # Sort nodes by priority (lower values execute first)
+        # Use stable sort to maintain original order for nodes with same priority
+        self.nodes = sorted(nodes, key=lambda node: node.priority)
         self.clock = clock
+
+        # Log the execution order
+        logger.info("Node execution order (by priority):")
+        for i, node in enumerate(self.nodes, 1):
+            logger.info(f"  {i}. {node.name} (priority={node.priority})")
 
     def run(
         self,
@@ -79,11 +86,13 @@ class SingleProcessExecutor:
                             hasattr(node, "frame_data")
                             and node.frame_data is not None
                             and hasattr(node.frame_data, "termination_signal")
-                            and node.frame_data.termination_signal
                         ):
-                            # Termination requested by a node
-                            termination_detected = True
-                            break
+                            # Access TopicSlot data
+                            slot = getattr(node.frame_data, "termination_signal")
+                            if hasattr(slot, "data") and slot.data:
+                                # Termination requested by a node
+                                termination_detected = True
+                                break
 
                     if termination_detected:
                         logger.info("Termination signal detected, ending simulation")

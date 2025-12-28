@@ -38,23 +38,24 @@ class LateralShiftPlannerNodeConfig(ComponentConfig):
 
     # Avoidance params
     lookahead_distance: float = Field(..., description="Lookahead distance [m]")
+    lookbehind_distance: float = Field(..., description="Lookbehind distance [m]")
     avoidance_maneuver_length: float = Field(
         ..., description="Obstacle avoidance activation distance [m]"
     )
     longitudinal_margin_front: float = Field(..., description="Front margin distance [m]")
+    longitudinal_margin_front: float = Field(..., description="Front margin distance [m]")
     longitudinal_margin_rear: float = Field(..., description="Rear margin distance [m]")
-    road_width: float = Field(..., description="Road width [m]")
     vehicle_width: float = Field(..., description="Vehicle width [m]")
     safe_margin: float = Field(..., description="Safety margin [m]")
     trajectory_resolution: float = Field(..., description="Trajectory output resolution [m]")
 
     # Visualization
-    trajectory_color: str = Field("#00FF00CC", description="Trajectory color")
+    trajectory_color: str = Field(..., description="Trajectory color")
 
 
 class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
-    def __init__(self, config: LateralShiftPlannerNodeConfig, rate_hz: float):
-        super().__init__("LateralShiftPlanner", rate_hz, config)
+    def __init__(self, config: LateralShiftPlannerNodeConfig, rate_hz: float, priority: int):
+        super().__init__("LateralShiftPlanner", rate_hz, config, priority)
 
         track_path = self.config.track_path
         map_path = self.config.map_path
@@ -68,10 +69,10 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
         # Init planner
         planner_config = LateralShiftPlannerConfig(
             lookahead_distance=self.config.lookahead_distance,
+            lookbehind_distance=self.config.lookbehind_distance,
             avoidance_maneuver_length=self.config.avoidance_maneuver_length,
             longitudinal_margin_front=self.config.longitudinal_margin_front,
             longitudinal_margin_rear=self.config.longitudinal_margin_rear,
-            road_width=self.config.road_width,
             vehicle_width=self.config.vehicle_width,
             safe_margin=self.config.safe_margin,
             trajectory_resolution=self.config.trajectory_resolution,
@@ -101,11 +102,11 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
         if self.frame_data is None:
             return NodeExecutionResult.FAILED
 
-        vehicle_state = getattr(self.frame_data, "vehicle_state", None)
+        vehicle_state = self.subscribe("vehicle_state")
         # raw_obstacles is list[SimulatorObstacle]
-        raw_obstacles = getattr(self.frame_data, "obstacles", None)
+        raw_obstacles = self.subscribe("obstacles")
         # raw_obstacle_states is list[ObstacleState]
-        raw_obstacle_states = getattr(self.frame_data, "obstacle_states", None)
+        raw_obstacle_states = self.subscribe("obstacle_states")
 
         if vehicle_state is None:
             return NodeExecutionResult.SKIPPED
@@ -150,7 +151,7 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
                 )
 
         # Dynamic road width and boundaries
-        road_width = self.config.road_width  # Fallback
+        road_width = 0.0  # Fallback only for display if needed, but logic should use boundaries
 
         width = self.road_map.get_lateral_width(vehicle_state.x, vehicle_state.y)
         if width is not None:
@@ -161,9 +162,16 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
         if boundaries is not None:
             left_boundary_dist, right_boundary_dist = boundaries
         else:
-            # Fallback: assume symmetric road
-            left_boundary_dist = road_width / 2.0
-            right_boundary_dist = road_width / 2.0
+            # Fallback if map fails: assume 0 or handle error.
+            # Since user requested removal of road_width param, we assume map works or this fails.
+            # To be safe for now without the param, let's just log or set to something minimal if strictly needed.
+            # But the plan is to rely on map. If map fails, let's set to None or 0 and see consequences.
+            # Better: if we found width but not boundaries (unlikely), use width/2.
+            if width is not None:
+                left_boundary_dist = width / 2.0
+                right_boundary_dist = width / 2.0
+            else:
+                return NodeExecutionResult.FAILED  # Cannot plan without road boundaries
 
         # DEBUG LOGGING
         logger.info(
@@ -171,7 +179,7 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
         )
 
         # Plan
-        debug_data = self.planner.plan(vehicle_state, converted_obstacles, road_width)
+        debug_data = self.planner.plan(vehicle_state, converted_obstacles)
         trajectory = debug_data.trajectory
 
         logger.info(f"[LateralShiftPlanner] Generated Trajectory Points: {len(trajectory.points)}")
@@ -180,7 +188,7 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
             logger.info(f"  Start Point: ({p0.x:.2f}, {p0.y:.2f})")
 
         # Output
-        self.frame_data.trajectory = trajectory
+        self.publish("trajectory", trajectory)
 
         # Visualize
         ros_time = to_ros_time(_current_time)
@@ -346,10 +354,10 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
                     Marker(
                         header=Header(stamp=ros_time, frame_id="map"),
                         ns="shift_points",
-                        id=i * 100 + int(s_sample),  # Value-based ID
+                        id=i * 1000 + int(s_sample * 10),  # Unique ID
                         type=9,  # TEXT_VIEW_FACING
                         action=0,
-                        scale=Vector3(x=0.0, y=0.0, z=0.5),  # Height of text
+                        scale=Vector3(x=0.0, y=0.0, z=0.4),  # Slightly smaller
                         color=ColorRGBA.from_hex("#FFFF00CC"),
                         pose=Pose(
                             position=Point(x=gx, y=gy, z=1.0),
@@ -383,6 +391,6 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
             )
 
         # Assign to planning_marker to match NodeIO output
-        self.frame_data.planning_marker = MarkerArray(markers=markers)
+        self.publish("planning_marker", MarkerArray(markers=markers))
 
         return NodeExecutionResult.SUCCESS

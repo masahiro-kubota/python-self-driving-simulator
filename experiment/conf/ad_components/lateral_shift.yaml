@@ -4,6 +4,7 @@ nodes:
   sensor:
     type: "ideal_sensor.sensor_node.IdealSensorNode"
     rate_hz: 50.0
+    priority: 10  # Execute after simulator
     params:
       vehicle_params: ${vehicle}
       vehicle_color: ${visualization.colors.vehicle}
@@ -11,19 +12,20 @@ nodes:
   planning:
     type: LateralShiftPlannerNode
     rate_hz: 10.0
+    priority: 20  # Execute after sensor
     params:
       track_path: ${env.track_path}
       map_path: ${env.map_path}
       # Perception / Planning Horizon
       lookahead_distance: 15.0 # [m] Maximum distance to detect obstacles and generate trajectory. Determines the length of the planned path.
+      lookbehind_distance: 5.0 # [m] Maximum distance to detect obstacles behind the vehicle.
 
       # Shift Profile Parameters (Avoidance Logic)
       avoidance_maneuver_length: 5.0 # [m] Longitudinal distance required to complete the lateral shift (from 0 to target lateral position).
-      longitudinal_margin_front: 1.0 # [m] Buffer distance BEFORE the obstacle. The vehicle will reach full avoidance position this many meters before the obstacle.
-      longitudinal_margin_rear: 1.0 # [m] Buffer distance AFTER the obstacle. The vehicle maintains avoidance position for this distance after passing the obstacle.
+      longitudinal_margin_front: 0.0 # [m] Buffer distance BEFORE the obstacle. The vehicle will reach full avoidance position this many meters before the obstacle.
+      longitudinal_margin_rear: 0.0 # [m] Buffer distance AFTER the obstacle. The vehicle maintains avoidance position for this distance after passing the obstacle.
 
       # Vehicle & Environment
-      road_width: 6.0 # [m] Fallback road width if Lanelet2 map data is unavailable. Used for validity checks.
       vehicle_width: ${vehicle.width} # [m] Width of the ego vehicle.
       safe_margin: 0.5 # [m] Additional lateral clearance to keep from the obstacle boundary.
 
@@ -34,6 +36,7 @@ nodes:
   control:
     type: PurePursuitControllerNode
     rate_hz: 30.0
+    priority: 30  # Execute after planning
     params:
       vehicle_params: ${vehicle}
       lookahead_marker_color: "#D1C4E9CC" # Deep Purple 100

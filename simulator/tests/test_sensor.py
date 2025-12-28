@@ -97,9 +97,10 @@ class TestLidarSensor:
         # Obstacle at x=5, y=0 (Front)
         obs = SimulatorObstacle(
             type="static",
-            shape=ObstacleShape(type="circle", radius=1.0),
+            shape=ObstacleShape(type="circle", radius=1.0, height=2.0),
             position=StaticObstaclePosition(x=5.0, y=0.0, yaw=0.0),
         )
+
         mock_manager.obstacles = [obs]
 
         # Need to patch the import inside LidarSensor or ensure simulator.obstacle imports work
@@ -132,7 +133,7 @@ class TestLidarSensor:
         # Obstacle at x=4
         obs = SimulatorObstacle(
             type="static",
-            shape=ObstacleShape(type="circle", radius=1.0),
+            shape=ObstacleShape(type="circle", radius=1.0, height=2.0),
             position=StaticObstaclePosition(x=4.0, y=0.0, yaw=0.0),
         )
         mock_manager.obstacles = [obs]

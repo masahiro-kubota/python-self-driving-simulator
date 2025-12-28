@@ -3,7 +3,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, Protocol
 
-from core.data import ComponentConfig, NodeExecutionResult
+from core.data import ComponentConfig, NodeExecutionResult, TopicSlot
 from core.data.frame_data import FrameData
 from core.data.node_io import NodeIO
 
@@ -21,6 +21,7 @@ class Node[T: ComponentConfig](ABC):
         name: str,
         rate_hz: float,
         config: T,
+        priority: int,
     ):
         """Initialize node.
 
@@ -28,6 +29,7 @@ class Node[T: ComponentConfig](ABC):
             name: Node name
             rate_hz: Execution frequency in Hz
             config: Validated configuration (Pydantic model instance)
+            priority: Execution priority (lower values execute first)
         """
         self.name = name
         self.rate_hz = rate_hz
@@ -35,6 +37,7 @@ class Node[T: ComponentConfig](ABC):
         self.next_time = 0.0
         self.frame_data: FrameDataProtocol | None = None
         self.config: T = config
+        self.priority = priority
 
     @classmethod
     def from_dict(
@@ -42,6 +45,7 @@ class Node[T: ComponentConfig](ABC):
         rate_hz: float,
         config_class: type[T],
         config_dict: dict[str, Any],
+        priority: int,
         **kwargs: Any,
     ) -> "Node[T]":
         """Create node from configuration dictionary.
@@ -52,13 +56,14 @@ class Node[T: ComponentConfig](ABC):
             rate_hz: Execution frequency in Hz
             config_class: Pydantic model class for configuration validation
             config_dict: Configuration dictionary
+            priority: Execution priority (lower values execute first)
             **kwargs: Additional arguments to pass to __init__
 
         Returns:
             Instantiated Node with validated configuration
         """
         config = config_class(**config_dict)
-        return cls(rate_hz=rate_hz, config=config, **kwargs)
+        return cls(rate_hz=rate_hz, config=config, priority=priority, **kwargs)
 
     @abstractmethod
     def get_node_io(self) -> NodeIO:
@@ -76,6 +81,49 @@ class Node[T: ComponentConfig](ABC):
             frame_data: Frame data to set
         """
         self.frame_data = frame_data
+
+    def publish(self, topic_name: str, data: Any) -> None:
+        """Publish data to a topic.
+
+        Args:
+            topic_name: Name of the topic
+            data: Data to publish
+
+        Raises:
+            ValueError: If frame_data is not set or topic does not exist
+        """
+        if self.frame_data is None:
+            raise ValueError("frame_data is not set")
+
+        if not hasattr(self.frame_data, topic_name):
+            raise ValueError(f"Topic '{topic_name}' does not exist in FrameData")
+
+        slot = getattr(self.frame_data, topic_name)
+        if not isinstance(slot, TopicSlot):
+            raise ValueError(f"Topic '{topic_name}' is not a TopicSlot")
+
+        slot.update(data)
+
+    def subscribe(self, topic_name: str) -> Any | None:
+        """Subscribe to a topic.
+
+        Args:
+            topic_name: Name of the topic
+
+        Returns:
+            Topic data or None if empty
+        """
+        if self.frame_data is None:
+            raise ValueError("frame_data is not set")
+
+        if not hasattr(self.frame_data, topic_name):
+            raise ValueError(f"Topic '{topic_name}' does not exist in FrameData")
+
+        slot = getattr(self.frame_data, topic_name)
+        if not isinstance(slot, TopicSlot):
+            raise ValueError(f"Topic '{topic_name}' is not a TopicSlot")
+
+        return slot.data
 
     def should_run(self, sim_time: float) -> bool:
         """Check if node should run at current time.

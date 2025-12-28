@@ -18,14 +18,15 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
     TinyLidarNetCore logic, and publishes control commands (AckermannDriveStamped).
     """
 
-    def __init__(self, config: TinyLidarNetConfig, rate_hz: float) -> None:
+    def __init__(self, config: TinyLidarNetConfig, rate_hz: float, priority: int) -> None:
         """Initialize Tiny LiDAR Net node.
 
         Args:
             config: Validated configuration
             rate_hz: Node execution rate [Hz]
+            priority: Execution priority
         """
-        super().__init__("TinyLidarNet", rate_hz, config)
+        super().__init__("TinyLidarNet", rate_hz, config, priority)
 
         self.logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
             return NodeExecutionResult.FAILED
 
         # Get LiDAR scan from frame_data (now a LaserScan message)
-        lidar_scan = getattr(self.frame_data, "perception_lidar_scan", None)
+        lidar_scan = self.subscribe("perception_lidar_scan")
 
         if lidar_scan is None:
             return NodeExecutionResult.SKIPPED
@@ -89,11 +90,14 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
         from core.data.ros import AckermannDrive, AckermannDriveStamped, Header
         from core.utils.ros_message_builder import to_ros_time
 
-        self.frame_data.control_cmd = AckermannDriveStamped(
-            header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
-            drive=AckermannDrive(
-                steering_angle=steer,
-                acceleration=accel,
+        self.publish(
+            "control_cmd",
+            AckermannDriveStamped(
+                header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
+                drive=AckermannDrive(
+                    steering_angle=steer,
+                    acceleration=accel,
+                ),
             ),
         )
 

@@ -1,19 +1,37 @@
 import numpy as np
 import pytest
-from static_avoidance_planner.obstacle_manager import TargetObstacle
-from static_avoidance_planner.shift_profile import ShiftProfile, merge_profiles
+from lateral_shift_planner.obstacle_manager import TargetObstacle
+from lateral_shift_planner.shift_profile import ShiftProfile, merge_profiles
 
 
 @pytest.fixture
 def left_obs():
     # Obstacle at s=10, l=1.0 (Left). Width=1, Length=2.
-    return TargetObstacle(id="1", s=10.0, lat=1.0, length=2.0, width=1.0)
+    # To force Right avoidance, space_to_left < space_to_right
+    return TargetObstacle(
+        id="1",
+        s=10.0,
+        lat=1.0,
+        length=2.0,
+        width=1.0,
+        left_boundary_dist=1.0,
+        right_boundary_dist=3.0,
+    )
 
 
 @pytest.fixture
 def right_obs():
     # Obstacle at s=10, l=-1.0 (Right). Width=1, Length=2.
-    return TargetObstacle(id="2", s=10.0, lat=-1.0, length=2.0, width=1.0)
+    # To force Left avoidance, space_to_left >= space_to_right
+    return TargetObstacle(
+        id="2",
+        s=10.0,
+        lat=-1.0,
+        length=2.0,
+        width=1.0,
+        left_boundary_dist=3.0,
+        right_boundary_dist=1.0,
+    )
 
 
 def test_direction(left_obs, right_obs):
@@ -29,30 +47,38 @@ def test_direction(left_obs, right_obs):
 
 
 def test_profile_shape(left_obs):
-    # s range: 10 - 2 - 10 = -2 (start)
-    # full avoid: 10 - 2 = 8
-    # keep avoid: 10 + 2 + 2 = 14
-    # end: 14 + 10 = 24
+    # Obstacle s=10, length=2 -> half_length=1
+    # d_front=2, d_rear=2, avoid_dist=10
+    # s_start: 10 - 1 - 2 - 10 = -3
+    # s_full:  10 - 1 - 2 = 7
+    # s_keep:  10 + 1 + 2 = 13
+    # s_end:   10 + 1 + 2 + 10 = 23
 
-    p = ShiftProfile(left_obs, vehicle_width=2.0, avoid_distance=10.0, d_front=2.0, d_rear=2.0)
+    p = ShiftProfile(
+        left_obs,
+        vehicle_width=2.0,
+        avoidance_maneuver_length=10.0,
+        longitudinal_margin_front=2.0,
+        longitudinal_margin_rear=2.0,
+    )
 
-    # Before start
+    # Before start (-3.0)
     assert p.get_lat(-5.0) == 0.0
 
     # At start
-    assert p.get_lat(-2.0) == pytest.approx(0.0, abs=1e-3)
+    assert p.get_lat(-3.0) == pytest.approx(0.0, abs=1e-3)
 
-    # Mid ramp
-    mid = (-2.0 + 8.0) / 2.0
+    # Mid ramp (between -3 and 7) -> midpoint = 2
+    mid = (-3.0 + 7.0) / 2.0
     val = p.get_lat(mid)
     assert abs(val) > 0
     assert abs(val) < abs(p.target_lat)
 
-    # Full avoid
-    assert p.get_lat(9.0) == pytest.approx(p.target_lat)
+    # Full avoid (at 7.0 + epsilon)
+    assert p.get_lat(8.0) == pytest.approx(p.target_lat)
 
-    # End
-    assert p.get_lat(25.0) == 0.0
+    # End (at 23.0)
+    assert p.get_lat(24.0) == 0.0
 
 
 def test_merge_same_side():
@@ -63,8 +89,24 @@ def test_merge_same_side():
     # If Obs2 at l=2. Safe right boundary < 2 - Clear.
     # So Obs1 is more restrictive (closer to center).
 
-    obs1 = TargetObstacle(id="1", s=10.0, lat=1.0, length=2.0, width=1.0)
-    obs2 = TargetObstacle(id="2", s=10.0, lat=2.0, length=2.0, width=1.0)
+    obs1 = TargetObstacle(
+        id="1",
+        s=10.0,
+        lat=1.0,
+        length=2.0,
+        width=1.0,
+        left_boundary_dist=1.0,
+        right_boundary_dist=3.0,
+    )
+    obs2 = TargetObstacle(
+        id="2",
+        s=10.0,
+        lat=2.0,
+        length=2.0,
+        width=1.0,
+        left_boundary_dist=0.5,
+        right_boundary_dist=3.5,
+    )
 
     p1 = ShiftProfile(obs1, vehicle_width=2.0)  # Avoid Right
     p2 = ShiftProfile(obs2, vehicle_width=2.0)  # Avoid Right
@@ -90,8 +132,24 @@ def test_merge_slalom():
     # Obs1 Left (l=2) -> Req l < 0
     # Obs2 Right (l=-2) -> Req l > 0
 
-    obs1 = TargetObstacle(id="1", s=10.0, lat=2.0, length=2.0, width=1.0)
-    obs2 = TargetObstacle(id="2", s=10.0, lat=-2.0, length=2.0, width=1.0)
+    obs1 = TargetObstacle(
+        id="1",
+        s=10.0,
+        lat=2.0,
+        length=2.0,
+        width=1.0,
+        left_boundary_dist=1.0,
+        right_boundary_dist=3.0,
+    )
+    obs2 = TargetObstacle(
+        id="2",
+        s=10.0,
+        lat=-2.0,
+        length=2.0,
+        width=1.0,
+        left_boundary_dist=3.0,
+        right_boundary_dist=1.0,
+    )
 
     p1 = ShiftProfile(obs1, vehicle_width=2.0)  # Target l = 0 (Left req < 0)
     p2 = ShiftProfile(obs2, vehicle_width=2.0)  # Target l = 0 (Right req > 0)
@@ -109,8 +167,24 @@ def test_merge_collision():
     # Obs2 Right (l=-1) -> Req l > 1
     # Impossible interval: 1 < l < -1 -> Empty set.
 
-    obs1 = TargetObstacle(id="1", s=10.0, lat=1.0, length=2.0, width=1.0)
-    obs2 = TargetObstacle(id="2", s=10.0, lat=-1.0, length=2.0, width=1.0)
+    obs1 = TargetObstacle(
+        id="1",
+        s=10.0,
+        lat=1.0,
+        length=2.0,
+        width=1.0,
+        left_boundary_dist=1.0,
+        right_boundary_dist=3.0,
+    )
+    obs2 = TargetObstacle(
+        id="2",
+        s=10.0,
+        lat=-1.0,
+        length=2.0,
+        width=1.0,
+        left_boundary_dist=3.0,
+        right_boundary_dist=1.0,
+    )
 
     p1 = ShiftProfile(obs1, vehicle_width=2.0)
     p2 = ShiftProfile(obs2, vehicle_width=2.0)

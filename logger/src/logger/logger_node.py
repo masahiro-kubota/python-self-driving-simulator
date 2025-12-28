@@ -5,6 +5,7 @@ from pathlib import Path
 from core.data import (
     ComponentConfig,
     SimulationLog,
+    TopicSlot,
     VehicleParameters,
 )
 from core.data.node_io import NodeIO
@@ -39,15 +40,18 @@ class LoggerConfig(ComponentConfig):
 class LoggerNode(Node[LoggerConfig]):
     """Node responsible for recording FrameData to simulation log."""
 
-    def __init__(self, config: LoggerConfig, rate_hz: float = 10.0):
+    def __init__(self, config: LoggerConfig, rate_hz: float, priority: int):
         """Initialize LoggerNode."""
-        super().__init__("Logger", rate_hz, config)
+        super().__init__("Logger", rate_hz, config, priority=priority)
         self.current_time = 0.0
         self.mcap_logger: MCAPLogger | None = None
         self.log = SimulationLog(steps=[], metadata={})
         self.map_published = False
         self.track_published = False
         self.vehicle_positions: list[tuple[float, float]] = []
+
+        self.vehicle_positions: list[tuple[float, float]] = []
+        self._last_logged_seq: dict[str, int] = {}
 
         self.map_visualizer: MapVisualizer | None = None
 
@@ -102,7 +106,21 @@ class LoggerNode(Node[LoggerConfig]):
 
         simulation_info = {}
 
-        for key, value in vars(self.frame_data).items():
+        for key, slot in vars(self.frame_data).items():
+            if not isinstance(slot, TopicSlot):
+                continue
+
+            # Check sequence number for updates
+            current_seq = slot.seq
+            last_seq = self._last_logged_seq.get(key, -1)
+
+            if current_seq == last_seq:
+                continue
+
+            # Update last logged sequence
+            self._last_logged_seq[key] = current_seq
+
+            value = slot.data
             if value is None:
                 continue
 
@@ -117,6 +135,10 @@ class LoggerNode(Node[LoggerConfig]):
                 "obstacle_markers": "/perception/obstacle_markers",
                 "tf_kinematic": "/tf",
                 "tf_lidar": "/tf",
+                "vehicle_marker": "/vehicle/marker",
+                "planning_marker": "/planning/marker",
+                "mppi_candidates": "/planning/mppi/candidates",
+                "mppi_optimal": "/planning/mppi/optimal",
             }
             topic = topic_map.get(key, f"/{key}")
 
@@ -147,9 +169,14 @@ class LoggerNode(Node[LoggerConfig]):
         # Track vehicle position for final path generation
         from core.utils.mcap_utils import extract_dashboard_state
 
-        for key, value in vars(self.frame_data).items():
+        for key, slot in vars(self.frame_data).items():
+            if not isinstance(slot, TopicSlot):
+                continue
+
+            value = slot.data
             if value is None:
                 continue
+
             state = extract_dashboard_state(value)
             if "x" in state and "y" in state:
                 self.vehicle_positions.append((state["x"], state["y"]))

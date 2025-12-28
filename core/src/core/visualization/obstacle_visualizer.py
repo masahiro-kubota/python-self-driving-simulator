@@ -87,7 +87,7 @@ class ObstacleVisualizer:
             scale = Vector3(
                 x=shape.length,
                 y=shape.width,
-                z=1.5,  # Default height
+                z=getattr(shape, "height", 1.5) or 1.5,
             )
         elif shape.type == "circle":
             marker_type = 2  # SPHERE

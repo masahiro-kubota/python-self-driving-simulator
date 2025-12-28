@@ -46,8 +46,8 @@ class PurePursuitControllerConfig(ComponentConfig):
 class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
     """Pure Pursuit controller for path tracking."""
 
-    def __init__(self, config: PurePursuitControllerConfig, rate_hz: float):
-        super().__init__("PurePursuitController", rate_hz, config)
+    def __init__(self, config: PurePursuitControllerConfig, rate_hz: float, priority: int):
+        super().__init__("PurePursuitController", rate_hz, config, priority)
         self.vehicle_params = config.vehicle_params
         self.wheelbase = self.vehicle_params.wheelbase
 
@@ -70,8 +70,8 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
         if self.frame_data is None:
             return NodeExecutionResult.FAILED
 
-        trajectory = getattr(self.frame_data, "trajectory", None)
-        vehicle_state = getattr(self.frame_data, "vehicle_state", None)
+        trajectory = self.subscribe("trajectory")
+        vehicle_state = self.subscribe("vehicle_state")
 
         if trajectory is None or vehicle_state is None:
             return NodeExecutionResult.SKIPPED
@@ -81,9 +81,12 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
             from core.data.ros import AckermannDrive, AckermannDriveStamped, Header
             from core.utils.ros_message_builder import to_ros_time
 
-            self.frame_data.control_cmd = AckermannDriveStamped(
-                header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
-                drive=AckermannDrive(steering_angle=0.0, acceleration=0.0),
+            self.publish(
+                "control_cmd",
+                AckermannDriveStamped(
+                    header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
+                    drive=AckermannDrive(steering_angle=0.0, acceleration=0.0),
+                ),
             )
             return NodeExecutionResult.SUCCESS
 
@@ -93,11 +96,14 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
         from core.data.ros import AckermannDrive, AckermannDriveStamped, Header
         from core.utils.ros_message_builder import to_ros_time
 
-        self.frame_data.control_cmd = AckermannDriveStamped(
-            header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
-            drive=AckermannDrive(
-                steering_angle=steering,
-                acceleration=acceleration,
+        self.publish(
+            "control_cmd",
+            AckermannDriveStamped(
+                header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
+                drive=AckermannDrive(
+                    steering_angle=steering,
+                    acceleration=acceleration,
+                ),
             ),
         )
 
@@ -108,7 +114,7 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
             ns="pure_pursuit_lookahead",
             color=ColorRGBA.from_hex(self.config.lookahead_marker_color),
         )
-        self.frame_data.lookahead_marker = MarkerArray(markers=[marker])
+        self.publish("lookahead_marker", MarkerArray(markers=[marker]))
 
         return NodeExecutionResult.SUCCESS
 

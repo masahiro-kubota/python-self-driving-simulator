@@ -16,8 +16,8 @@ class MockNodeConfig(ComponentConfig):
 class MockNode(Node[MockNodeConfig]):
     """Test node for verification."""
 
-    def __init__(self, config: MockNodeConfig, rate_hz: float = 10.0):
-        super().__init__("MockNode", rate_hz, config)
+    def __init__(self, config: MockNodeConfig, rate_hz: float = 10.0, priority: int = 100):
+        super().__init__("MockNode", rate_hz, config, priority=priority)
 
     def get_node_io(self) -> NodeIO:
         return NodeIO(inputs={}, outputs={})
@@ -38,6 +38,7 @@ def test_node_creation_success():
         rate_hz=10.0,
         config_class=MockNodeConfig,
         config_dict=config_dict,
+        priority=100,
     )
 
     assert node.config.param_int == 42
@@ -57,6 +58,7 @@ def test_node_default_parameter():
         rate_hz=10.0,
         config_class=MockNodeConfig,
         config_dict=config_dict,
+        priority=100,
     )
 
     assert node.config.param_int == 42
@@ -77,6 +79,7 @@ def test_node_missing_parameter():
             rate_hz=10.0,
             config_class=MockNodeConfig,
             config_dict=config_dict,
+            priority=100,
         )
 
     assert "param_int" in str(excinfo.value)
@@ -97,6 +100,7 @@ def test_node_extra_parameter():
             rate_hz=10.0,
             config_class=MockNodeConfig,
             config_dict=config_dict,
+            priority=100,
         )
 
     # Note: Exact error message depends on pydantic version, usually "Extra inputs are not permitted"

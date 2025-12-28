@@ -6,12 +6,14 @@ nodes:
   sensor:
     type: "ideal_sensor.sensor_node.IdealSensorNode"
     rate_hz: 50.0
+    priority: 10  # Execute after simulator
     params:
       vehicle_params: ${vehicle}
       vehicle_color: ${visualization.colors.vehicle}
   tiny_lidar_net:
     type: "tiny_lidar_net.node.TinyLidarNetNode"
     rate_hz: 50.0 # Match sensor rate or similar
+    priority: 20  # Execute after sensor
     params:
       input_dim: 1080
       output_dim: 2

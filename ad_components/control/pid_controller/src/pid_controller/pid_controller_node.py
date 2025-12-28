@@ -22,8 +22,8 @@ class PIDConfig(ComponentConfig):
 class PIDControllerNode(Node[PIDConfig]):
     """PID Controller node for combined steering (Pure Pursuit logic legacy) and velocity control."""
 
-    def __init__(self, config: PIDConfig, rate_hz: float):
-        super().__init__("PIDController", rate_hz, config)
+    def __init__(self, config: PIDConfig, rate_hz: float, priority: int):
+        super().__init__("PIDController", rate_hz, config, priority)
         self.vehicle_params = config.vehicle_params
         self.wheelbase = self.vehicle_params.wheelbase
         # self.config is set by base class
@@ -43,8 +43,8 @@ class PIDControllerNode(Node[PIDConfig]):
         if self.frame_data is None:
             return NodeExecutionResult.FAILED
 
-        trajectory = getattr(self.frame_data, "trajectory", None)
-        vehicle_state = getattr(self.frame_data, "vehicle_state", None)
+        trajectory = self.subscribe("trajectory")
+        vehicle_state = self.subscribe("vehicle_state")
 
         if trajectory is None or vehicle_state is None:
             return NodeExecutionResult.SKIPPED
@@ -55,11 +55,14 @@ class PIDControllerNode(Node[PIDConfig]):
         from core.data.ros import AckermannDrive, AckermannDriveStamped, Header
         from core.utils.ros_message_builder import to_ros_time
 
-        self.frame_data.control_cmd = AckermannDriveStamped(
-            header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
-            drive=AckermannDrive(
-                steering_angle=steering,
-                acceleration=acceleration,
+        self.publish(
+            "control_cmd",
+            AckermannDriveStamped(
+                header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
+                drive=AckermannDrive(
+                    steering_angle=steering,
+                    acceleration=acceleration,
+                ),
             ),
         )
 

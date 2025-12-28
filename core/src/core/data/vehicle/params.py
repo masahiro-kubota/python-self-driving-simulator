@@ -33,6 +33,7 @@ class VehicleParameters(BaseModel):
     # 基本形状
     wheelbase: float  # ホイールベース [m]
     width: float  # 車幅 [m]
+    vehicle_height: float  # 車高 [m] (default to 2.2 if missing)
 
     @property
     def length(self) -> float:

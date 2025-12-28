@@ -28,37 +28,36 @@ class ObstacleManager:
         self,
         converter: FrenetConverter,
         road_map,  # RoadWidthMap instance
-        lookahead_distance: float = 30.0,
-        road_width: float = 6.0,
-        vehicle_width: float = 2.0,
-        safe_margin: float = 0.5,
+        lookahead_distance: float,
+        lookbehind_distance: float,
+        vehicle_width: float,
+        safe_margin: float,
     ):
         """Initialize ObstacleManager.
 
         Args:
             converter: FrenetConverter instance
             road_map: RoadWidthMap instance for boundary calculations
-            lookahead_distance: Max distance to consider obstacles [m]
-            road_width: Total road width [m]
+            lookahead_distance: Max distance to consider obstacles ahead [m]
+            lookbehind_distance: Max distance to consider obstacles behind [m]
             vehicle_width: Ego vehicle width [m]
             safe_margin: Safety margin [m]
         """
         self.converter = converter
         self.road_map = road_map
         self.lookahead = lookahead_distance
-        self.road_width = road_width
+        self.lookbehind = lookbehind_distance
         self.vehicle_width = vehicle_width
         self.safe_margin = safe_margin
 
     def get_target_obstacles(
-        self, ego_state: VehicleState, obstacles: list[Obstacle], _road_width: float = 6.0
+        self, ego_state: VehicleState, obstacles: list[Obstacle]
     ) -> list[TargetObstacle]:
         """Convert obstacles to Frenet frame and filter.
 
         Args:
             ego_state: Current vehicle state
             obstacles: List of detected obstacles
-            _road_width: Current road width [m] (unused)
 
         Returns:
             List of TargetObstacle
@@ -73,26 +72,32 @@ class ObstacleManager:
         if ego_boundaries is not None:
             ego_left_bound, ego_right_bound = ego_boundaries
         else:
-            # Fallback: use symmetric road width
-            ego_left_bound = self.road_width / 2.0
-            ego_right_bound = self.road_width / 2.0
+            # Fallback: try to get width or use default
+            width = self.road_map.get_lateral_width(ego_state.x, ego_state.y)
+            if width is not None:
+                ego_left_bound = width / 2.0
+                ego_right_bound = width / 2.0
+            else:
+                # Last resort fallback if map completely fails
+                ego_left_bound = 3.0
+                ego_right_bound = 3.0
 
         for obs in obstacles:
             # Convert to Frenet
             s_obj, l_obj = self.converter.global_to_frenet(obs.x, obs.y)
 
-            # 1. Forward check
-            # TODO: Handle wrap-around scenarios properly.
-            # For now simple check. If s_obj < s_ego, it might be behind
-            # or very far ahead in looped track (but s usually increases monotonically).
-            # Assuming s represents linear distance on current lap.
-            if s_obj <= s_ego:
-                continue
-
-            # 2. Distance check
+            # 1. Distance check (forward and backward)
             dist = s_obj - s_ego
-            if dist > self.lookahead:
-                continue
+
+            # Check if obstacle is within detection range (forward or backward)
+            if dist > 0:
+                # Forward obstacle
+                if dist > self.lookahead:
+                    continue
+            else:
+                # Backward obstacle
+                if abs(dist) > self.lookbehind:
+                    continue
 
             # 3. Lateral boundary check (filter out obstacles in adjacent lanelets)
             # Check if obstacle is within the road boundaries at ego position
@@ -161,9 +166,15 @@ class ObstacleManager:
             if boundaries is not None:
                 left_boundary_dist, right_boundary_dist = boundaries
             else:
-                # Fallback: use symmetric road width
-                left_boundary_dist = self.road_width / 2.0
-                right_boundary_dist = self.road_width / 2.0
+                # Fallback: try to get width or use default
+                width = self.road_map.get_lateral_width(obs_global_x, obs_global_y)
+                if width is not None:
+                    left_boundary_dist = width / 2.0
+                    right_boundary_dist = width / 2.0
+                else:
+                    # Last resort fallback
+                    left_boundary_dist = 3.0
+                    right_boundary_dist = 3.0
 
             targets.append(
                 TargetObstacle(
@@ -178,8 +189,8 @@ class ObstacleManager:
                 )
             )
 
-        # Sort by distance (s)
-        targets.sort(key=lambda o: o.s)
+        # Sort by absolute distance from ego (closest first, regardless of direction)
+        targets.sort(key=lambda o: abs(o.s - s_ego))
 
         if len(targets) > 0:
             import logging

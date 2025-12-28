@@ -17,18 +17,18 @@ class LateralShiftPlannerConfig:
     """Config for LateralShiftPlanner."""
 
     # Perception / Planning Horizon
-    lookahead_distance: float = 30.0
-    avoidance_maneuver_length: float = 10.0
+    lookahead_distance: float
+    lookbehind_distance: float
+    avoidance_maneuver_length: float
 
     # Margins and Dimensions
-    longitudinal_margin_front: float = 2.0
-    longitudinal_margin_rear: float = 2.0
-    road_width: float = 6.0
-    vehicle_width: float = 2.0
-    safe_margin: float = 0.5
+    longitudinal_margin_front: float
+    longitudinal_margin_rear: float
+    vehicle_width: float
+    safe_margin: float
 
     # Trajectory Generation
-    trajectory_resolution: float = 0.5  # [m]
+    trajectory_resolution: float
 
 
 @dataclass
@@ -38,10 +38,10 @@ class AvoidanceDebugData:
     trajectory: Trajectory
     target_obstacles: list[TargetObstacle]
     shift_profiles: list[ShiftProfile]
-    merged_lat: np.ndarray | None = None
-    s_samples: np.ndarray | None = None
-    merged_profile: list | None = None
-    collision_detected: bool = False
+    merged_lat: np.ndarray
+    s_samples: np.ndarray
+    merged_profile: list
+    collision_detected: bool
 
 
 class LateralShiftPlanner:
@@ -62,7 +62,7 @@ class LateralShiftPlanner:
             converter=self.converter,
             road_map=road_map,
             lookahead_distance=config.lookahead_distance,
-            road_width=config.road_width,
+            lookbehind_distance=config.lookbehind_distance,
             vehicle_width=config.vehicle_width,
             safe_margin=config.safe_margin,
         )
@@ -72,18 +72,18 @@ class LateralShiftPlanner:
         self,
         ego_state: VehicleState,
         obstacles: list[Obstacle],
-        road_width: float = 6.0,
+        _road_width: float = 6.0,
     ) -> AvoidanceDebugData:
         """Generate avoidance trajectory.
 
         Args:
             ego_state: Current vehicle state
             obstacles: List of obstacles
-            road_width: Total road width [m]
+            _road_width: Road width [m] (fallback)
         """
 
         # 1. Get Target Obstacles (Frenet)
-        targets = self.obstacle_manager.get_target_obstacles(ego_state, obstacles, road_width)
+        targets = self.obstacle_manager.get_target_obstacles(ego_state, obstacles)
 
         # 2. Get Ego Frenet State
         s_ego, l_ego = self.converter.global_to_frenet(ego_state.x, ego_state.y)
@@ -204,4 +204,6 @@ class LateralShiftPlanner:
             shift_profiles=profiles,
             merged_lat=lat_target_array,
             s_samples=s_samples,
+            merged_profile=lat_target_array.tolist(),
+            collision_detected=collision_detected,
         )

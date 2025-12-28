@@ -20,6 +20,7 @@ system:
     simulator:
       type: "KinematicSimulator"
       rate_hz: ${execution.clock_rate_hz}
+      priority: 1  # Execute first
       params:
         map_path: ${env.map_path}
         vehicle_params: ${vehicle}
@@ -29,6 +30,7 @@ system:
     logger:
       type: "LoggerNode"
       rate_hz: ${execution.clock_rate_hz}
+      priority: 99  # Execute last
       params:
         # Must be a file path, not directory
         output_mcap_path: ${postprocess.mcap.output_dir}/simulation.mcap
@@ -42,6 +44,7 @@ system:
     supervisor:
       type: "SupervisorNode"
       rate_hz: 10.0
+      priority: 50  # Execute in the middle
       params:
         goal:
           enabled: true

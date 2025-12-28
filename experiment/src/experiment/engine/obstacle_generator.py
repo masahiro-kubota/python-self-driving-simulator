@@ -35,6 +35,8 @@ class ObstacleGenerator:
         self.rng = np.random.default_rng(seed)
         self.centerlines: list[list[tuple[float, float, float]]] = []  # List of (x, y, yaw)
         self.drivable_area: Polygon | None = None
+        self.initial_state: dict[str, float] | None = None
+        self.exclusion_zone: dict[str, Any] | None = None
         self._load_map()
 
     def _load_map(self) -> None:
@@ -96,16 +98,23 @@ class ObstacleGenerator:
         except Exception as e:
             logger.error(f"Failed to parse map for obstacle generation: {e}")
 
-    def generate(self, config: DictConfig) -> list[dict[str, Any]]:
+    def generate(
+        self, config: DictConfig, initial_state: dict[str, float] | None = None
+    ) -> list[dict[str, Any]]:
         """Generate obstacles based on the provided configuration.
 
         Args:
             config: Configuration dictionary (ObstacleGenerationConfig properties).
                     Expected keys: enabled, groups
+            initial_state: Initial vehicle state (x, y, yaw, velocity).
 
         Returns:
             List of obstacle dictionaries compatible with SimulatorConfig.
         """
+        # Store initial state and exclusion zone config for validation
+        self.initial_state = initial_state
+        self.exclusion_zone = config.get("exclusion_zone", None)
+
         obstacles: list[dict[str, Any]] = []
 
         # If generation is disabled or not configured, return empty
@@ -281,6 +290,18 @@ class ObstacleGenerator:
         # Rotate and translate
         box = rotate(box, pos["yaw"], origin=(0, 0), use_radians=True)
         box = translate(box, pos["x"], pos["y"])
+
+        # Check exclusion zone (initial position)
+        # Check exclusion zone (initial position)
+        if self.exclusion_zone and self.exclusion_zone.get("enabled", False) and self.initial_state:
+            exclusion_distance = self.exclusion_zone.get("distance", 10.0)
+            init_x = self.initial_state["x"]
+            init_y = self.initial_state["y"]
+
+            # Calculate distance from obstacle to initial position
+            dist_to_init = math.hypot(pos["x"] - init_x, pos["y"] - init_y)
+            if dist_to_init < exclusion_distance:
+                return False
 
         # Check map bounds (if drivable area is available)
         # For random_track, we expect it to be on track, but offsets might push it off.

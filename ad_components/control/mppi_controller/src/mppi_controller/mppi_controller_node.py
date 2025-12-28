@@ -32,14 +32,14 @@ class MPPIControllerConfig(ComponentConfig):
     off_track_cost_weight: float = Field(..., description="Off-track penalty weight")
 
     # Cost weights
-    position_weight: float = Field(20.0, description="Tracking cost weight")
+    position_weight: float = Field(..., description="Tracking cost weight")
 
     # Velocity control
-    target_velocity: float = Field(5.0, description="Target velocity [m/s]")
+    target_velocity: float = Field(..., description="Target velocity [m/s]")
 
     # Visualization colors
-    candidate_color: str = Field("#00FFFF1A", description="Candidate trajectories color")
-    optimal_color: str = Field("#FF0000CC", description="Optimal trajectory color")
+    candidate_color: str = Field(..., description="Candidate trajectories color")
+    optimal_color: str = Field(..., description="Optimal trajectory color")
 
 
 class MPPIControllerNode(Node[MPPIControllerConfig]):
@@ -50,8 +50,8 @@ class MPPIControllerNode(Node[MPPIControllerConfig]):
     reference trajectory while avoiding obstacles and staying within map boundaries.
     """
 
-    def __init__(self, config: MPPIControllerConfig, rate_hz: float):
-        super().__init__("MPPIController", rate_hz, config)
+    def __init__(self, config: MPPIControllerConfig, rate_hz: float, priority: int):
+        super().__init__("MPPIController", rate_hz, config, priority)
 
         from core.utils import get_project_root
 
@@ -112,8 +112,8 @@ class MPPIControllerNode(Node[MPPIControllerConfig]):
             return NodeExecutionResult.FAILED
 
         # Get Inputs
-        vehicle_state = getattr(self.frame_data, "vehicle_state", None)
-        obstacles = getattr(self.frame_data, "obstacles", [])
+        vehicle_state = self.subscribe("vehicle_state")
+        obstacles = self.subscribe("obstacles") or []
 
         if vehicle_state is None:
             return NodeExecutionResult.SKIPPED
@@ -134,11 +134,14 @@ class MPPIControllerNode(Node[MPPIControllerConfig]):
         from core.data.ros import AckermannDrive, AckermannDriveStamped
         from core.utils.ros_message_builder import to_ros_time
 
-        self.frame_data.control_cmd = AckermannDriveStamped(
-            header=Header(stamp=to_ros_time(current_time), frame_id="base_link"),
-            drive=AckermannDrive(
-                steering_angle=steering_angle,
-                acceleration=acceleration,
+        self.publish(
+            "control_cmd",
+            AckermannDriveStamped(
+                header=Header(stamp=to_ros_time(current_time), frame_id="base_link"),
+                drive=AckermannDrive(
+                    steering_angle=steering_angle,
+                    acceleration=acceleration,
+                ),
             ),
         )
 
@@ -173,7 +176,7 @@ class MPPIControllerNode(Node[MPPIControllerConfig]):
             )
             markers.append(marker)
 
-        self.frame_data.mppi_candidates = MarkerArray(markers=markers)
+        self.publish("mppi_candidates", MarkerArray(markers=markers))
 
         # Add optimal trajectory (for debugging)
         optimal_points = []
@@ -192,6 +195,6 @@ class MPPIControllerNode(Node[MPPIControllerConfig]):
             lifetime=Time(sec=0, nanosec=0),
             frame_locked=False,
         )
-        self.frame_data.mppi_optimal = MarkerArray(markers=[optimal_marker])
+        self.publish("mppi_optimal", MarkerArray(markers=[optimal_marker]))
 
         return NodeExecutionResult.SUCCESS

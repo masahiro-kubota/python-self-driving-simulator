@@ -51,14 +51,15 @@ class SupervisorConfig(ComponentConfig):
 class SupervisorNode(Node[SupervisorConfig]):
     """Node responsible for supervising simulation success/failure and termination conditions."""
 
-    def __init__(self, config: SupervisorConfig, rate_hz: float):
+    def __init__(self, config: SupervisorConfig, rate_hz: float, priority: int):
         """Initialize SupervisorNode.
 
         Args:
             config: Validated configuration
             rate_hz: Evaluation rate [Hz]
+            priority: Execution priority
         """
-        super().__init__("Supervisor", rate_hz, config)
+        super().__init__("Supervisor", rate_hz, config, priority)
         self.step_count = 0
         self.goal_count = 0
         self.checkpoint_count = 0
@@ -96,19 +97,19 @@ class SupervisorNode(Node[SupervisorConfig]):
             return NodeExecutionResult.FAILED
 
         # Skip if already terminated (and termination signal was set previously)
-        if hasattr(self.frame_data, "termination_signal") and self.frame_data.termination_signal:
+        if self.subscribe("termination_signal"):
             return NodeExecutionResult.SUCCESS
 
         self.step_count += 1
 
         # Get current state
-        sim_state = getattr(self.frame_data, "sim_state", None)
+        sim_state = self.subscribe("sim_state")
         if sim_state is None:
             return NodeExecutionResult.SKIPPED
 
         # Initialize outputs if not present
-        self.frame_data.goal_count = self.goal_count
-        self.frame_data.checkpoint_count = self.checkpoint_count
+        self.publish("goal_count", self.goal_count)
+        self.publish("checkpoint_count", self.checkpoint_count)
 
         # 1. Check off-track (collision with non-drivable area)
         if (
@@ -116,11 +117,11 @@ class SupervisorNode(Node[SupervisorConfig]):
             and sim_state.off_track
             and self.config.off_track.enabled
         ):
-            self.frame_data.done = True
-            self.frame_data.done_reason = "off_track"
-            self.frame_data.success = False
-            self.frame_data.termination_signal = True
-            self.frame_data.termination_reason = "off_track"
+            self.publish("done", True)
+            self.publish("done_reason", "off_track")
+            self.publish("success", False)
+            self.publish("termination_signal", True)
+            self.publish("termination_reason", "off_track")
             return NodeExecutionResult.SUCCESS
 
         # 2. Check collision with obstacles
@@ -129,11 +130,11 @@ class SupervisorNode(Node[SupervisorConfig]):
             and sim_state.collision
             and self.config.collision.enabled
         ):
-            self.frame_data.done = True
-            self.frame_data.done_reason = "collision"
-            self.frame_data.success = False
-            self.frame_data.termination_signal = True
-            self.frame_data.termination_reason = "collision"
+            self.publish("done", True)
+            self.publish("done_reason", "collision")
+            self.publish("success", False)
+            self.publish("termination_signal", True)
+            self.publish("termination_reason", "collision")
             return NodeExecutionResult.SUCCESS
 
         # 3. Check checkpoints or goal reached
@@ -144,7 +145,7 @@ class SupervisorNode(Node[SupervisorConfig]):
 
             if dist <= checkpoint.tolerance:
                 self.checkpoint_count += 1
-                self.frame_data.checkpoint_count = self.checkpoint_count
+                self.publish("checkpoint_count", self.checkpoint_count)
                 self.current_checkpoint_idx += 1
                 # Log checkpoint reached?
         else:
@@ -159,26 +160,27 @@ class SupervisorNode(Node[SupervisorConfig]):
                     # Entered goal
                     self.goal_count += 1
                     self.is_in_goal = True
-                    self.frame_data.goal_count = self.goal_count
+                    self.publish("goal_count", self.goal_count)
 
                     # Check termination
                     if self.config.goal.enabled:
-                        self.frame_data.done = True
-                        self.frame_data.done_reason = "goal_reached"
-                        self.frame_data.success = True
-                        self.frame_data.termination_signal = True
-                        self.frame_data.termination_reason = "goal_reached"
+                        self.publish("done", True)
+                        self.publish("done_reason", "goal_reached")
+                        self.publish("success", True)
+                        self.publish("termination_signal", True)
+                        self.publish("termination_reason", "goal_reached")
                         return NodeExecutionResult.SUCCESS
             else:
                 # Left goal area
                 self.is_in_goal = False
 
         # No termination condition met
-        if not hasattr(self.frame_data, "success"):
-            self.frame_data.success = False
-        self.frame_data.done = False
-        self.frame_data.done_reason = ""
-        self.frame_data.termination_signal = False
-        self.frame_data.termination_reason = ""
+        if self.subscribe("success") is None:
+            self.publish("success", False)
+
+        self.publish("done", False)
+        self.publish("done_reason", "")
+        self.publish("termination_signal", False)
+        self.publish("termination_reason", "")
 
         return NodeExecutionResult.SUCCESS

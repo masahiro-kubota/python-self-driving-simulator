@@ -182,6 +182,7 @@ class CollectorEngine(BaseEngine):
                 node_type=node_config.type,
                 rate_hz=node_config.rate_hz,
                 params=node_config.params,
+                priority=node_config.priority,
             )
             nodes.append(node)
 
@@ -228,7 +229,18 @@ class CollectorEngine(BaseEngine):
             gen_seed = int(rng.integers(0, 2**32 - 1))
 
             generator = ObstacleGenerator(map_path, seed=gen_seed)
-            generated_obstacles = generator.generate(obstacles.generation)
+
+            # Pass initial state to generator for exclusion zone validation
+            initial_state_dict = {
+                "x": initial_state.x,
+                "y": initial_state.y,
+                "yaw": initial_state.yaw,
+                "velocity": initial_state.velocity,
+            }
+
+            generated_obstacles = generator.generate(
+                obstacles.generation, initial_state=initial_state_dict
+            )
 
             # Support mixing explicit list with generated obstacles
             if "list" in obstacles and obstacles.list:

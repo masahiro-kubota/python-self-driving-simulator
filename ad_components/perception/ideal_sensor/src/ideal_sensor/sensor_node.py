@@ -12,8 +12,8 @@ class IdealSensorConfig(ComponentConfig):
 class IdealSensorNode(Node[IdealSensorConfig]):
     """テスト用のパススルーセンサーノード"""
 
-    def __init__(self, config: IdealSensorConfig, rate_hz: float):
-        super().__init__("Sensor", rate_hz, config)
+    def __init__(self, config: IdealSensorConfig, rate_hz: float, priority: int):
+        super().__init__("Sensor", rate_hz, config, priority)
 
         from core.data.ros import ColorRGBA
         from core.visualization.vehicle_visualizer import VehicleVisualizer
@@ -48,20 +48,20 @@ class IdealSensorNode(Node[IdealSensorConfig]):
         if self.frame_data is None:
             return NodeExecutionResult.FAILED
 
-        sim_state = getattr(self.frame_data, "sim_state", None)
+        sim_state = self.subscribe("sim_state")
         if sim_state:
-            self.frame_data.vehicle_state = sim_state
+            self.publish("vehicle_state", sim_state)
 
             # Visualization
             from core.data.ros import MarkerArray
 
             marker = self.vehicle_visualizer.create_marker(sim_state, _current_time)
             # Directly set the attribute with the topic name expected by Foxglove/Logger
-            setattr(self.frame_data, "vehicle/marker", MarkerArray(markers=[marker]))
+            self.publish("vehicle_marker", MarkerArray(markers=[marker]))
 
             # Odometry
             odom_msg = self.build_odometry_message(sim_state, _current_time)
-            setattr(self.frame_data, "localization_kinematic_state", odom_msg)
+            self.publish("localization_kinematic_state", odom_msg)
 
             # TF (map -> base_link and base_link -> lidar_link)
             tf_msg = self.build_tf_message(sim_state, _current_time)
@@ -70,6 +70,6 @@ class IdealSensorNode(Node[IdealSensorConfig]):
                     self.config.vehicle_params.lidar, _current_time
                 )
                 tf_msg.transforms.extend(tf_lidar_msg.transforms)
-            setattr(self.frame_data, "tf_kinematic", tf_msg)
+            self.publish("tf_kinematic", tf_msg)
 
         return NodeExecutionResult.SUCCESS

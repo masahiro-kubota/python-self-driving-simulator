@@ -35,7 +35,10 @@ class SimulatorRunner:
 
         for field_name, field_type in fields.items():
             if field_type is bool:
-                setattr(frame_data, field_name, False)
+                # Update TopicSlot data instead of overwriting the slot itself
+                slot = getattr(frame_data, field_name)
+                if hasattr(slot, "update"):
+                    slot.update(False)
 
         for node in nodes:
             node.set_frame_data(frame_data)
@@ -67,14 +70,22 @@ class SimulatorRunner:
         if log is None:
             logger.warning("No log found from any node")
 
+        # Helper to safely extract data from TopicSlot
+        def get_val(name, default):
+            slot = getattr(frame_data, name, None)
+            if hasattr(slot, "data"):
+                val = slot.data
+                return val if val is not None else default
+            return default
+
         return SimulationResult(
-            success=getattr(frame_data, "success", False),
-            reason=getattr(frame_data, "done_reason", None),
-            final_state=getattr(frame_data, "sim_state", None),
+            success=get_val("success", False),
+            reason=get_val("done_reason", None),
+            final_state=get_val("sim_state", None),
             log=log,
             metrics={
-                "goal_count": getattr(frame_data, "goal_count", 0),
-                "checkpoint_count": getattr(frame_data, "checkpoint_count", 0),
+                "goal_count": get_val("goal_count", 0),
+                "checkpoint_count": get_val("checkpoint_count", 0),
             },
         )
 

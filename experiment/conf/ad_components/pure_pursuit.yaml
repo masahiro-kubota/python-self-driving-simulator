@@ -5,12 +5,14 @@ nodes:
   sensor:
     type: "ideal_sensor.sensor_node.IdealSensorNode"
     rate_hz: 50.0
+    priority: 10  # Execute after simulator
     params:
       vehicle_params: ${vehicle}
       vehicle_color: ${visualization.colors.vehicle}
   planning:
     type: "pure_pursuit.PurePursuitNode"
     rate_hz: 10.0
+    priority: 20  # Execute after sensor
     params:
       # vehicle_params will be injected by main config
       vehicle_params: ${vehicle}
@@ -23,6 +25,7 @@ nodes:
   control:
     type: "pid_controller.PIDControllerNode"
     rate_hz: 30.0
+    priority: 30  # Execute after planning
     params:
       vehicle_params: ${vehicle}
       kp: 1.0

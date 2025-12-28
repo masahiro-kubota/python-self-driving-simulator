@@ -23,6 +23,7 @@ class NodeConfig(BaseModel):
     name: str = Field(..., description="Node name (unique identifier)")
     type: str = Field(..., description="Node type (class or entry point)")
     rate_hz: float = Field(..., description="Node execution rate in Hz")
+    priority: int = Field(..., description="Execution priority (lower values execute first)")
     params: dict[str, Any] = Field(default_factory=dict, description="Node parameters")
 
 

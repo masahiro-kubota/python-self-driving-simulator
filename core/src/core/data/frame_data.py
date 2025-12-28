@@ -22,7 +22,9 @@ def create_frame_data_type(fields: dict[str, type | str]) -> type[FrameData]:
     Returns:
         A new dataclass type inheriting from FrameData.
     """
-    from dataclasses import make_dataclass
+    from dataclasses import field, make_dataclass
+
+    from core.data.topic_slot import TopicSlot
 
     # Resolve string types to Any if needed, or keep as is if make_dataclass handles it (it needs types usually)
     # For simplicity, we default to Any if type is string "Any"
@@ -34,7 +36,7 @@ def create_frame_data_type(fields: dict[str, type | str]) -> type[FrameData]:
         else:
             type_hint = type_
 
-        resolved_fields.append((name, type_hint | None, None))
+        resolved_fields.append((name, TopicSlot[type_hint], field(default_factory=TopicSlot)))
 
     return make_dataclass("DynamicFrameData", resolved_fields, bases=(FrameData,))
 

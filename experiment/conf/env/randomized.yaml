@@ -15,6 +15,7 @@ obstacles:
           type: rectangle
           width: 1.30   # Vehicle width
           length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+          height: 0.5
         placement:
           strategy: random_track
           offset:

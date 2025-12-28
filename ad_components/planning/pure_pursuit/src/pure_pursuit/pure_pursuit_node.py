@@ -30,8 +30,9 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         self,
         config: PurePursuitConfig,
         rate_hz: float,
+        priority: int,
     ):
-        super().__init__("PurePursuit", rate_hz, config)
+        super().__init__("PurePursuit", rate_hz, config, priority)
         self.vehicle_params = config.vehicle_params
         self.reference_trajectory: Trajectory | None = None
         # self.config is set by base class
@@ -63,7 +64,7 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         self.current_time = current_time
 
         # Get Input
-        vehicle_state = getattr(self.frame_data, "vehicle_state", None)
+        vehicle_state = self.subscribe("vehicle_state")
         if vehicle_state is None:
             return NodeExecutionResult.SKIPPED
 
@@ -71,7 +72,7 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         trajectory = self._plan(vehicle_state)
 
         # Set Output
-        self.frame_data.trajectory = trajectory
+        self.publish("trajectory", trajectory)
 
         # Output Debug Marker
         from core.data.ad_components.log import ADComponentLog
@@ -86,10 +87,11 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         )
 
         marker_array = MarkerArray(markers=[marker])
-        self.frame_data.lookahead_marker = marker_array
+        self.publish("lookahead_marker", marker_array)
 
-        self.frame_data.ad_component_log = ADComponentLog(
-            component_type="pure_pursuit", data={"lookahead_marker": marker_array}
+        self.publish(
+            "ad_component_log",
+            ADComponentLog(component_type="pure_pursuit", data={"lookahead_marker": marker_array}),
         )
 
         return NodeExecutionResult.SUCCESS
@@ -170,7 +172,7 @@ class PurePursuitNode(Node[PurePursuitConfig]):
             target_point = self.reference_trajectory[current_idx]
 
         # Obstacle Avoidance
-        obstacles = getattr(self.frame_data, "obstacles", [])
+        obstacles = self.subscribe("obstacles") or []
         if obstacles:
             target_point = self._avoid_obstacles(
                 target_point, obstacles, self.current_time, vehicle_state

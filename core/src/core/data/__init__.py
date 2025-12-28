@@ -26,6 +26,7 @@ from core.data.experiment import Artifact, EvaluationMetrics, ExperimentResult
 from core.data.node import ComponentConfig, NodeExecutionResult
 from core.data.observation import Observation
 from core.data.simulator import SimulationLog, SimulationResult, SimulationStep
+from core.data.topic_slot import TopicSlot
 from core.data.vehicle.params import LidarConfig, VehicleParameters
 
 __all__ = [
@@ -53,6 +54,7 @@ __all__ = [
     "SimulationStep",
     "SimulatorObstacle",
     "StaticObstaclePosition",
+    "TopicSlot",
     "Trajectory",
     "TrajectoryPoint",
     "TrajectoryWaypoint",

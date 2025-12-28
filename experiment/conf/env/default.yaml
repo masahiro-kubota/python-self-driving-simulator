@@ -33,12 +33,19 @@ obstacles:
   generation:
     enabled: false
     groups: []
+    # 障害物除外ゾーン設定
+    # 初期位置から一定距離内に障害物を配置しないようにする
+    exclusion_zone:
+      enabled: true
+      # 初期位置からの除外距離 [m]
+      distance: 10.0
   list:
     - type: static
       shape:
         type: rectangle
         width: 1.30   # Vehicle width
         length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        height: 0.5
       position:
         x: 89635.303
         y: 43148.381
@@ -48,6 +55,7 @@ obstacles:
         type: rectangle
         width: 1.30   # Vehicle width
         length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        height: 0.5
       position:
         x: 89642.364
         y: 43156.666
@@ -57,6 +65,7 @@ obstacles:
         type: rectangle
         width: 1.30   # Vehicle width
         length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        height: 0.5
       position:
         x: 89640.387
         y: 43139.626
@@ -66,6 +75,7 @@ obstacles:
         type: rectangle
         width: 1.30   # Vehicle width
         length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        height: 0.5
       position:
         x: 89639.822
         y: 43149.417
@@ -75,6 +85,7 @@ obstacles:
         type: rectangle
         width: 1.30   # Vehicle width
         length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        height: 0.5
       position:
         x: 89645.0
         y: 43132.0

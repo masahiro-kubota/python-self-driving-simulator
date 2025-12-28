@@ -22,6 +22,7 @@ class NodeFactory:
         node_type: str,
         rate_hz: float,
         params: dict[str, Any],
+        priority: int,
     ) -> Node:
         """Create a Node instance dynamically.
 
@@ -29,6 +30,7 @@ class NodeFactory:
             node_type: Entry point name (e.g., "PurePursuit") or Class path
             rate_hz: Execution frequency in Hz
             params: Node configuration parameters
+            priority: Execution priority (lower values execute first, default: 100)
 
         Returns:
             Instantiated Node
@@ -47,6 +49,7 @@ class NodeFactory:
             rate_hz=rate_hz,
             config_class=config_class,
             config_dict=resolved_params,
+            priority=priority,
         )
 
     def _resolve_node_class(self, node_type: str) -> type[Node]:

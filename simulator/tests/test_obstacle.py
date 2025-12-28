@@ -25,7 +25,7 @@ class TestStaticObstacle:
         """Test static obstacle state calculation."""
         obstacle = SimulatorObstacle(
             type="static",
-            shape=ObstacleShape(type="rectangle", width=2.0, length=4.0),
+            shape=ObstacleShape(type="rectangle", width=2.0, length=4.0, height=2.0),
             position=StaticObstaclePosition(x=10.0, y=5.0, yaw=0.5),
         )
 
@@ -40,7 +40,7 @@ class TestStaticObstacle:
         """Test that static obstacle state doesn't change with time."""
         obstacle = SimulatorObstacle(
             type="static",
-            shape=ObstacleShape(type="rectangle", width=2.0, length=4.0),
+            shape=ObstacleShape(type="rectangle", width=2.0, length=4.0, height=2.0),
             position=StaticObstaclePosition(x=10.0, y=5.0, yaw=0.5),
         )
 
@@ -59,7 +59,7 @@ class TestDynamicObstacle:
         """Test dynamic obstacle with linear interpolation."""
         obstacle = SimulatorObstacle(
             type="dynamic",
-            shape=ObstacleShape(type="circle", radius=1.0),
+            shape=ObstacleShape(type="circle", radius=1.0, height=2.0),
             trajectory=ObstacleTrajectory(
                 type="waypoint",
                 interpolation="linear",
@@ -92,7 +92,7 @@ class TestDynamicObstacle:
         """Test dynamic obstacle before first waypoint."""
         obstacle = SimulatorObstacle(
             type="dynamic",
-            shape=ObstacleShape(type="circle", radius=1.0),
+            shape=ObstacleShape(type="circle", radius=1.0, height=2.0),
             trajectory=ObstacleTrajectory(
                 type="waypoint",
                 interpolation="linear",
@@ -112,7 +112,7 @@ class TestDynamicObstacle:
         """Test dynamic obstacle after last waypoint."""
         obstacle = SimulatorObstacle(
             type="dynamic",
-            shape=ObstacleShape(type="circle", radius=1.0),
+            shape=ObstacleShape(type="circle", radius=1.0, height=2.0),
             trajectory=ObstacleTrajectory(
                 type="waypoint",
                 interpolation="linear",
@@ -132,7 +132,7 @@ class TestDynamicObstacle:
         """Test dynamic obstacle with looping trajectory."""
         obstacle = SimulatorObstacle(
             type="dynamic",
-            shape=ObstacleShape(type="circle", radius=1.0),
+            shape=ObstacleShape(type="circle", radius=1.0, height=2.0),
             trajectory=ObstacleTrajectory(
                 type="waypoint",
                 interpolation="linear",
@@ -160,7 +160,7 @@ class TestObstaclePolygon:
         """Test rectangle obstacle polygon."""
         obstacle = SimulatorObstacle(
             type="static",
-            shape=ObstacleShape(type="rectangle", width=2.0, length=4.0),
+            shape=ObstacleShape(type="rectangle", width=2.0, length=4.0, height=2.0),
             position=StaticObstaclePosition(x=0.0, y=0.0, yaw=0.0),
         )
 
@@ -179,7 +179,7 @@ class TestObstaclePolygon:
         """Test circle obstacle polygon."""
         obstacle = SimulatorObstacle(
             type="static",
-            shape=ObstacleShape(type="circle", radius=1.0),
+            shape=ObstacleShape(type="circle", radius=1.0, height=2.0),
             position=StaticObstaclePosition(x=0.0, y=0.0, yaw=0.0),
         )
 
@@ -235,7 +235,7 @@ class TestObstacleManager:
         """Test with single obstacle, no collision."""
         obstacle = SimulatorObstacle(
             type="static",
-            shape=ObstacleShape(type="rectangle", width=2.0, length=4.0),
+            shape=ObstacleShape(type="rectangle", width=2.0, length=4.0, height=2.0),
             position=StaticObstaclePosition(x=10.0, y=10.0, yaw=0.0),
         )
         manager = ObstacleManager([obstacle])
@@ -247,7 +247,7 @@ class TestObstacleManager:
         """Test with single obstacle, collision detected."""
         obstacle = SimulatorObstacle(
             type="static",
-            shape=ObstacleShape(type="rectangle", width=2.0, length=2.0),
+            shape=ObstacleShape(type="rectangle", width=2.0, length=2.0, height=2.0),
             position=StaticObstaclePosition(x=0.5, y=0.5, yaw=0.0),
         )
         manager = ObstacleManager([obstacle])
@@ -260,12 +260,12 @@ class TestObstacleManager:
         obstacles = [
             SimulatorObstacle(
                 type="static",
-                shape=ObstacleShape(type="rectangle", width=1.0, length=1.0),
+                shape=ObstacleShape(type="rectangle", width=1.0, length=1.0, height=2.0),
                 position=StaticObstaclePosition(x=10.0, y=10.0, yaw=0.0),
             ),
             SimulatorObstacle(
                 type="static",
-                shape=ObstacleShape(type="circle", radius=0.5),
+                shape=ObstacleShape(type="circle", radius=0.5, height=2.0),
                 position=StaticObstaclePosition(x=0.5, y=0.5, yaw=0.0),
             ),
         ]

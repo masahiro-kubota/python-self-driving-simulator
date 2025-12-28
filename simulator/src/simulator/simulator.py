@@ -40,14 +40,16 @@ class Simulator(Node[SimulatorConfig]):
         self,
         config: SimulatorConfig,
         rate_hz: float,
+        priority: int,
     ) -> None:
         """Initialize Simulator.
 
         Args:
             config: Validated configuration
             rate_hz: Physics update rate [Hz]
+            priority: Execution priority
         """
-        super().__init__("Simulator", rate_hz, config)
+        super().__init__("Simulator", rate_hz, config, priority=priority)
 
         self.dt = 1.0 / rate_hz
         self._current_state: SimulationVehicleState | None = None
@@ -70,6 +72,7 @@ class Simulator(Node[SimulatorConfig]):
             outputs={
                 "sim_state": VehicleState,
                 "obstacles": list[SimulatorObstacle],
+                "obstacle_states": list,
                 "obstacle_markers": MarkerArray,
                 "perception_lidar_scan": LaserScan,
             },
@@ -151,7 +154,7 @@ class Simulator(Node[SimulatorConfig]):
             return NodeExecutionResult.FAILED
 
         # Skip if simulation is terminated
-        if hasattr(self.frame_data, "termination_signal") and self.frame_data.termination_signal:
+        if self.subscribe("termination_signal"):
             return NodeExecutionResult.SUCCESS
 
         # Expose Lidar data to frame_data (NodeIO) if needed
@@ -159,7 +162,7 @@ class Simulator(Node[SimulatorConfig]):
         from core.data.ros import AckermannDrive, MarkerArray
 
         # Get control command from frame_data
-        control_cmd = getattr(self.frame_data, "control_cmd", None)
+        control_cmd = self.subscribe("control_cmd")
         if control_cmd is None:
             # Default to zero control
             steering = 0.0
@@ -238,19 +241,19 @@ class Simulator(Node[SimulatorConfig]):
         self.log.steps.append(step_log)
 
         # Update frame_data with new state
-        self.frame_data.sim_state = vehicle_state
+        self.publish("sim_state", vehicle_state)
         if self.obstacle_manager:
-            self.frame_data.obstacles = self.obstacle_manager.obstacles
+            self.publish("obstacles", self.obstacle_manager.obstacles)
 
             # Generate obstacle markers
             obstacle_marker_array = self.obstacle_visualizer.create_marker_array(
                 self.obstacle_manager.obstacles, self.current_time
             )
-            self.frame_data.obstacle_markers = obstacle_marker_array
+            self.publish("obstacle_markers", obstacle_marker_array)
         else:
-            self.frame_data.obstacles = []
-            self.frame_data.obstacle_markers = MarkerArray(markers=[])
-        self.frame_data.obstacle_states = obstacle_states
+            self.publish("obstacles", [])
+            self.publish("obstacle_markers", MarkerArray(markers=[]))
+        self.publish("obstacle_states", obstacle_states)
 
         if ranges is not None:
             from core.utils.ros_message_builder import build_laser_scan_message
@@ -261,7 +264,7 @@ class Simulator(Node[SimulatorConfig]):
             scan_msg = build_laser_scan_message(
                 self.config.vehicle_params.lidar, ranges, self.current_time
             )
-            self.frame_data.perception_lidar_scan = scan_msg
+            self.publish("perception_lidar_scan", scan_msg)
 
         return NodeExecutionResult.SUCCESS
 

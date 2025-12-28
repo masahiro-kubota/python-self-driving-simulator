@@ -46,8 +46,27 @@ class ObstacleShape(BaseModel):
     # Rectangle parameters
     width: float | None = Field(None, description="Width [m] (for rectangle)")
     length: float | None = Field(None, description="Length [m] (for rectangle)")
+    height: float | None = Field(None, description="Height [m]")
     # Circle parameters
     radius: float | None = Field(None, description="Radius [m] (for circle)")
+
+    from pydantic import model_validator
+
+    @model_validator(mode="after")
+    def validate_shape_params(self):
+        if self.type == "rectangle":
+            if self.width is None:
+                raise ValueError("width is required for rectangle")
+            if self.length is None:
+                raise ValueError("length is required for rectangle")
+            if self.height is None:
+                raise ValueError("height is required for rectangle")
+        elif self.type == "circle":
+            if self.radius is None:
+                raise ValueError("radius is required for circle")
+            if self.height is None:
+                raise ValueError("height is required for circle")
+        return self
 
 
 class TrajectoryWaypoint(BaseModel):

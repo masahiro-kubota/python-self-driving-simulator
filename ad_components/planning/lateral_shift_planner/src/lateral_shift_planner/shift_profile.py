@@ -73,11 +73,26 @@ class ShiftProfile:
             self.target_lat = min(0.0, raw_target_lat)
 
         # Update s range
-        self.s_start_action = obstacle.s - longitudinal_margin_front - avoidance_maneuver_length
-        self.s_full_avoid = obstacle.s - longitudinal_margin_front
-        self.s_keep_avoid = obstacle.s + obstacle.length + longitudinal_margin_rear
+        # Update s range
+        # obstacle.s is the center of the obstacle
+        # Start avoidance: center - half_length - margin - maneuver_length
+        half_length = obstacle.length / 2.0
+        self.s_start_action = (
+            obstacle.s - half_length - longitudinal_margin_front - avoidance_maneuver_length
+        )
+        self.s_full_avoid = obstacle.s - half_length - longitudinal_margin_front
+        self.s_keep_avoid = obstacle.s + half_length + longitudinal_margin_rear
         self.s_end_action = (
-            obstacle.s + obstacle.length + longitudinal_margin_rear + avoidance_maneuver_length
+            obstacle.s + half_length + longitudinal_margin_rear + avoidance_maneuver_length
+        )
+
+        import logging
+
+        logging.getLogger(__name__).info(
+            f"[ShiftProfile] ID={obstacle.id} s_obs={obstacle.s:.2f} len={obstacle.length:.2f} (half={half_length:.2f}) "
+            f"margins(F/R)={longitudinal_margin_front:.2f}/{longitudinal_margin_rear:.2f} "
+            f"s_full={self.s_full_avoid:.2f} s_keep={self.s_keep_avoid:.2f} "
+            f"obs_front={obstacle.s - half_length:.2f} obs_rear={obstacle.s + half_length:.2f}"
         )
 
     def get_lat(self, s: float) -> float:

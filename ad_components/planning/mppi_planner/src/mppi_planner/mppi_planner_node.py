@@ -39,8 +39,8 @@ class MPPIPlannerConfig(ComponentConfig):
 class MPPIPlannerNode(Node[MPPIPlannerConfig]):
     """MPPI Path Planner Node."""
 
-    def __init__(self, config: MPPIPlannerConfig, rate_hz: float):
-        super().__init__("MPPIPlanner", rate_hz, config)
+    def __init__(self, config: MPPIPlannerConfig, rate_hz: float, priority: int):
+        super().__init__("MPPIPlanner", rate_hz, config, priority)
 
         from core.utils import get_project_root
 
@@ -97,8 +97,8 @@ class MPPIPlannerNode(Node[MPPIPlannerConfig]):
             return NodeExecutionResult.FAILED
 
         # Get Inputs
-        vehicle_state = getattr(self.frame_data, "vehicle_state", None)
-        obstacles = getattr(self.frame_data, "obstacles", [])
+        vehicle_state = self.subscribe("vehicle_state")
+        obstacles = self.subscribe("obstacles") or []
 
         if vehicle_state is None:
             return NodeExecutionResult.SKIPPED
@@ -111,7 +111,7 @@ class MPPIPlannerNode(Node[MPPIPlannerConfig]):
         )
 
         # Set Trajectory Output
-        self.frame_data.trajectory = trajectory
+        self.publish("trajectory", trajectory)
 
         # Generate Debug Markers (Candidate Paths)
         # states: (K, T+1, 4)
@@ -149,8 +149,9 @@ class MPPIPlannerNode(Node[MPPIPlannerConfig]):
         marker_array = MarkerArray(markers=markers)
 
         # Set AD log output
-        self.frame_data.ad_component_log = ADComponentLog(
-            component_type="mppi_planner", data={"candidates": marker_array}
+        self.publish(
+            "ad_component_log",
+            ADComponentLog(component_type="mppi_planner", data={"candidates": marker_array}),
         )
 
         return NodeExecutionResult.SUCCESS

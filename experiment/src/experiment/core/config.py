@@ -43,6 +43,15 @@ class ObstacleGroup(BaseModel):
     shape: dict[str, Any] | None = None
 
 
+class ExclusionZoneConfig(BaseModel):
+    """Configuration for obstacle exclusion zone."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool
+    distance: float = Field(..., gt=0)
+
+
 class ObstacleGenerationConfig(BaseModel):
     """Configuration for dynamic obstacle generation."""
 
@@ -50,6 +59,7 @@ class ObstacleGenerationConfig(BaseModel):
 
     enabled: bool
     groups: list[ObstacleGroup] = Field(default_factory=list)
+    exclusion_zone: ExclusionZoneConfig | None = None
 
 
 class Checkpoint(BaseModel):

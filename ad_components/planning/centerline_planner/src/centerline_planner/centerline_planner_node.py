@@ -14,15 +14,15 @@ class CenterlinePlannerConfig(ComponentConfig):
     """Configuration for CenterlinePlannerNode."""
 
     track_path: Path = Field(..., description="Path to reference trajectory CSV")
-    lookahead_points: int = Field(100, description="Number of points to output ahead of vehicle")
-    trajectory_color: str = Field("#00FF00CC", description="Trajectory color")
+    lookahead_points: int = Field(..., description="Number of points to output ahead of vehicle")
+    trajectory_color: str = Field(..., description="Trajectory color")
 
 
 class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
     """Simple planner that outputs centerline trajectory from CSV."""
 
-    def __init__(self, config: CenterlinePlannerConfig, rate_hz: float):
-        super().__init__("CenterlinePlanner", rate_hz, config)
+    def __init__(self, config: CenterlinePlannerConfig, rate_hz: float, priority: int):
+        super().__init__("CenterlinePlanner", rate_hz, config, priority)
 
         # Load reference trajectory
         from core.utils import get_project_root
@@ -49,7 +49,7 @@ class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
         if self.frame_data is None:
             return NodeExecutionResult.FAILED
 
-        vehicle_state = getattr(self.frame_data, "vehicle_state", None)
+        vehicle_state = self.subscribe("vehicle_state")
         if vehicle_state is None:
             return NodeExecutionResult.SKIPPED
 
@@ -73,27 +73,29 @@ class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
             trajectory_points = self.reference_trajectory.points[-self.config.lookahead_points :]
 
         trajectory = Trajectory(points=trajectory_points)
-        self.frame_data.trajectory = trajectory
 
-        # Visualization
+        # Output
+        self.publish("trajectory", trajectory)
+
+        # Visualize
         from core.data.ros import ColorRGBA, Header, Marker, MarkerArray, Point, Vector3
-        from logger.ros_message_builder import to_ros_time
+        from core.utils.ros_message_builder import to_ros_time
 
-        ros_time = to_ros_time(_current_time)
         points = [Point(x=p.x, y=p.y, z=0.0) for p in trajectory.points]
 
         marker = Marker(
-            header=Header(stamp=ros_time, frame_id="map"),
+            header=Header(stamp=to_ros_time(_current_time), frame_id="map"),
             ns="trajectory",
             id=0,
             type=4,  # LINE_STRIP
             action=0,
             scale=Vector3(x=0.2, y=0.0, z=0.0),
-            color=ColorRGBA.from_hex(self.config.trajectory_color),
+            color=ColorRGBA.from_hex(
+                self.config.trajectory_color
+            ),  # Changed from self.config.color to self.config.trajectory_color
             points=points,
             frame_locked=True,
         )
-
-        setattr(self.frame_data, "planning/marker", MarkerArray(markers=[marker]))
+        self.publish("planning_marker", MarkerArray(markers=[marker]))
 
         return NodeExecutionResult.SUCCESS

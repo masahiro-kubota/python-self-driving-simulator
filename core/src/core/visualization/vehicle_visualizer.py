@@ -31,7 +31,7 @@ class VehicleVisualizer:
         )
         self.width = self.vehicle_params.width
 
-        self.height = 1.5
+        self.height = self.vehicle_params.vehicle_height
 
     def create_marker(self, vehicle_state: VehicleState, timestamp: float) -> Marker:
         """Create a marker for the vehicle.

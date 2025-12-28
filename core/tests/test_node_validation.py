@@ -10,8 +10,8 @@ class SimpleConfig(ComponentConfig):
 
 
 class SimpleNode(Node[SimpleConfig]):
-    def __init__(self, config: SimpleConfig, rate_hz: float = 10.0):
-        super().__init__("Simple", rate_hz, config)
+    def __init__(self, config: SimpleConfig, rate_hz: float = 10.0, priority: int = 100):
+        super().__init__("Simple", rate_hz, config, priority)
 
     def get_node_io(self) -> NodeIO:
         return NodeIO(inputs={}, outputs={})

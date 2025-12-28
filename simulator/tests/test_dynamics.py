@@ -344,6 +344,7 @@ class TestGetBicycleModelPolygon:
             c_roll=0.015,
             max_drive_force=5000.0,
             max_brake_force=8000.0,
+            vehicle_height=2.2,
             tire_params={},
         )
 
@@ -380,6 +381,7 @@ class TestGetBicycleModelPolygon:
             c_roll=0.015,
             max_drive_force=5000.0,
             max_brake_force=8000.0,
+            vehicle_height=2.2,
             tire_params={},
         )
 
@@ -413,6 +415,7 @@ class TestGetBicycleModelPolygon:
             c_roll=0.015,
             max_drive_force=5000.0,
             max_brake_force=8000.0,
+            vehicle_height=2.2,
             tire_params={},
         )
 
