@@ -179,6 +179,29 @@ class EvaluatorEngine(BaseEngine):
                     except Exception as e:
                         logger.warning(f"Failed to generate dashboard for episode {i}: {e}")
 
+                # Log Foxglove URL
+                try:
+                    import urllib.parse
+                    
+                    # Find project root by looking for uv.lock or .git
+                    current_dir = Path(__file__).resolve().parent
+                    project_root = None
+                    for parent in [current_dir] + list(current_dir.parents):
+                        if (parent / "uv.lock").exists() or (parent / ".git").exists():
+                            project_root = parent
+                            break
+                    
+                    if project_root:
+                        rel_mcap_path = mcap_path.resolve().relative_to(project_root.resolve())
+                        mcap_url = f"http://127.0.0.1:8080/{rel_mcap_path}"
+                        encoded_url = urllib.parse.quote(mcap_url, safe="")
+                        foxglove_url = f"https://app.foxglove.dev/view?ds=remote-file&ds.url={encoded_url}"
+                        
+                        # Use print with flush to ensure it shows up in terminal
+                        print(f"\n🦊 View in Foxglove: {foxglove_url}", flush=True)
+                except Exception:
+                    pass
+
         # Calculate Aggregate Metrics
         success_count = sum(1 for r in results if r.success)
         success_rate = success_count / num_episodes
