@@ -116,6 +116,8 @@ class EvaluatorEngine(BaseEngine):
         if "seed" not in cfg:
             raise ValueError("Configuration must include 'seed' parameter.")
 
+        last_foxglove_url = None
+
         for i in range(num_episodes):
             episode_cfg = cfg.copy()
             # Set seed for reproducibility/randomization in evaluation
@@ -198,6 +200,7 @@ class EvaluatorEngine(BaseEngine):
                         foxglove_url = (
                             f"https://app.foxglove.dev/view?ds=remote-file&ds.url={encoded_url}"
                         )
+                        last_foxglove_url = foxglove_url
 
                         # Use print with flush to ensure it shows up in terminal
                         print(f"\n🦊 View in Foxglove: {foxglove_url}", flush=True)
@@ -221,6 +224,13 @@ class EvaluatorEngine(BaseEngine):
         mlflow.log_metric("num_episodes", num_episodes)
         mlflow.log_metric("goal_count", metrics.goal_count)
         mlflow.log_metric("checkpoint_count", metrics.checkpoint_count)
+
+        # Log Foxglove link to MLflow Notes (clickable from UI)
+        if last_foxglove_url:
+            mlflow.set_tag(
+                "mlflow.note.content",
+                f"### 🦊 Foxglove Visualization\n[View in Foxglove]({last_foxglove_url})",
+            )
 
         return ExperimentResult(
             experiment=None,  # No longer needed for result processing
