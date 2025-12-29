@@ -41,6 +41,7 @@ obstacles:
       enabled: true # 除外ゾーンを有効化 [bool]
       # 初期位置からの除外距離 [m]
       distance: 10.0
+    seed: 42       # 障害物生成用シード (再現性確保のため) [int] -- fixed for obstacle generation only
   list:
     # 固定障害物のリスト
     - type: static # 種類 (static: 静的) [str]

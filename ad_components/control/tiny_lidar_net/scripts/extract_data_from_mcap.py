@@ -35,7 +35,7 @@ def extract_data_from_mcap(mcap_path: Path) -> dict[str, Any] | None:
         with open(mcap_path, "rb") as f:
             reader = make_reader(f, decoder_factories=[DecoderFactory()])
 
-            target_topics = ["/perception/lidar/scan", "/control/command/control_cmd"]
+            target_topics = ["/sensing/lidar/scan", "/control/command/control_cmd"]
 
             for schema, channel, message in reader.iter_messages():
                 if channel.topic not in target_topics:
@@ -57,7 +57,7 @@ def extract_data_from_mcap(mcap_path: Path) -> dict[str, Any] | None:
                     continue
 
                 # Extract LiDAR scans
-                if channel.topic == "/perception/lidar/scan":
+                if channel.topic == "/sensing/lidar/scan":
                     ranges = None
                     if isinstance(msg, dict):
                         if "ranges" in msg:
@@ -76,25 +76,12 @@ def extract_data_from_mcap(mcap_path: Path) -> dict[str, Any] | None:
                     found = False
 
                     if isinstance(msg, dict):
-                        if "drive" in msg:  # AckermannDriveStamped
-                            drive = msg["drive"]
-                            steer = drive.get("steering_angle", 0.0)
-                            accel = drive.get("acceleration", 0.0)
-                            found = True
-                        elif "lateral" in msg and "longitudinal" in msg:  # Autoware Control
+                        if "lateral" in msg and "longitudinal" in msg:  # Autoware Control
                             steer = msg["lateral"].get("steering_tire_angle", 0.0)
                             accel = msg["longitudinal"].get("acceleration", 0.0)
                             found = True
-                        elif "steering" in msg and "acceleration" in msg:  # Simple dict
-                            steer = msg.get("steering", 0.0)
-                            accel = msg.get("acceleration", 0.0)
-                            found = True
                     else:
-                        if hasattr(msg, "drive"):  # AckermannDriveStamped
-                            steer = msg.drive.steering_angle
-                            accel = msg.drive.acceleration
-                            found = True
-                        elif hasattr(msg, "lateral") and hasattr(
+                        if hasattr(msg, "lateral") and hasattr(
                             msg, "longitudinal"
                         ):  # Autoware Control
                             steer = msg.lateral.steering_tire_angle

@@ -145,7 +145,7 @@ class ExtractorEngine(BaseEngine):
         try:
             with open(mcap_path, "rb") as f:
                 reader = make_reader(f, decoder_factories=[DecoderFactory()])
-                target_topics = ["/perception/lidar/scan", "/control/command/control_cmd"]
+                target_topics = ["/sensing/lidar/scan", "/control/command/control_cmd"]
 
                 for schema, channel, message in reader.iter_messages():
                     if channel.topic not in target_topics:
@@ -171,7 +171,7 @@ class ExtractorEngine(BaseEngine):
 
                     logger.debug(f"Successfully decoded message on topic {channel.topic}")
 
-                    if channel.topic == "/perception/lidar/scan":
+                    if channel.topic == "/sensing/lidar/scan":
                         ranges = None
                         if isinstance(msg, dict) and "ranges" in msg:
                             ranges = np.array(msg["ranges"], dtype=np.float32)
@@ -189,26 +189,14 @@ class ExtractorEngine(BaseEngine):
                     elif channel.topic == "/control/command/control_cmd":
                         steer, accel, found = 0.0, 0.0, False
                         if isinstance(msg, dict):
-                            if "drive" in msg:
-                                steer, accel, found = (
-                                    msg["drive"].get("steering_angle", 0.0),
-                                    msg["drive"].get("acceleration", 0.0),
-                                    True,
-                                )
-                            elif "lateral" in msg and "longitudinal" in msg:
+                            if "lateral" in msg and "longitudinal" in msg:
                                 steer, accel, found = (
                                     msg["lateral"].get("steering_tire_angle", 0.0),
                                     msg["longitudinal"].get("acceleration", 0.0),
                                     True,
                                 )
                         else:
-                            if hasattr(msg, "drive"):
-                                steer, accel, found = (
-                                    msg.drive.steering_angle,
-                                    msg.drive.acceleration,
-                                    True,
-                                )
-                            elif hasattr(msg, "lateral"):
+                            if hasattr(msg, "lateral"):
                                 steer, accel, found = (
                                     msg.lateral.steering_tire_angle,
                                     msg.longitudinal.acceleration,

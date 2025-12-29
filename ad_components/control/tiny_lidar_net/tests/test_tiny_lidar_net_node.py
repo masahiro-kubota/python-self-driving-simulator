@@ -172,9 +172,9 @@ class TestTinyLidarNetNode:
         node_io = node.get_node_io()
 
         assert "control_cmd" in node_io.outputs
-        from core.data.ros import AckermannDriveStamped
+        from core.data.autoware import AckermannControlCommand
 
-        assert node_io.outputs["control_cmd"] == AckermannDriveStamped
+        assert node_io.outputs["control_cmd"] == AckermannControlCommand
 
     def test_on_run_success(self, node: TinyLidarNetNode) -> None:
         """Test successful execution."""
@@ -192,11 +192,11 @@ class TestTinyLidarNetNode:
 
         assert result == NodeExecutionResult.SUCCESS
         assert hasattr(frame_data, "control_cmd")
-        from core.data.ros import AckermannDriveStamped
+        from core.data.autoware import AckermannControlCommand
 
-        assert isinstance(frame_data.control_cmd, AckermannDriveStamped)
-        assert -1.0 <= frame_data.control_cmd.drive.acceleration <= 1.0
-        assert -1.0 <= frame_data.control_cmd.drive.steering_angle <= 1.0
+        assert isinstance(frame_data.control_cmd, AckermannControlCommand)
+        assert -1.0 <= frame_data.control_cmd.longitudinal.acceleration <= 1.0
+        assert -1.0 <= frame_data.control_cmd.lateral.steering_tire_angle <= 1.0
 
     def test_on_run_no_lidar_scan(self, node: TinyLidarNetNode) -> None:
         """Test execution when LiDAR scan is missing."""

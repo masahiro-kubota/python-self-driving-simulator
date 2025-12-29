@@ -1,5 +1,4 @@
 import logging
-import random
 import uuid
 from pathlib import Path
 from typing import Any
@@ -27,9 +26,6 @@ class CollectorEngine(BaseEngine):
     """データ収集エンジン"""
 
     def _run_impl(self, cfg: DictConfig) -> Any:
-        if "seed" not in cfg:
-            raise ValueError("Configuration must include 'seed' parameter.")
-        seed = cfg.seed
         num_episodes = cfg.execution.num_episodes
         split = cfg.split
         # Safe HydraConfig access
@@ -41,20 +37,22 @@ class CollectorEngine(BaseEngine):
         output_dir = hydra_dir / split / "raw_data"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        logger.info(
-            f"Starting data collection: {num_episodes} episodes, seed={seed}, split={split}"
-        )
+        logger.info(f"Starting data collection: {num_episodes} episodes, split={split}")
 
         for i in range(num_episodes):
-            episode_seed = seed + i
+            # Resolve seed for scenario reproducibility (initial state + obstacles)
+            # Use obstacles.generation.seed if available
+            episode_seed = None
+            if cfg.env.obstacles.generation:
+                # User config ensures seed is present if generation is configured
+                episode_seed = cfg.env.obstacles.generation.seed + i
+
             logger.info(f"--- Episode {i + 1}/{num_episodes} (Seed: {episode_seed}) ---")
 
-            random.seed(episode_seed)
-            np.random.seed(episode_seed)
             rng = np.random.default_rng(episode_seed)
 
             episode_cfg = cfg.copy()
-            self.randomize_simulation_config(episode_cfg, rng)
+            self.randomize_simulation_config(episode_cfg, rng, i)
             experiment = self.create_experiment_instance(episode_cfg, output_dir, i)
 
             runner = SimulatorRunner()
@@ -193,7 +191,9 @@ class CollectorEngine(BaseEngine):
             nodes=nodes,
         )
 
-    def randomize_simulation_config(self, cfg: DictConfig, rng: np.random.Generator) -> None:
+    def randomize_simulation_config(
+        self, cfg: DictConfig, rng: np.random.Generator, episode_idx: int = 0
+    ) -> None:
         from collections.abc import Mapping
 
         nodes = cfg.system.nodes
@@ -229,7 +229,10 @@ class CollectorEngine(BaseEngine):
             track_path_str = cfg.env.get("track_path")
             track_path = Path(track_path_str) if track_path_str else None
 
-            gen_seed = int(rng.integers(0, 2**32 - 1))
+            # Use configured seed from generation config
+            # We already know it exists because we are inside 'if generation in obstacles'
+            # and the schema enforces 'seed' presence.
+            gen_seed = obstacles.generation.seed + episode_idx
 
             generator = ObstacleGenerator(map_path, track_path=track_path, seed=gen_seed)
 

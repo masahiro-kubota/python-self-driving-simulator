@@ -2,12 +2,12 @@ import math
 from pathlib import Path
 
 from core.data import ComponentConfig, SimulatorObstacle, VehicleParameters, VehicleState
-from core.data.ad_components import Trajectory, TrajectoryPoint
-from core.data.ad_components.log import ADComponentLog
+from core.data.autoware import Trajectory
 from core.data.node_io import NodeIO
 from core.data.ros import MarkerArray
 from core.interfaces.node import Node, NodeExecutionResult
-from core.utils.geometry import distance
+from core.utils.geometry import distance, euler_to_quaternion
+from planning_utils import ReferencePathPoint
 from pydantic import Field
 from simulator.obstacle import get_obstacle_polygon, get_obstacle_state
 
@@ -34,7 +34,7 @@ class PurePursuitNode(Node[PurePursuitConfig]):
     ):
         super().__init__("PurePursuit", rate_hz, config, priority)
         self.vehicle_params = config.vehicle_params
-        self.reference_trajectory: Trajectory | None = None
+        self.reference_trajectory = None
         # self.config is set by base class
 
         # Path resolution is handled by node_factory.create_node()
@@ -53,7 +53,6 @@ class PurePursuitNode(Node[PurePursuitConfig]):
             outputs={
                 "trajectory": Trajectory,
                 "lookahead_marker": MarkerArray,
-                "ad_component_log": ADComponentLog,
             },
         )
 
@@ -75,7 +74,6 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         self.publish("trajectory", trajectory)
 
         # Output Debug Marker
-        from core.data.ad_components.log import ADComponentLog
         from core.data.ros import ColorRGBA, MarkerArray
         from planning_utils.visualization import create_trajectory_marker
 
@@ -88,11 +86,6 @@ class PurePursuitNode(Node[PurePursuitConfig]):
 
         marker_array = MarkerArray(markers=[marker])
         self.publish("lookahead_marker", marker_array)
-
-        self.publish(
-            "ad_component_log",
-            ADComponentLog(component_type="pure_pursuit", data={"lookahead_marker": marker_array}),
-        )
 
         return NodeExecutionResult.SUCCESS
 
@@ -114,8 +107,6 @@ class PurePursuitNode(Node[PurePursuitConfig]):
         min_dist = float("inf")
         nearest_idx = 0
 
-        # Optimization: verify if we can start search from previous nearest index?
-        # For now, keep it simple stateless or full search to be safe
         for i, point in enumerate(self.reference_trajectory):
             d = distance(vehicle_state.x, vehicle_state.y, point.x, point.y)
             if d < min_dist:
@@ -147,19 +138,10 @@ class PurePursuitNode(Node[PurePursuitConfig]):
                 target_y = p1.y + (p2.y - p1.y) * ratio
                 target_v = p1.velocity + (p2.velocity - p1.velocity) * ratio
 
-                # Interpolate yaw (handling wrap-around)
-                # diff = p2.yaw - p1.yaw
-                # if diff > np.pi: diff -= 2*np.pi
-                # elif diff < -np.pi: diff += 2*np.pi
-                # target_yaw = p1.yaw + diff * ratio
-                # For simplicity in this context, simple linear interp might suffice or use p1's yaw
-                # But best to do it right? Or just use p2's yaw to be safe?
-                # Using p2's yaw is safer for lookahead. Or just use atan2 of the segment?
-                # Segment yaw is better for path following.
                 segment_yaw = math.atan2(p2.y - p1.y, p2.x - p1.x)
                 target_yaw = segment_yaw
 
-                target_point = TrajectoryPoint(
+                target_point = ReferencePathPoint(
                     x=target_x, y=target_y, yaw=target_yaw, velocity=target_v
                 )
                 check_points.append(target_point)
@@ -167,26 +149,43 @@ class PurePursuitNode(Node[PurePursuitConfig]):
 
             accumulated_dist += d
             current_idx += 1
-            # Add intermediate points to check list
             check_points.append(self.reference_trajectory[current_idx])
             target_point = self.reference_trajectory[current_idx]
 
-        # Obstacle Avoidance
+        # Obstacle Avoidance (Internal logic)
         obstacles = self.subscribe("obstacles") or []
         if obstacles:
             target_point = self._avoid_obstacles(
                 target_point, obstacles, self.current_time, vehicle_state
             )
 
-        return Trajectory(points=[target_point])
+        # Convert to Autoware Trajectory
+        from core.data.autoware import Duration, TrajectoryPoint
+        from core.data.ros import Header, Point, Pose, Quaternion
+        from core.utils.ros_message_builder import to_ros_time
+
+        quat = euler_to_quaternion(0.0, 0.0, target_point.yaw)
+
+        aw_point = TrajectoryPoint(
+            time_from_start=Duration(sec=0, nanosec=0),  # Simplified
+            pose=Pose(
+                position=Point(x=target_point.x, y=target_point.y, z=0.0),
+                orientation=Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3]),
+            ),
+            longitudinal_velocity_mps=target_point.velocity,
+        )
+
+        return Trajectory(
+            header=Header(stamp=to_ros_time(self.current_time), frame_id="map"), points=[aw_point]
+        )
 
     def _avoid_obstacles(
         self,
-        target_point: TrajectoryPoint,
+        target_point: ReferencePathPoint,
         obstacles: list[SimulatorObstacle],
         current_time: float,
         vehicle_state: VehicleState,
-    ) -> TrajectoryPoint:
+    ) -> ReferencePathPoint:
         from shapely.geometry import LineString
 
         # Create path polygon (LineString buffer) representing the swept volume
@@ -223,7 +222,7 @@ class PurePursuitNode(Node[PurePursuitConfig]):
                 dx = -direction * offset_dist * math.sin(target_point.yaw)
                 dy = direction * offset_dist * math.cos(target_point.yaw)
 
-                cand_p = TrajectoryPoint(
+                cand_p = ReferencePathPoint(
                     x=target_point.x + dx,
                     y=target_point.y + dy,
                     yaw=target_point.yaw,

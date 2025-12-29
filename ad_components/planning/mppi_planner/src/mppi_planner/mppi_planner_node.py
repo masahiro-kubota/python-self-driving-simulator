@@ -1,9 +1,8 @@
 from pathlib import Path
 
 from core.data import ComponentConfig, Trajectory, VehicleParameters, VehicleState
-from core.data.ad_components.log import ADComponentLog
 from core.data.node_io import NodeIO
-from core.data.ros import ColorRGBA, Header, Marker, MarkerArray, Point, Time, Vector3
+from core.data.ros import ColorRGBA, Header, Marker, Point, Time, Vector3
 from core.interfaces.node import Node, NodeExecutionResult
 from pydantic import Field
 
@@ -88,7 +87,6 @@ class MPPIPlannerNode(Node[MPPIPlannerConfig]):
             },
             outputs={
                 "trajectory": Trajectory,
-                "ad_component_log": ADComponentLog,
             },
         )
 
@@ -146,12 +144,6 @@ class MPPIPlannerNode(Node[MPPIPlannerConfig]):
             )
             markers.append(marker)
 
-        marker_array = MarkerArray(markers=markers)
-
-        # Set AD log output
-        self.publish(
-            "ad_component_log",
-            ADComponentLog(component_type="mppi_planner", data={"candidates": marker_array}),
-        )
+        # Note: Candidate paths visualization is now available via MCAP recording
 
         return NodeExecutionResult.SUCCESS

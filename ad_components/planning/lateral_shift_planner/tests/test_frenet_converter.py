@@ -1,14 +1,14 @@
 import numpy as np
 import pytest
-from core.data.ad_components import Trajectory, TrajectoryPoint
+from planning_utils.types import ReferencePath, ReferencePathPoint
 from static_avoidance_planner.frenet_converter import FrenetConverter
 
 
 def create_straight_path(length=100.0, step=1.0):
     points = []
     for x in np.arange(0, length + step, step):
-        points.append(TrajectoryPoint(x=x, y=0.0, yaw=0.0, velocity=10.0))
-    return Trajectory(points=points)
+        points.append(ReferencePathPoint(x=x, y=0.0, yaw=0.0, velocity=10.0))
+    return ReferencePath(points=points)
 
 
 def create_curved_path(radius=50.0, angle_deg=90):
@@ -24,8 +24,8 @@ def create_curved_path(radius=50.0, angle_deg=90):
         # dx/dt = r cos t
         # dy/dt = r sin t
         # yaw = t
-        points.append(TrajectoryPoint(x=x, y=y, yaw=theta, velocity=10.0))
-    return Trajectory(points=points)
+        points.append(ReferencePathPoint(x=x, y=y, yaw=theta, velocity=10.0))
+    return ReferencePath(points=points)
 
 
 def test_straight_path_projection():

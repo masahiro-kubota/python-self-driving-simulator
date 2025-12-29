@@ -8,7 +8,6 @@ defaults:
   - ad_components: pure_pursuit # デフォルトのADコンポーネント構成 [str]
   - _self_
 
-seed: 42       # グローバル乱数シード (再現性確保のため) [int] ランダム性を利用するplannerに悪影響
 split: "train" # データセットの分割タグ (例: "train", "val", "test") [str]
 
 hydra:

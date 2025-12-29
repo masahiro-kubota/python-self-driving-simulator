@@ -181,20 +181,3 @@ class MarkerArray(BaseModel):
     """visualization_msgs/MarkerArray."""
 
     markers: list[Marker] = Field(default_factory=list)
-
-
-class AckermannDrive(BaseModel):
-    """ackermann_msgs/AckermannDrive."""
-
-    steering_angle: float = 0.0
-    steering_angle_velocity: float = 0.0
-    speed: float = 0.0
-    acceleration: float = 0.0
-    jerk: float = 0.0
-
-
-class AckermannDriveStamped(BaseModel):
-    """ackermann_msgs/AckermannDriveStamped."""
-
-    header: Header = Field(default_factory=Header)
-    drive: AckermannDrive = Field(default_factory=AckermannDrive)

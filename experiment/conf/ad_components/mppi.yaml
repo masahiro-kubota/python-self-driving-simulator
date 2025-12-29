@@ -10,7 +10,7 @@ nodes:
       vehicle_params: ${vehicle}
       vehicle_color: ${visualization.colors.vehicle}
   control:
-    type: "mppi_controller.mppi_controller_node.MPPIControllerNode"
+    type: "MPPIControllerNode"
     rate_hz: 10.0  # 制御（プランニング含む）更新レート [Hz]
     priority: 20   # 実行優先度（センサーの後に実行 (MPPIはプランニングと制御を統合)）
     params:

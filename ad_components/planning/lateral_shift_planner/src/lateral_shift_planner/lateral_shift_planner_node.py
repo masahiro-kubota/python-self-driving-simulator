@@ -3,7 +3,6 @@ import math
 from pathlib import Path
 
 from core.data import ComponentConfig, VehicleState
-from core.data.ad_components import Trajectory
 from core.data.node_io import NodeIO
 
 # ROS Data Imports
@@ -87,6 +86,7 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
         # Let's use Any for obstacles input to avoid import issues or strict type checking failures at runtime.
         from typing import Any
 
+        from core.data.autoware import Trajectory
         from core.data.ros import MarkerArray
 
         return NodeIO(
@@ -187,11 +187,38 @@ class LateralShiftPlannerNode(Node[LateralShiftPlannerNodeConfig]):
             p0 = trajectory.points[0]
             logger.info(f"  Start Point: ({p0.x:.2f}, {p0.y:.2f})")
 
+        # Get ROS time for headers
+        ros_time = to_ros_time(_current_time)
+
+        # Convert internal trajectory to Autoware format
+        from core.data.autoware import Duration
+        from core.data.autoware import Trajectory as AutowareTrajectory
+        from core.data.autoware import TrajectoryPoint as AutowareTrajectoryPoint
+        from core.utils.geometry import euler_to_quaternion
+
+        autoware_points = []
+        for pt in trajectory.points:
+            quat = euler_to_quaternion(0.0, 0.0, pt.yaw)
+            autoware_points.append(
+                AutowareTrajectoryPoint(
+                    time_from_start=Duration(sec=0, nanosec=0),
+                    pose=Pose(
+                        position=Point(x=pt.x, y=pt.y, z=0.0),
+                        orientation=Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3]),
+                    ),
+                    longitudinal_velocity_mps=pt.velocity,
+                )
+            )
+
+        autoware_trajectory = AutowareTrajectory(
+            header=Header(stamp=ros_time, frame_id="map"),
+            points=autoware_points,
+        )
+
         # Output
-        self.publish("trajectory", trajectory)
+        self.publish("trajectory", autoware_trajectory)
 
         # Visualize
-        ros_time = to_ros_time(_current_time)
         markers = []
 
         # 0. Clear previous markers (DELETEALL)

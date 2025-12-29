@@ -63,7 +63,7 @@ params:
 ### 1. データの抽出
 
 MCAPファイルからLiDARスキャンと制御コマンドを抽出し、NumPy配列 (`.npy`) として保存します。
-抽出されるデータは、LiDARのトピック `/perception/lidar/scan` と 制御コマンドのトピック `/control/command/control_cmd` です。
+抽出されるデータは、LiDARのトピック `/sensing/lidar/scan` と 制御コマンドのトピック `/control/command/control_cmd` です。
 
 ```bash
 # プロジェクトルートで実行

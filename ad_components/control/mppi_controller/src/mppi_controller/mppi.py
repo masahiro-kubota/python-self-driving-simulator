@@ -1,11 +1,6 @@
 import numpy as np
-from core.data import (
-    SimulatorObstacle,
-    Trajectory,
-    TrajectoryPoint,
-    VehicleParameters,
-    VehicleState,
-)
+from core.data import SimulatorObstacle, VehicleParameters, VehicleState
+from planning_utils import ReferencePath, ReferencePathPoint
 
 
 class MPPIController:
@@ -69,9 +64,9 @@ class MPPIController:
     def solve(
         self,
         initial_state: VehicleState,
-        reference_trajectory: Trajectory,
+        reference_trajectory: ReferencePath,
         obstacles: list[SimulatorObstacle],
-    ) -> tuple[Trajectory, np.ndarray]:
+    ) -> tuple[ReferencePath, np.ndarray, np.ndarray]:
         """
         Solve optimization problem.
         Returns:
@@ -198,7 +193,7 @@ class MPPIController:
         trajectories: np.ndarray,
         controls: np.ndarray,
         _epsilon: np.ndarray,
-        reference_trajectory: Trajectory,
+        reference_trajectory: ReferencePath,
         obstacles: list[SimulatorObstacle],
     ) -> np.ndarray:
         """
@@ -336,12 +331,12 @@ class MPPIController:
 
         return costs
 
-    def _to_trajectory(self, states: np.ndarray, controls: np.ndarray) -> Trajectory:
-        """Convert state sequence to Trajectory."""
+    def _to_trajectory(self, states: np.ndarray, controls: np.ndarray) -> ReferencePath:
+        """Convert state sequence to ReferencePath."""
         points = []
         for i in range(len(controls)):  # T
             # states[i+1] is result state
             s = states[i + 1]
-            p = TrajectoryPoint(x=s[0], y=s[1], yaw=s[2], velocity=s[3])
+            p = ReferencePathPoint(x=s[0], y=s[1], yaw=s[2], velocity=s[3])
             points.append(p)
-        return Trajectory(points=points)
+        return ReferencePath(points=points)

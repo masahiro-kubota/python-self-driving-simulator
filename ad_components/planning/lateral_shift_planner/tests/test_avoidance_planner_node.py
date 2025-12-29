@@ -1,10 +1,11 @@
 from pathlib import Path
 
 import pytest
-from core.data.ad_components import Trajectory, VehicleState
+from core.data import VehicleState
 from core.data.ad_components.sensing import Sensing
 from core.data.ros import MarkerArray
 from core.interfaces.node import NodeExecutionResult
+from planning_utils.types import ReferencePath, ReferencePathPoint
 from static_avoidance_planner.avoidance_planner_node import (
     AvoidancePlannerNode,
     AvoidancePlannerNodeConfig,
@@ -15,12 +16,10 @@ from static_avoidance_planner.avoidance_planner_node import (
 @pytest.fixture
 def mock_loader(monkeypatch):
     def mock_load(_):
-        from core.data.ad_components import Trajectory, TrajectoryPoint
-
         # Return a simple trajectory
-        p1 = TrajectoryPoint(x=0.0, y=0.0, yaw=0.0, velocity=10.0)
-        p2 = TrajectoryPoint(x=10.0, y=0.0, yaw=0.0, velocity=10.0)
-        return Trajectory(points=[p1, p2])
+        p1 = ReferencePathPoint(x=0.0, y=0.0, yaw=0.0, velocity=10.0)
+        p2 = ReferencePathPoint(x=10.0, y=0.0, yaw=0.0, velocity=10.0)
+        return ReferencePath(points=[p1, p2])
 
     monkeypatch.setattr("static_avoidance_planner.avoidance_planner_node.load_track_csv", mock_load)
 
@@ -72,5 +71,7 @@ def test_node_execution_success(node):
     assert result == NodeExecutionResult.SUCCESS
 
     # Check output
+    from core.data.autoware import Trajectory
+
     assert isinstance(node.frame_data.trajectory, Trajectory)
     assert isinstance(getattr(node.frame_data, "planning/marker"), MarkerArray)

@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from core.data import (
-    ADComponentLog,
     ComponentConfig,  # Added ComponentConfig
     SimulationLog,
     SimulationStep,
@@ -19,7 +18,6 @@ from pydantic import Field
 from simulator.state import SimulationVehicleState
 
 if TYPE_CHECKING:
-    from core.data import ADComponentLog
     from shapely.geometry import Polygon
 
 
@@ -63,11 +61,11 @@ class SimulatorNode(Node[SimulatorConfig]):
         """Define node IO."""
         # Use lazy import for LidarScan because it might be circular if imported at top-level
         # (Though currently it's safe as it's in core.data)
-        from core.data.ros import AckermannDriveStamped, LaserScan, MarkerArray
+        from core.data.ros import LaserScan, MarkerArray
 
         return NodeIO(
             inputs={
-                "control_cmd": AckermannDriveStamped,
+                "control_cmd": Any,  # AckermannControlCommand
             },
             outputs={
                 "sim_state": VehicleState,
@@ -159,7 +157,7 @@ class SimulatorNode(Node[SimulatorConfig]):
 
         # Expose Lidar data to frame_data (NodeIO) if needed
         # Currently NodeIO doesn't explicitly define 'scan' output, but we can add it to info or frame_data dynamic
-        from core.data.ros import AckermannDrive, MarkerArray
+        from core.data.autoware import AckermannControlCommand
 
         # Get control command from frame_data
         control_cmd = self.subscribe("control_cmd")
@@ -168,8 +166,14 @@ class SimulatorNode(Node[SimulatorConfig]):
             steering = 0.0
             acceleration = 0.0
         else:
-            steering = control_cmd.drive.steering_angle
-            acceleration = control_cmd.drive.acceleration
+            if hasattr(control_cmd, "lateral") and hasattr(control_cmd, "longitudinal"):
+                # AckermannControlCommand
+                steering = control_cmd.lateral.steering_tire_angle
+                acceleration = control_cmd.longitudinal.acceleration
+            else:
+                self.get_log().warning(f"Unknown control command type: {type(control_cmd)}")
+                steering = 0.0
+                acceleration = 0.0
 
         # Update state using bicycle model
         from simulator.dynamics import update_bicycle_model
@@ -230,12 +234,20 @@ class SimulatorNode(Node[SimulatorConfig]):
             ranges = self.lidar_sensor.scan(vehicle_state)
 
         # Logging
-        drive_action = AckermannDrive(steering_angle=steering, acceleration=acceleration)
+        from core.data.autoware import AckermannLateralCommand, LongitudinalCommand
+        from core.data.ros import MarkerArray
+        from core.utils.ros_message_builder import to_ros_time
+
+        stamp = to_ros_time(self.current_time)
+        drive_action = AckermannControlCommand(
+            stamp=stamp,
+            lateral=AckermannLateralCommand(stamp=stamp, steering_tire_angle=steering),
+            longitudinal=LongitudinalCommand(stamp=stamp, acceleration=acceleration, speed=0.0),
+        )
         step_log = SimulationStep(
             timestamp=self.current_time,
             vehicle_state=vehicle_state,
             action=drive_action,
-            ad_component_log=self._create_ad_component_log(),
             info={"lidar_ranges": ranges.tolist()} if ranges is not None else {},
         )
         self.log.steps.append(step_log)
@@ -281,12 +293,6 @@ class SimulatorNode(Node[SimulatorConfig]):
         from simulator.dynamics import get_bicycle_model_polygon
 
         return get_bicycle_model_polygon(state, self.config.vehicle_params)
-
-    def _create_ad_component_log(self) -> "ADComponentLog":
-        """Create AD component log."""
-        from core.data import ADComponentLog
-
-        return ADComponentLog(component_type="simulator", data={})
 
     def _prepare_obstacle(self, obstacle: SimulatorObstacle) -> SimulatorObstacle:
         """Convert CSV-based trajectories into waypoint trajectories."""

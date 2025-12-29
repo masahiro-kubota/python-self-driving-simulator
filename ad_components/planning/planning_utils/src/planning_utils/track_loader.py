@@ -3,20 +3,21 @@
 import csv
 from pathlib import Path
 
-from core.data.ad_components import Trajectory, TrajectoryPoint
 from scipy.spatial.transform import Rotation
 
+from planning_utils.types import ReferencePath, ReferencePathPoint
 
-def load_track_csv(file_path: str | Path) -> Trajectory:
+
+def load_track_csv(file_path: str | Path) -> ReferencePath:
     """Load track from CSV file.
 
     Args:
         file_path: Path to CSV file
 
     Returns:
-        Trajectory object
+        ReferencePath object
     """
-    points: list[TrajectoryPoint] = []
+    points: list[ReferencePathPoint] = []
 
     with open(file_path) as f:
         reader = csv.DictReader(f)
@@ -36,6 +37,6 @@ def load_track_csv(file_path: str | Path) -> Trajectory:
 
             velocity = float(row["speed"])
 
-            points.append(TrajectoryPoint(x=x, y=y, yaw=yaw, velocity=velocity))
+            points.append(ReferencePathPoint(x=x, y=y, yaw=yaw, velocity=velocity))
 
-    return Trajectory(points=points)
+    return ReferencePath(points=points)

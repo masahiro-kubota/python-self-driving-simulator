@@ -112,11 +112,18 @@ class TestSimulatorNode:
         sim.on_init()
 
         # Create frame data manually
-        from core.data.ros import AckermannDrive, AckermannDriveStamped
+        from core.data.autoware import (
+            AckermannControlCommand,
+            AckermannLateralCommand,
+            LongitudinalCommand,
+        )
 
         frame_data = SimpleNamespace()
         frame_data.control_cmd = TopicSlot(
-            AckermannDriveStamped(drive=AckermannDrive(steering_angle=0.1, acceleration=1.0))
+            AckermannControlCommand(
+                lateral=AckermannLateralCommand(steering_tire_angle=0.1),
+                longitudinal=LongitudinalCommand(acceleration=1.0),
+            )
         )
         frame_data.termination_signal = TopicSlot(False)
         frame_data.sim_state = TopicSlot(None)
@@ -145,11 +152,18 @@ class TestSimulatorNode:
         sim = SimulatorNode(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
-        from core.data.ros import AckermannDrive, AckermannDriveStamped
+        from core.data.autoware import (
+            AckermannControlCommand,
+            AckermannLateralCommand,
+            LongitudinalCommand,
+        )
 
         frame_data = SimpleNamespace()
         frame_data.control_cmd = TopicSlot(
-            AckermannDriveStamped(drive=AckermannDrive(steering_angle=0.0, acceleration=1.0))
+            AckermannControlCommand(
+                lateral=AckermannLateralCommand(steering_tire_angle=0.0),
+                longitudinal=LongitudinalCommand(acceleration=1.0),
+            )
         )
         frame_data.termination_signal = TopicSlot(False)
         frame_data.sim_state = TopicSlot(None)
@@ -227,11 +241,18 @@ class TestSimulatorNode:
         sim = SimulatorNode(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
-        from core.data.ros import AckermannDrive, AckermannDriveStamped
+        from core.data.autoware import (
+            AckermannControlCommand,
+            AckermannLateralCommand,
+            LongitudinalCommand,
+        )
 
         frame_data = SimpleNamespace()
         frame_data.control_cmd = TopicSlot(
-            AckermannDriveStamped(drive=AckermannDrive(steering_angle=0.1, acceleration=0.5))
+            AckermannControlCommand(
+                lateral=AckermannLateralCommand(steering_tire_angle=0.1),
+                longitudinal=LongitudinalCommand(acceleration=0.5),
+            )
         )
         frame_data.termination_signal = TopicSlot(False)
         frame_data.sim_state = TopicSlot(None)
@@ -265,11 +286,18 @@ class TestSimulatorNode:
         sim = SimulatorNode(config=config, rate_hz=10.0, priority=1)
         sim.on_init()
 
-        from core.data.ros import AckermannDrive, AckermannDriveStamped
+        from core.data.autoware import (
+            AckermannControlCommand,
+            AckermannLateralCommand,
+            LongitudinalCommand,
+        )
 
         frame_data = SimpleNamespace()
         frame_data.control_cmd = TopicSlot(
-            AckermannDriveStamped(drive=AckermannDrive(steering_angle=0.0, acceleration=1.0))
+            AckermannControlCommand(
+                lateral=AckermannLateralCommand(steering_tire_angle=0.0),
+                longitudinal=LongitudinalCommand(acceleration=1.0),
+            )
         )
         frame_data.termination_signal = TopicSlot(False)
         frame_data.sim_state = TopicSlot(None)

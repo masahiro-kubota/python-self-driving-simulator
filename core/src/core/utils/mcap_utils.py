@@ -40,7 +40,6 @@ def _discover_models():
     # Add common ROS aliases if not already present
     aliases = {
         "nav_msgs/Odometry": "Odometry",
-        "ackermann_msgs/AckermannDriveStamped": "AckermannDriveStamped",
         "visualization_msgs/MarkerArray": "MarkerArray",
         "std_msgs/String": "String",
         "tf2_msgs/TFMessage": "TFMessage",
@@ -141,9 +140,10 @@ def extract_dashboard_state(msg: Any) -> dict[str, Any]:
     elif "velocity" in result:  # already set?
         pass
 
-    # 3. Try to extract Control Commands (AckermannDrive-like)
-    accel = get_recursive_attr(msg, "drive.acceleration")
-    steer = get_recursive_attr(msg, "drive.steering_angle")
+    # 3. Try to extract Control Commands (Autoware AckermannControlCommand)
+    accel = get_recursive_attr(msg, "longitudinal.acceleration")
+    steer = get_recursive_attr(msg, "lateral.steering_tire_angle")
+
     if accel is not None:
         result["acceleration"] = accel
     if steer is not None:

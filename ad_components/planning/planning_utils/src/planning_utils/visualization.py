@@ -1,6 +1,6 @@
 """Visualization utilities for planning components."""
 
-from core.data import Trajectory
+from core.data.autoware import Trajectory
 from core.data.ros import ColorRGBA, Header, Marker, Point, Pose, Quaternion, Time, Vector3
 
 
@@ -42,6 +42,13 @@ def create_trajectory_marker(
     # We visualize it as a Sphere
     if len(trajectory.points) == 1:
         point = trajectory.points[0]
+        x = getattr(point, "x", None)
+        y = getattr(point, "y", None)
+        if x is None:
+            # Assume Autoware TrajectoryPoint
+            x = point.pose.position.x
+            y = point.pose.position.y
+
         return Marker(
             header=Header(stamp=ros_time, frame_id="map"),
             ns=ns,
@@ -49,7 +56,7 @@ def create_trajectory_marker(
             type=2,  # SPHERE
             action=0,
             pose=Pose(
-                position=Point(x=point.x, y=point.y, z=0.5),  # Slightly elevated
+                position=Point(x=x, y=y, z=0.5),  # Slightly elevated
                 orientation=identity_quat,
             ),
             scale=Vector3(x=0.5, y=0.5, z=0.5),
@@ -59,7 +66,15 @@ def create_trajectory_marker(
         )
 
     # If multiple points, visualize as Path (Line Strip)
-    points = [Point(x=p.x, y=p.y, z=0.2) for p in trajectory.points]
+    points = []
+    for p in trajectory.points:
+        x = getattr(p, "x", None)
+        y = getattr(p, "y", None)
+        if x is None:
+            x = p.pose.position.x
+            y = p.pose.position.y
+        points.append(Point(x=x, y=y, z=0.2))
+
     return Marker(
         header=Header(stamp=ros_time, frame_id="map"),
         ns=ns,

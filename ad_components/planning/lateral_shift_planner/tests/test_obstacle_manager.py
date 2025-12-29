@@ -1,15 +1,16 @@
 import pytest
-from core.data.ad_components import Trajectory, TrajectoryPoint, VehicleState
+from core.data import VehicleState
 from core.data.environment.obstacle import Obstacle, ObstacleType
 from lateral_shift_planner.frenet_converter import FrenetConverter
 from lateral_shift_planner.obstacle_manager import ObstacleManager
+from planning_utils.types import ReferencePath, ReferencePathPoint
 
 
 def create_straight_path(length=100.0):
     points = []
     for x in range(int(length) + 1):
-        points.append(TrajectoryPoint(x=float(x), y=0.0, yaw=0.0, velocity=10.0))
-    return Trajectory(points=points)
+        points.append(ReferencePathPoint(x=float(x), y=0.0, yaw=0.0, velocity=10.0))
+    return ReferencePath(points=points)
 
 
 class MockRoadMap:

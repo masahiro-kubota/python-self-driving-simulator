@@ -2478,8 +2478,10 @@ dependencies = [
     { name = "core" },
     { name = "numba" },
     { name = "numpy" },
+    { name = "planning-utils" },
     { name = "pydantic" },
     { name = "scipy" },
+    { name = "simulator" },
 ]
 
 [package.metadata]
@@ -2487,8 +2489,10 @@ requires-dist = [
     { name = "core", editable = "core" },
     { name = "numba" },
     { name = "numpy" },
+    { name = "planning-utils", editable = "ad_components/planning/planning_utils" },
     { name = "pydantic" },
     { name = "scipy" },
+    { name = "simulator", editable = "simulator" },
 ]
 
 [[package]]
@@ -3209,12 +3213,16 @@ version = "0.1.0"
 source = { editable = "ad_components/planning/planning_utils" }
 dependencies = [
     { name = "core" },
+    { name = "numpy" },
+    { name = "pydantic" },
     { name = "scipy" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "core", editable = "core" },
+    { name = "numpy", specifier = ">=1.24.0" },
+    { name = "pydantic", specifier = ">=2.0.0" },
     { name = "scipy", specifier = ">=1.10.0" },
 ]
 

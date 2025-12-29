@@ -61,7 +61,9 @@ class ObstacleGenerationConfig(BaseModel):
 
     enabled: bool
     groups: list[ObstacleGroup] = Field(default_factory=list)
-    exclusion_zone: ExclusionZoneConfig | None = None
+
+    exclusion_zone: ExclusionZoneConfig = Field(...)
+    seed: int = Field(..., description="Random seed for obstacle generation")
 
 
 class Checkpoint(BaseModel):
@@ -169,7 +171,6 @@ class ExperimentConfig(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
 
-    seed: int = Field(..., description="Random seed for reproducibility")
     experiment: ExperimentMetaConfig = Field(..., description="Experiment metadata")
     execution: ExecutionConfig = Field(..., description="Execution parameters")
     system: dict[str, Any] = Field(..., description="System/Node configuration")

@@ -4,7 +4,7 @@ import math
 from typing import Any
 
 from core.data import ComponentConfig, VehicleParameters, VehicleState
-from core.data.ad_components import Trajectory, TrajectoryPoint
+from core.data.autoware import Trajectory
 from core.data.node_io import NodeIO
 from core.data.ros import ColorRGBA, MarkerArray
 from core.interfaces.node import Node, NodeExecutionResult
@@ -56,12 +56,12 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
         self.prev_error = 0.0
 
     def get_node_io(self) -> NodeIO:
-        from core.data.ros import AckermannDriveStamped
+        from core.data.autoware import AckermannControlCommand, Trajectory
 
         return NodeIO(
             inputs={"trajectory": Trajectory, "vehicle_state": VehicleState},
             outputs={
-                "control_cmd": AckermannDriveStamped,
+                "control_cmd": AckermannControlCommand,
                 "lookahead_marker": MarkerArray,
             },
         )
@@ -78,32 +78,47 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
 
         if not trajectory or len(trajectory) == 0:
             # Output zero control command
-            from core.data.ros import AckermannDrive, AckermannDriveStamped, Header
+            from core.data.autoware import (
+                AckermannControlCommand,
+                AckermannLateralCommand,
+                LongitudinalCommand,
+            )
             from core.utils.ros_message_builder import to_ros_time
 
             self.publish(
                 "control_cmd",
-                AckermannDriveStamped(
-                    header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
-                    drive=AckermannDrive(steering_angle=0.0, acceleration=0.0),
+                AckermannControlCommand(
+                    stamp=to_ros_time(_current_time),
+                    lateral=AckermannLateralCommand(
+                        stamp=to_ros_time(_current_time), steering_tire_angle=0.0
+                    ),
+                    longitudinal=LongitudinalCommand(
+                        stamp=to_ros_time(_current_time), acceleration=0.0, speed=0.0
+                    ),
                 ),
             )
             return NodeExecutionResult.SUCCESS
 
         steering, acceleration, target_point = self._compute_control(trajectory, vehicle_state)
 
-        # Output AckermannDriveStamped
-        from core.data.ros import AckermannDrive, AckermannDriveStamped, Header
+        # Output AckermannControlCommand
+        from core.data.autoware import (
+            AckermannControlCommand,
+            AckermannLateralCommand,
+            LongitudinalCommand,
+        )
         from core.utils.ros_message_builder import to_ros_time
 
         self.publish(
             "control_cmd",
-            AckermannDriveStamped(
-                header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
-                drive=AckermannDrive(
-                    steering_angle=steering,
-                    acceleration=acceleration,
+            AckermannControlCommand(
+                stamp=to_ros_time(_current_time),
+                lateral=AckermannLateralCommand(
+                    stamp=to_ros_time(_current_time), steering_tire_angle=steering
                 ),
+                longitudinal=LongitudinalCommand(
+                    stamp=to_ros_time(_current_time), acceleration=acceleration, speed=0.0
+                ),  # Speed tracking optional/TODO
             ),
         )
 
@@ -141,11 +156,11 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
         target_point = self._find_lookahead_point(trajectory, vehicle_state, lookahead)
 
         # 3. Pure Pursuit steering control
-        target_angle = math.atan2(
-            target_point.y - vehicle_state.y, target_point.x - vehicle_state.x
-        )
+        target_x = target_point.pose.position.x
+        target_y = target_point.pose.position.y
+        target_angle = math.atan2(target_y - vehicle_state.y, target_x - vehicle_state.x)
         alpha = normalize_angle(target_angle - vehicle_state.yaw)
-        ld = distance(vehicle_state.x, vehicle_state.y, target_point.x, target_point.y)
+        ld = distance(vehicle_state.x, vehicle_state.y, target_x, target_y)
 
         if ld < 1e-3:
             steering = 0.0
@@ -159,7 +174,7 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
         )
 
         # 4. PID velocity control
-        target_velocity = target_point.velocity
+        target_velocity = target_point.longitudinal_velocity_mps
         current_velocity = vehicle_state.velocity
 
         error = target_velocity - current_velocity
@@ -186,12 +201,17 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
     ):
         """Find the lookahead point on the trajectory."""
 
+        # Helper to get point data
+        def get_point_data(pt):
+            return pt.pose.position.x, pt.pose.position.y, pt.longitudinal_velocity_mps
+
         # Find nearest point
         min_dist = float("inf")
         nearest_idx = 0
 
         for i, point in enumerate(trajectory):
-            d = distance(vehicle_state.x, vehicle_state.y, point.x, point.y)
+            px, py, _ = get_point_data(point)
+            d = distance(vehicle_state.x, vehicle_state.y, px, py)
             if d < min_dist:
                 min_dist = d
                 nearest_idx = i
@@ -208,18 +228,37 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
 
             p1 = trajectory[current_idx]
             p2 = trajectory[current_idx + 1]
-            d = distance(p1.x, p1.y, p2.x, p2.y)
+            p1_x, p1_y, p1_v = get_point_data(p1)
+            p2_x, p2_y, p2_v = get_point_data(p2)
+
+            d = distance(p1_x, p1_y, p2_x, p2_y)
 
             if accumulated_dist + d >= lookahead:
                 # Interpolate
                 remaining = lookahead - accumulated_dist
                 ratio = remaining / d if d > 1e-6 else 0.0
 
+                interp_x = p1_x + (p2_x - p1_x) * ratio
+                interp_y = p1_y + (p2_y - p1_y) * ratio
+                interp_v = p1_v + (p2_v - p1_v) * ratio
+
+                # Approximate orientation for interpolated point
+                yaw = math.atan2(p2_y - p1_y, p2_x - p1_x)
+
+                # Construct Autoware TrajectoryPoint
+                from core.data.autoware import Duration, TrajectoryPoint
+                from core.data.ros import Point, Pose, Quaternion
+                from core.utils.geometry import euler_to_quaternion
+
+                quat = euler_to_quaternion(0.0, 0.0, yaw)
+
                 target_point = TrajectoryPoint(
-                    x=p1.x + (p2.x - p1.x) * ratio,
-                    y=p1.y + (p2.y - p1.y) * ratio,
-                    yaw=math.atan2(p2.y - p1.y, p2.x - p1.x),
-                    velocity=p1.velocity + (p2.velocity - p1.velocity) * ratio,
+                    time_from_start=Duration(sec=0, nanosec=0),
+                    pose=Pose(
+                        position=Point(x=interp_x, y=interp_y, z=0.0),
+                        orientation=Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3]),
+                    ),
+                    longitudinal_velocity_mps=interp_v,
                 )
                 break
 

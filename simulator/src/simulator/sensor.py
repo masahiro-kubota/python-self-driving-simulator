@@ -37,7 +37,10 @@ class LidarSensor:
         if self.config.angle_increment > 0:
             self.increment = self.config.angle_increment
         else:
-            self.increment = fov_rad / self.config.num_beams
+            # Match C++ implementation: angle_increment = fov / (num_rays - 1)
+            # This ensures the last ray hits exactly at +FOV/2
+            div = max(1, self.config.num_beams - 1)
+            self.increment = fov_rad / div
 
         self.start_angle = -fov_rad / 2.0
 

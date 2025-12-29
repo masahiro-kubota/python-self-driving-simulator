@@ -105,7 +105,10 @@ def build_odometry_message(vehicle_state: VehicleState, timestamp: float) -> Odo
             )
         ),
         twist=TwistWithCovariance(
-            twist=Twist(linear=Vector3(x=vehicle_state.velocity, y=0.0, z=0.0))
+            twist=Twist(
+                linear=Vector3(x=vehicle_state.velocity, y=0.0, z=0.0),
+                angular=Vector3(x=0.0, y=0.0, z=0.0),
+            )
         ),
     )
 

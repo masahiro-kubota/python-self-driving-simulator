@@ -1,7 +1,7 @@
 import csv
 from pathlib import Path
 
-from core.data import Trajectory, TrajectoryPoint
+from core.data.autoware import Trajectory, TrajectoryPoint
 
 
 def load_track_csv_simple(path: Path) -> Trajectory:

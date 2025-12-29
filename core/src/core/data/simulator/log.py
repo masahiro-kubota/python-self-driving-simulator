@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from core.data.ad_components.state import VehicleState
-from core.data.ros import AckermannDrive
+from core.data.autoware import AckermannControlCommand
 
 
 @dataclass
@@ -20,9 +20,8 @@ class SimulationStep:
 
     timestamp: float
     vehicle_state: VehicleState
-    action: AckermannDrive
+    action: AckermannControlCommand
     info: dict[str, Any] | None = None
-    ad_component_log: Any | None = None  # Legacy support
 
 
 @dataclass

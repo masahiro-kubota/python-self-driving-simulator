@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from core.data.ad_components.state import VehicleState
-from core.data.ros import AckermannDrive
+from core.data.autoware import AckermannControlCommand
 from core.data.simulator.log import SimulationLog, SimulationStep
 from core.interfaces.log import SimulationLogRepository
 
@@ -63,7 +63,7 @@ class JsonSimulationLogRepository(SimulationLogRepository):
             step = SimulationStep(
                 timestamp=s["timestamp"],
                 vehicle_state=VehicleState(**s["vehicle_state"]),
-                action=AckermannDrive(**s["action"]),
+                action=AckermannControlCommand(**s["action"]),
                 # Observation/info loading to be implemented if needed
             )
             steps.append(step)

@@ -72,6 +72,7 @@ class ObstacleGenerationConfig(BaseModel):
     exclusion_zone: ExclusionZoneConfig = Field(
         default_factory=ExclusionZoneConfig, description="Exclusion zone configuration"
     )
+    seed: int = Field(..., description="Random seed for obstacle generation")
 
 
 class ExecutionConfig(BaseModel):

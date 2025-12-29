@@ -93,7 +93,7 @@ class MPPIControllerNode(Node[MPPIControllerConfig]):
         )
 
     def get_node_io(self) -> NodeIO:
-        from core.data.ros import AckermannDriveStamped
+        from core.data.autoware import AckermannControlCommand
 
         return NodeIO(
             inputs={
@@ -101,7 +101,7 @@ class MPPIControllerNode(Node[MPPIControllerConfig]):
                 "obstacles": list,  # List[SimulatorObstacle]
             },
             outputs={
-                "control_cmd": AckermannDriveStamped,
+                "control_cmd": AckermannControlCommand,
                 "mppi_candidates": MarkerArray,
                 "mppi_optimal": MarkerArray,
             },
@@ -131,16 +131,23 @@ class MPPIControllerNode(Node[MPPIControllerConfig]):
         acceleration = float(controls[0, 1])
 
         # Output AckermannDriveStamped for ROS compatibility
-        from core.data.ros import AckermannDrive, AckermannDriveStamped
+        # Output AckermannControlCommand
+        from core.data.autoware import (
+            AckermannControlCommand,
+            AckermannLateralCommand,
+            LongitudinalCommand,
+        )
         from core.utils.ros_message_builder import to_ros_time
 
         self.publish(
             "control_cmd",
-            AckermannDriveStamped(
-                header=Header(stamp=to_ros_time(current_time), frame_id="base_link"),
-                drive=AckermannDrive(
-                    steering_angle=steering_angle,
-                    acceleration=acceleration,
+            AckermannControlCommand(
+                stamp=to_ros_time(current_time),
+                lateral=AckermannLateralCommand(
+                    stamp=to_ros_time(current_time), steering_tire_angle=steering_angle
+                ),
+                longitudinal=LongitudinalCommand(
+                    stamp=to_ros_time(current_time), acceleration=acceleration, speed=0.0
                 ),
             ),
         )

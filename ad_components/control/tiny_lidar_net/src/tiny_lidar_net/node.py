@@ -15,7 +15,7 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
     """Tiny LiDAR Net node for end-to-end autonomous driving control.
 
     This node subscribes to LiDAR scan data, processes it using the
-    TinyLidarNetCore logic, and publishes control commands (AckermannDriveStamped).
+    TinyLidarNetCore logic, and publishes control commands (AckermannControlCommand).
     """
 
     def __init__(self, config: TinyLidarNetConfig, rate_hz: float, priority: int) -> None:
@@ -55,11 +55,11 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
         Returns:
             NodeIO specification
         """
-        from core.data.ros import AckermannDriveStamped
+        from core.data.autoware import AckermannControlCommand
 
         return NodeIO(
             inputs={"perception_lidar_scan": LaserScan},
-            outputs={"control_cmd": AckermannDriveStamped},
+            outputs={"control_cmd": AckermannControlCommand},
         )
 
     def on_run(self, _current_time: float) -> NodeExecutionResult:
@@ -86,17 +86,23 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
         # Process via Core Logic
         accel, steer = self.core.process(ranges)
 
-        # Create and publish AckermannDriveStamped
-        from core.data.ros import AckermannDrive, AckermannDriveStamped, Header
+        # Create and publish AckermannControlCommand
+        from core.data.autoware import (
+            AckermannControlCommand,
+            AckermannLateralCommand,
+            LongitudinalCommand,
+        )
         from core.utils.ros_message_builder import to_ros_time
 
         self.publish(
             "control_cmd",
-            AckermannDriveStamped(
-                header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
-                drive=AckermannDrive(
-                    steering_angle=steer,
-                    acceleration=accel,
+            AckermannControlCommand(
+                stamp=to_ros_time(_current_time),
+                lateral=AckermannLateralCommand(
+                    stamp=to_ros_time(_current_time), steering_tire_angle=steer
+                ),
+                longitudinal=LongitudinalCommand(
+                    stamp=to_ros_time(_current_time), acceleration=accel, speed=0.0
                 ),
             ),
         )

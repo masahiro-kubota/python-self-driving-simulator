@@ -25,7 +25,7 @@ DYNAMIC_TOPIC_PREFIXES = ["/mppi_", "/pure_pursuit_", "/pid_"]
 # Blacklisted topics that are too large for the dashboard overview
 BLACKLISTED_TOPICS = {
     "/mppi_candidates",  # Very large visualization data
-    "/perception/lidar/scan",  # Raw sensor data
+    "/sensing/lidar/scan",  # Raw sensor data
 }
 
 
@@ -130,8 +130,8 @@ def load_simulation_data(mcap_path: Path, vehicle_params: dict[str, Any] | Any) 
                 if schema.name in ["Odometry", "nav_msgs/Odometry"]:
                     current_vehicle.update(extracted)
                 elif schema.name in [
-                    "AckermannDriveStamped",
-                    "ackermann_msgs/AckermannDriveStamped",
+                    "AckermannControlCommand",
+                    "autoware_auto_control_msgs/AckermannControlCommand",
                 ]:
                     current_action.update(extracted)
                 elif topic == "/simulation/info" and isinstance(msg, dict):

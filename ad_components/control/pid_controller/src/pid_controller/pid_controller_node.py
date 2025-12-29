@@ -1,7 +1,7 @@
 import math
 
 from core.data import ComponentConfig, VehicleParameters, VehicleState
-from core.data.ad_components import Trajectory
+from core.data.autoware import Trajectory
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult
 from core.utils.geometry import distance, normalize_angle
@@ -32,11 +32,11 @@ class PIDControllerNode(Node[PIDConfig]):
         self.prev_error = 0.0
 
     def get_node_io(self) -> NodeIO:
-        from core.data.ros import AckermannDriveStamped
+        from core.data.autoware import AckermannControlCommand, Trajectory
 
         return NodeIO(
             inputs={"trajectory": Trajectory, "vehicle_state": VehicleState},
-            outputs={"control_cmd": AckermannDriveStamped},
+            outputs={"control_cmd": AckermannControlCommand},
         )
 
     def on_run(self, _current_time: float) -> NodeExecutionResult:
@@ -51,18 +51,24 @@ class PIDControllerNode(Node[PIDConfig]):
 
         steering, acceleration = self._process(trajectory, vehicle_state)
 
-        # Output AckermannDriveStamped
-        from core.data.ros import AckermannDrive, AckermannDriveStamped, Header
+        # Output AckermannControlCommand
+        from core.data.autoware import (
+            AckermannControlCommand,
+            AckermannLateralCommand,
+            LongitudinalCommand,
+        )
         from core.utils.ros_message_builder import to_ros_time
 
         self.publish(
             "control_cmd",
-            AckermannDriveStamped(
-                header=Header(stamp=to_ros_time(_current_time), frame_id="base_link"),
-                drive=AckermannDrive(
-                    steering_angle=steering,
-                    acceleration=acceleration,
+            AckermannControlCommand(
+                stamp=to_ros_time(_current_time),
+                lateral=AckermannLateralCommand(
+                    stamp=to_ros_time(_current_time), steering_tire_angle=steering
                 ),
+                longitudinal=LongitudinalCommand(
+                    stamp=to_ros_time(_current_time), acceleration=acceleration, speed=0.0
+                ),  # Speed tracking optional/TODO
             ),
         )
 
@@ -74,7 +80,8 @@ class PIDControllerNode(Node[PIDConfig]):
         Returns:
             tuple: (steering, acceleration)
         """
-        if not trajectory:
+        if not trajectory or len(trajectory) == 0:
+            # Stop
             return 0.0, 0.0
 
         # 1. Steering Control (Pure Pursuit logic repeated here as per original controller.py)
@@ -82,11 +89,19 @@ class PIDControllerNode(Node[PIDConfig]):
         # Assuming the first point is the lookahead target provided by Planner.
         target_point = trajectory[0]
 
-        target_angle = math.atan2(
-            target_point.y - vehicle_state.y, target_point.x - vehicle_state.x
-        )
+        # Handle Autoware TrajectoryPoint or Internal
+        if hasattr(target_point, "pose"):
+            target_x = target_point.pose.position.x
+            target_y = target_point.pose.position.y
+            target_velocity = target_point.longitudinal_velocity_mps
+        else:
+            target_x = target_point.x
+            target_y = target_point.y
+            target_velocity = target_point.velocity
+
+        target_angle = math.atan2(target_y - vehicle_state.y, target_x - vehicle_state.x)
         alpha = normalize_angle(target_angle - vehicle_state.yaw)
-        ld = distance(vehicle_state.x, vehicle_state.y, target_point.x, target_point.y)
+        ld = distance(vehicle_state.x, vehicle_state.y, target_x, target_y)
 
         if ld < 1e-3:
             steering = 0.0
@@ -94,7 +109,6 @@ class PIDControllerNode(Node[PIDConfig]):
             steering = math.atan2(2 * self.wheelbase * math.sin(alpha), ld)
 
         # 2. Velocity Control (PID)
-        target_velocity = target_point.velocity
         current_velocity = vehicle_state.velocity
 
         error = target_velocity - current_velocity

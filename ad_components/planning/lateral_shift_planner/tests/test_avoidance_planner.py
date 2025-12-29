@@ -1,14 +1,15 @@
 import pytest
-from core.data.ad_components import Trajectory, TrajectoryPoint, VehicleState
+from core.data import VehicleState
 from core.data.environment.obstacle import Obstacle, ObstacleType
+from planning_utils.types import ReferencePath, ReferencePathPoint
 from static_avoidance_planner.avoidance_planner import AvoidancePlanner, AvoidancePlannerConfig
 
 
 def create_straight_trijectory(length=100.0):
     points = []
     for x in range(int(length) + 1):
-        points.append(TrajectoryPoint(x=float(x), y=0.0, yaw=0.0, velocity=10.0))
-    return Trajectory(points=points)
+        points.append(ReferencePathPoint(x=float(x), y=0.0, yaw=0.0, velocity=10.0))
+    return ReferencePath(points=points)
 
 
 @pytest.fixture

@@ -3,7 +3,6 @@
 from pathlib import Path
 
 from core.data import ComponentConfig, VehicleState
-from core.data.ad_components import Trajectory
 from core.data.node_io import NodeIO
 from core.interfaces.node import Node, NodeExecutionResult
 from core.utils.geometry import distance
@@ -35,6 +34,7 @@ class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
         self.reference_trajectory = load_track_csv(track_path)
 
     def get_node_io(self) -> NodeIO:
+        from core.data.autoware import Trajectory
         from core.data.ros import MarkerArray
 
         return NodeIO(
@@ -72,7 +72,32 @@ class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
         if len(trajectory_points) == 0:
             trajectory_points = self.reference_trajectory.points[-self.config.lookahead_points :]
 
-        trajectory = Trajectory(points=trajectory_points)
+        # Convert to Autoware Trajectory
+        from core.data.autoware import Duration
+        from core.data.autoware import Trajectory as AutowareTrajectory
+        from core.data.autoware import TrajectoryPoint as AutowareTrajectoryPoint
+        from core.data.ros import Header, Point, Pose, Quaternion
+        from core.utils.geometry import euler_to_quaternion
+        from core.utils.ros_message_builder import to_ros_time
+
+        autoware_points = []
+        for pt in trajectory_points:
+            quat = euler_to_quaternion(0.0, 0.0, pt.yaw)
+            autoware_points.append(
+                AutowareTrajectoryPoint(
+                    time_from_start=Duration(sec=0, nanosec=0),
+                    pose=Pose(
+                        position=Point(x=pt.x, y=pt.y, z=0.0),
+                        orientation=Quaternion(x=quat[0], y=quat[1], z=quat[2], w=quat[3]),
+                    ),
+                    longitudinal_velocity_mps=pt.velocity,
+                )
+            )
+
+        trajectory = AutowareTrajectory(
+            header=Header(stamp=to_ros_time(_current_time), frame_id="map"),
+            points=autoware_points,
+        )
 
         # Output
         self.publish("trajectory", trajectory)
@@ -81,7 +106,7 @@ class CenterlinePlannerNode(Node[CenterlinePlannerConfig]):
         from core.data.ros import ColorRGBA, Header, Marker, MarkerArray, Point, Vector3
         from core.utils.ros_message_builder import to_ros_time
 
-        points = [Point(x=p.x, y=p.y, z=0.0) for p in trajectory.points]
+        points = [Point(x=p.pose.position.x, y=p.pose.position.y, z=0.0) for p in trajectory.points]
 
         marker = Marker(
             header=Header(stamp=to_ros_time(_current_time), frame_id="map"),

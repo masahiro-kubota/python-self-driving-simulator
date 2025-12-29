@@ -24,6 +24,7 @@ def test_pid_controller_node_instantiation() -> None:
         max_brake_force=8000.0,
         front_overhang=1.0,
         rear_overhang=1.0,
+        vehicle_height=1.5,
         tire_params={"type": "test_tire"},
     )
 
@@ -31,7 +32,7 @@ def test_pid_controller_node_instantiation() -> None:
     config = PIDConfig(kp=1.0, ki=0.1, kd=0.01, u_min=-10.0, u_max=10.0, vehicle_params=vp)
 
     # ノードのインスタンス化
-    node = PIDControllerNode(config=config, rate_hz=30.0)
+    node = PIDControllerNode(config=config, rate_hz=30.0, priority=10)
 
     assert node.name == "PIDController"
     assert node.config.kp == 1.0

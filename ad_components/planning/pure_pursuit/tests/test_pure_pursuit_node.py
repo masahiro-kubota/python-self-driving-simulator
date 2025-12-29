@@ -24,6 +24,7 @@ def test_pure_pursuit_node_instantiation(tmp_path) -> None:
         max_brake_force=8000.0,
         front_overhang=1.0,
         rear_overhang=1.0,
+        vehicle_height=1.5,
         tire_params={"type": "test_tire"},
     )
 
@@ -43,7 +44,7 @@ def test_pure_pursuit_node_instantiation(tmp_path) -> None:
     )
 
     # ノードのインスタンス化
-    node = PurePursuitNode(config=config, rate_hz=10.0)
+    node = PurePursuitNode(config=config, rate_hz=10.0, priority=10)
 
     assert node.name == "PurePursuit"
     assert str(node.config.track_path) == str(dummy_track)

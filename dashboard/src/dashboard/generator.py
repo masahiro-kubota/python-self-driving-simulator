@@ -108,8 +108,7 @@ class HTMLDashboardGenerator(DashboardGenerator):
         # Downsample and Convert to Legacy Row-Oriented format for Frontend
         timestamps = data["timestamps"]
         vehicle = data["vehicle"]
-        ackermann_drive = data.get("ackermann_drive", {})
-        ad_logs = data.get("ad_logs", [])
+        action = data.get("action", {})
 
         total_steps = len(timestamps)
         logger.info("Original steps count: %d", total_steps)
@@ -127,15 +126,9 @@ class HTMLDashboardGenerator(DashboardGenerator):
                 "z": vehicle["z"][i] if "z" in vehicle and i < len(vehicle["z"]) else 0.0,
                 "yaw": vehicle["yaw"][i],
                 "velocity": vehicle["velocity"][i],
-                # AckermannDrive (ROS message compatible)
-                "acceleration": ackermann_drive["acceleration"][i]
-                if "acceleration" in ackermann_drive
-                else 0.0,
-                "steering": ackermann_drive["steering"][i]
-                if "steering" in ackermann_drive
-                else 0.0,
-                # AD Logs
-                "ad_component_log": ad_logs[i] if i < len(ad_logs) else None,
+                # Action (ROS message compatible)
+                "acceleration": action["acceleration"][i] if "acceleration" in action else 0.0,
+                "steering": action["steering"][i] if "steering" in action else 0.0,
                 # placeholders for legacy frontend expectations if any
                 "lidar_scan": None,
             }

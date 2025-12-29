@@ -1,11 +1,11 @@
-"""Trajectory data structures."""
+"""Planning internal data types."""
 
 import numpy as np
 from pydantic import BaseModel
 
 
-class TrajectoryPoint(BaseModel):
-    """軌道上の1点を表すデータクラス."""
+class ReferencePathPoint(BaseModel):
+    """参照経路上の1点を表すデータクラス."""
 
     x: float  # X座標 [m]
     y: float  # Y座標 [m]
@@ -13,17 +13,17 @@ class TrajectoryPoint(BaseModel):
     velocity: float  # 速度 [m/s]
 
 
-class Trajectory(BaseModel):
-    """軌道を表すデータクラス."""
+class ReferencePath(BaseModel):
+    """参照経路を表すデータクラス."""
 
-    points: list[TrajectoryPoint]  # 軌道点のリスト
+    points: list[ReferencePathPoint]  # 経路点のリスト
 
     def __len__(self) -> int:
-        """軌道点の数を返す."""
+        """経路点の数を返す."""
         return len(self.points)
 
-    def __getitem__(self, idx: int) -> TrajectoryPoint:
-        """インデックスで軌道点を取得."""
+    def __getitem__(self, idx: int) -> ReferencePathPoint:
+        """インデックスで経路点を取得."""
         return self.points[idx]
 
     def __iter__(self):

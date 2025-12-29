@@ -1,12 +1,12 @@
 import numpy as np
-from core.data.ad_components import Trajectory
+from planning_utils.types import ReferencePath
 from scipy.spatial import KDTree
 
 
 class FrenetConverter:
     """Global <-> Frenet coordinate converter."""
 
-    def __init__(self, ref_path: Trajectory):
+    def __init__(self, ref_path: ReferencePath):
         """Initialize with a reference path.
 
         Args:

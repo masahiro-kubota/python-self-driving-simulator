@@ -11,6 +11,7 @@ from core.utils.mcap_utils import (
 def test_parse_mcap_message_odometry():
     # Odometry is in core.data.ros
     payload = {
+        "header": {"stamp": {"sec": 0, "nanosec": 0, "nsec": 0}, "frame_id": "map"},
         "pose": {
             "pose": {
                 "position": {"x": 1.0, "y": 2.0, "z": 0.0},
@@ -29,6 +30,7 @@ def test_parse_mcap_message_odometry():
 
 def test_extract_dashboard_state_odometry():
     payload = {
+        "header": {"stamp": {"sec": 0, "nanosec": 0, "nsec": 0}, "frame_id": "map"},
         "pose": {
             "pose": {
                 "position": {"x": 10.0, "y": 20.0, "z": 0.0},
@@ -47,8 +49,11 @@ def test_extract_dashboard_state_odometry():
 
 
 def test_extract_dashboard_state_ackermann():
-    payload = {"drive": {"acceleration": 2.0, "steering_angle": -0.5}}
-    msg = parse_mcap_message("AckermannDriveStamped", json.dumps(payload).encode())
+    payload = {
+        "lateral": {"steering_tire_angle": -0.5},
+        "longitudinal": {"acceleration": 2.0},
+    }
+    msg = parse_mcap_message("AckermannControlCommand", json.dumps(payload).encode())
     state = extract_dashboard_state(msg)
 
     assert state.get("acceleration") == 2.0

@@ -7,8 +7,8 @@ import math
 from datetime import datetime
 
 from core.data import SimulationLog, SimulationStep, VehicleState
+from core.data.autoware import AckermannControlCommand, AckermannLateralCommand, LongitudinalCommand
 from core.data.experiment import ExperimentResult
-from core.data.ros import AckermannDrive
 from core.data.simulator import SimulationResult
 
 
@@ -53,9 +53,9 @@ def generate_circular_trajectory(
             velocity=10.0 + 2 * math.sin(angle * 3),
         )
 
-        action = AckermannDrive(
-            acceleration=0.5 * math.sin(angle * 2),
-            steering_angle=0.2 * math.cos(angle),
+        action = AckermannControlCommand(
+            lateral=AckermannLateralCommand(steering_tire_angle=0.2 * math.cos(angle)),
+            longitudinal=LongitudinalCommand(acceleration=0.5 * math.sin(angle * 2)),
         )
 
         step = SimulationStep(
@@ -117,9 +117,9 @@ def generate_figure_eight_trajectory(
             velocity=8.0 + 3 * math.cos(angle * 2),
         )
 
-        action = AckermannDrive(
-            acceleration=0.3 * math.cos(angle),
-            steering_angle=0.3 * math.sin(angle),
+        action = AckermannControlCommand(
+            lateral=AckermannLateralCommand(steering_tire_angle=0.3 * math.sin(angle)),
+            longitudinal=LongitudinalCommand(acceleration=0.3 * math.cos(angle)),
         )
 
         step = SimulationStep(

@@ -154,10 +154,37 @@ def curvature_from_points(
     return 1.0 / radius if radius > 0 else 0.0
 
 
+def euler_to_quaternion(roll: float, pitch: float, yaw: float) -> tuple[float, float, float, float]:
+    """オイラー角からクォータニオン(x, y, z, w)に変換.
+
+    Args:
+        roll: ロール角 [rad]
+        pitch: ピッチ角 [rad]
+        yaw: ヨー角 [rad]
+
+    Returns:
+        クォータニオン (x, y, z, w)
+    """
+    cy = np.cos(yaw * 0.5)
+    sy = np.sin(yaw * 0.5)
+    cp = np.cos(pitch * 0.5)
+    sp = np.sin(pitch * 0.5)
+    cr = np.cos(roll * 0.5)
+    sr = np.sin(roll * 0.5)
+
+    w = cr * cp * cy + sr * sp * sy
+    x = sr * cp * cy - cr * sp * sy
+    y = cr * sp * cy + sr * cp * sy
+    z = cr * cp * sy - sr * sp * cy
+
+    return x, y, z, w
+
+
 __all__ = [
     "angle_between_points",
     "curvature_from_points",
     "distance",
+    "euler_to_quaternion",
     "nearest_point_on_line",
     "normalize_angle",
     "rotate_point",

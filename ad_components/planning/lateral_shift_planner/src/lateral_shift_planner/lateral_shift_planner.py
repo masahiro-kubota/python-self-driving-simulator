@@ -2,8 +2,9 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
-from core.data.ad_components import Trajectory, TrajectoryPoint, VehicleState
+from core.data import VehicleState
 from core.data.environment.obstacle import Obstacle
+from planning_utils.types import ReferencePath, ReferencePathPoint
 
 from lateral_shift_planner.frenet_converter import FrenetConverter
 from lateral_shift_planner.obstacle_manager import ObstacleManager, TargetObstacle
@@ -35,7 +36,7 @@ class LateralShiftPlannerConfig:
 class AvoidanceDebugData:
     """Debug data for visualization."""
 
-    trajectory: Trajectory
+    trajectory: ReferencePath
     target_obstacles: list[TargetObstacle]
     shift_profiles: list[ShiftProfile]
     merged_lat: np.ndarray
@@ -96,7 +97,7 @@ class LateralShiftPlanner:
 
         if len(s_samples) == 0:
             # Should not happen typically
-            return Trajectory(points=[])
+            return ReferencePath(points=[])
 
         if len(targets) == 0:
             self.logger.info(f"[LSP] s_ego={s_ego:.2f}, l_ego={l_ego:.2f}, targets=0")
@@ -179,7 +180,7 @@ class LateralShiftPlanner:
             # frenet_to_global output x, y. Yaw needs to be calculated from dx, dy of the generated path.
 
             trajectory_points.append(
-                TrajectoryPoint(x=x, y=y, yaw=0.0, velocity=v_ref)
+                ReferencePathPoint(x=x, y=y, yaw=0.0, velocity=v_ref)
             )  # yaw updated later
 
         if len(s_samples) > 0:
@@ -199,7 +200,7 @@ class LateralShiftPlanner:
                 trajectory_points[i].yaw = trajectory_points[i - 1].yaw
 
         return AvoidanceDebugData(
-            trajectory=Trajectory(points=trajectory_points),
+            trajectory=ReferencePath(points=trajectory_points),
             target_obstacles=targets,
             shift_profiles=profiles,
             merged_lat=lat_target_array,

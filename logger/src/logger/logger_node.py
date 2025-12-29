@@ -129,7 +129,7 @@ class LoggerNode(Node[LoggerConfig]):
                 "sim_state": "/localization/kinematic_state",
                 "localization_kinematic_state": "/localization/kinematic_state",
                 "control_cmd": "/control/command/control_cmd",
-                "perception_lidar_scan": "/perception/lidar/scan",
+                "perception_lidar_scan": "/sensing/lidar/scan",
                 "trajectory": "/planning/trajectory",
                 "lookahead_marker": "/planning/lookahead_marker",
                 "obstacle_markers": "/perception/obstacle_markers",

@@ -2,11 +2,8 @@
 
 from core.data.ad_components import (
     ADComponentConfig,
-    ADComponentLog,
     ADComponentSpec,
     ADComponentType,
-    Trajectory,
-    TrajectoryPoint,
     VehicleState,
 )
 from core.data.dashboard import DashboardData
@@ -31,7 +28,6 @@ from core.data.vehicle.params import LidarConfig, VehicleParameters
 
 __all__ = [
     "ADComponentConfig",
-    "ADComponentLog",
     "ADComponentSpec",
     "ADComponentType",
     "Artifact",
@@ -55,8 +51,6 @@ __all__ = [
     "SimulatorObstacle",
     "StaticObstaclePosition",
     "TopicSlot",
-    "Trajectory",
-    "TrajectoryPoint",
     "TrajectoryWaypoint",
     "VehicleParameters",
     "VehicleState",

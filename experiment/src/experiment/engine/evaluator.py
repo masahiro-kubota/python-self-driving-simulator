@@ -126,19 +126,19 @@ class EvaluatorEngine(BaseEngine):
 
         artifacts: list[Artifact] = []
 
-        if "seed" not in cfg:
-            raise ValueError("Configuration must include 'seed' parameter.")
-
         last_foxglove_url = None
 
         for i in range(num_episodes):
             episode_cfg = cfg.copy()
             # Set seed for reproducibility/randomization in evaluation
-            seed = cfg.seed + i
-            rng = np.random.default_rng(seed)
+            episode_seed = None
+            if cfg.env.obstacles.generation:
+                episode_seed = cfg.env.obstacles.generation.seed + i
+
+            rng = np.random.default_rng(episode_seed)
 
             # Apply configuration randomization/resolution (handles obstacle dict->list conversion)
-            collector.randomize_simulation_config(episode_cfg, rng)
+            collector.randomize_simulation_config(episode_cfg, rng, i)
 
             experiment_structure = collector.create_experiment_instance(
                 episode_cfg, output_dir=output_dir, episode_idx=i

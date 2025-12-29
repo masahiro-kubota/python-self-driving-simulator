@@ -2,7 +2,6 @@
 
 from core.data import (
     ADComponentConfig,
-    ADComponentLog,
     ADComponentSpec,
     ADComponentType,
     Artifact,
@@ -25,7 +24,6 @@ from core.interfaces import (
 
 __all__ = [
     "ADComponentConfig",
-    "ADComponentLog",
     "ADComponentSpec",
     "ADComponentType",
     "Artifact",
