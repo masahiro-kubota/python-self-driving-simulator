@@ -226,9 +226,12 @@ class CollectorEngine(BaseEngine):
             from experiment.engine.obstacle_generator import ObstacleGenerator
 
             map_path = Path(sim_node.params.map_path)
+            track_path_str = cfg.env.get("track_path")
+            track_path = Path(track_path_str) if track_path_str else None
+
             gen_seed = int(rng.integers(0, 2**32 - 1))
 
-            generator = ObstacleGenerator(map_path, seed=gen_seed)
+            generator = ObstacleGenerator(map_path, track_path=track_path, seed=gen_seed)
 
             # Pass initial state to generator for exclusion zone validation
             initial_state_dict = {

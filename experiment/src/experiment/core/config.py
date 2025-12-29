@@ -28,7 +28,9 @@ class ObstaclePlacement(BaseModel):
     strategy: Literal["random_track", "random_map"]
     offset: dict[str, float] | None = None
     yaw_mode: Literal["aligned", "random"] | None = None
+    yaw_mode: Literal["aligned", "random"] | None = None
     bounds: dict[str, float] | None = None
+    min_distance: float = Field(0.0, ge=0.0)
 
 
 class ObstacleGroup(BaseModel):

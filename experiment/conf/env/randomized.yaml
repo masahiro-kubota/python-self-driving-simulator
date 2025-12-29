@@ -4,25 +4,27 @@ defaults:
   - default
   - _self_
 
+
 obstacles:
   generation:
-    enabled: true
+    enabled: true # 障害物生成を有効にするか [bool]
     groups:
-      - name: "random_static_on_track"
-        type: static
-        count: 10
+      - name: "random_static_on_track" # グループ名 [str]
+        type: static # 障害物の種類 (static: 静的障害物) [str]
+        count: 10 # 生成する障害物の数 [個]
         shape:
-          type: rectangle
-          width: 1.30   # Vehicle width
-          length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
-          height: 0.5
+          type: rectangle # 形状の種類 (rectangle: 長方形) [str]
+          width: 1.30   # 車両の幅 [m]
+          length: 2.064 # 車両の全長 (ホイールベース + 前後オーバーハング) [m]
+          height: 0.5   # 高さ [m]
         placement:
-          strategy: random_track
+          strategy: random_track # 配置戦略 (random_track: トラック上にランダム配置) [str]
+          min_distance: 10.0 # 障害物間の最小距離 [m]
           offset:
-            min: -1.0
-            max: 1.0
-          yaw_mode: aligned
+            min: -1.0 # 基準線（中心線）からの最小横方向オフセット [m]
+            max: 1.0  # 基準線（中心線）からの最大横方向オフセット [m]
+          yaw_mode: aligned # ヨー角の決定モード (aligned: 基準線に合わせる, random: ランダム) [str]
 
 
-  # You can also include specific fixed obstacles here using the list key
+  # 特定の固定障害物をリスト形式でここに追加することも可能です
   list: []

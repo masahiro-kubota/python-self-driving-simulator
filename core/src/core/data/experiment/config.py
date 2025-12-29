@@ -27,6 +27,53 @@ class NodeConfig(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict, description="Node parameters")
 
 
+class PlacementConfig(BaseModel):
+    """Configuration for obstacle placement."""
+
+    strategy: str = Field(..., description="Placement strategy (e.g., random_track)")
+    min_distance: float = Field(0.0, description="Minimum distance between obstacles")
+    offset: dict[str, float] = Field(
+        default_factory=dict, description="Offset configuration (min, max)"
+    )
+    yaw_mode: str = Field("aligned", description="Yaw mode (aligned, random)")
+
+
+class ObstacleShapeConfig(BaseModel):
+    """Configuration for obstacle shape."""
+
+    type: str = Field(..., description="Shape type (e.g., rectangle)")
+    width: float = Field(..., description="Width")
+    length: float = Field(..., description="Length")
+    height: float = Field(..., description="Height")
+
+
+class ObstacleGroupConfig(BaseModel):
+    """Configuration for obstacle group."""
+
+    name: str = Field(..., description="Group name")
+    type: str = Field(..., description="Obstacle type (static, dynamic)")
+    count: int = Field(..., description="Number of obstacles")
+    shape: ObstacleShapeConfig = Field(..., description="Shape configuration")
+    placement: PlacementConfig = Field(..., description="Placement configuration")
+
+
+class ExclusionZoneConfig(BaseModel):
+    """Configuration for exclusion zone."""
+
+    enabled: bool = Field(False, description="Enable exclusion zone")
+    distance: float = Field(10.0, description="Exclusion distance")
+
+
+class ObstacleGenerationConfig(BaseModel):
+    """Configuration for obstacle generation."""
+
+    enabled: bool = Field(False, description="Enable obstacle generation")
+    groups: list[ObstacleGroupConfig] = Field(default_factory=list, description="Obstacle groups")
+    exclusion_zone: ExclusionZoneConfig = Field(
+        default_factory=ExclusionZoneConfig, description="Exclusion zone configuration"
+    )
+
+
 class ExecutionConfig(BaseModel):
     """Configuration for execution."""
 
