@@ -35,8 +35,20 @@ def load_track_csv_simple(path: Path) -> Trajectory:
                 y = float(row[1])
                 yaw = float(row[2]) if len(row) > 2 else 0.0
                 vel = float(row[3]) if len(row) > 3 else 0.0
-                points.append(TrajectoryPoint(x=x, y=y, yaw=yaw, velocity=vel))
-            except ValueError:
+
+                from core.data.ros import Point, Pose
+                from core.utils.ros_message_builder import quaternion_from_yaw
+
+                points.append(
+                    TrajectoryPoint(
+                        pose=Pose(
+                            position=Point(x=x, y=y, z=0.0),
+                            orientation=quaternion_from_yaw(yaw),
+                        ),
+                        longitudinal_velocity_mps=vel,
+                    )
+                )
+            except (ValueError, IndexError):
                 continue
 
     return Trajectory(points=points)

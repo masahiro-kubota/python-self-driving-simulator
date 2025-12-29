@@ -27,6 +27,10 @@ system:
         initial_state: ${env.initial_state}
         obstacles: ${env.obstacles}
         obstacle_color: ${visualization.colors.obstacle}
+        topic_rates:
+          obstacles: 10.0
+          obstacle_markers: 10.0
+          sim_state: 50.0
     logger:
       type: "LoggerNode"
       rate_hz: ${execution.clock_rate_hz} # ロガー更新レート [Hz]

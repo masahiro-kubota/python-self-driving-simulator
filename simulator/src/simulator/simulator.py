@@ -29,6 +29,10 @@ class SimulatorConfig(ComponentConfig):
     map_path: Path = Field(..., description="Path to Lanelet2 map file")
     obstacles: list = Field(default_factory=list, description="List of obstacles")
     obstacle_color: str = Field(..., description="Obstacle marker color")
+    topic_rates: dict[str, float] = Field(
+        default_factory=dict,
+        description="Publish rates for specific topics [Hz]",
+    )
 
 
 class SimulatorNode(Node[SimulatorConfig]):
@@ -56,6 +60,10 @@ class SimulatorNode(Node[SimulatorConfig]):
         self.map: Any = None
         self.obstacle_manager: Any = None
         self.lidar_sensor: Any = None
+
+        # Topic publish control
+        self._topic_intervals: dict[str, int] = {}
+        self._topic_counters: dict[str, int] = {}
 
     def get_node_io(self) -> NodeIO:
         """Define node IO."""
@@ -138,6 +146,21 @@ class SimulatorNode(Node[SimulatorConfig]):
         self.obstacle_visualizer = ObstacleVisualizer(
             color=ColorRGBA.from_hex(self.config.obstacle_color)
         )
+
+        # Initialize topic intervals
+        self._topic_intervals = {}
+        self._topic_counters = {}
+        for topic, rate in self.config.topic_rates.items():
+            self._topic_intervals[topic] = max(1, round(self.rate_hz / rate))
+            self._topic_counters[topic] = 0
+
+        # LiDAR special case
+        if self.lidar_sensor and self.config.vehicle_params.lidar:
+            lidar_rate = self.config.vehicle_params.lidar.publish_rate_hz
+            self._topic_intervals["perception_lidar_scan"] = max(
+                1, round(self.rate_hz / lidar_rate)
+            )
+            self._topic_counters["perception_lidar_scan"] = 0
 
     def on_run(self, _current_time: float) -> NodeExecutionResult:
         """Execute physics simulation step.
@@ -253,32 +276,47 @@ class SimulatorNode(Node[SimulatorConfig]):
         self.log.steps.append(step_log)
 
         # Update frame_data with new state
-        self.publish("sim_state", vehicle_state)
+        if self._should_publish("sim_state"):
+            self.publish("sim_state", vehicle_state)
+
         if self.obstacle_manager:
-            self.publish("obstacles", self.obstacle_manager.obstacles)
+            if self._should_publish("obstacles"):
+                self.publish("obstacles", self.obstacle_manager.obstacles)
 
             # Generate obstacle markers
-            obstacle_marker_array = self.obstacle_visualizer.create_marker_array(
-                self.obstacle_manager.obstacles, self.current_time
-            )
-            self.publish("obstacle_markers", obstacle_marker_array)
+            if self._should_publish("obstacle_markers"):
+                obstacle_marker_array = self.obstacle_visualizer.create_marker_array(
+                    self.obstacle_manager.obstacles, self.current_time
+                )
+                self.publish("obstacle_markers", obstacle_marker_array)
         else:
-            self.publish("obstacles", [])
-            self.publish("obstacle_markers", MarkerArray(markers=[]))
-        self.publish("obstacle_states", obstacle_states)
+            if self._should_publish("obstacles"):
+                self.publish("obstacles", [])
+            if self._should_publish("obstacle_markers"):
+                self.publish("obstacle_markers", MarkerArray(markers=[]))
+
+        if self._should_publish("obstacle_states"):
+            self.publish("obstacle_states", obstacle_states)
 
         if ranges is not None:
             from core.utils.ros_message_builder import build_laser_scan_message
 
             # LaserScan message
-            # Create a dict that looks like LidarScan for the builder if needed,
-            # but let's check build_laser_scan_message first
-            scan_msg = build_laser_scan_message(
-                self.config.vehicle_params.lidar, ranges, self.current_time
-            )
-            self.publish("perception_lidar_scan", scan_msg)
+            if self._should_publish("perception_lidar_scan"):
+                scan_msg = build_laser_scan_message(
+                    self.config.vehicle_params.lidar, ranges, self.current_time
+                )
+                self.publish("perception_lidar_scan", scan_msg)
 
         return NodeExecutionResult.SUCCESS
+
+    def _should_publish(self, topic: str) -> bool:
+        """Check if topic should be published based on rate."""
+        interval = self._topic_intervals.get(topic, 1)
+        counter = self._topic_counters.get(topic, 0)
+        should = counter % interval == 0
+        self._topic_counters[topic] = counter + 1
+        return should
 
     def get_log(self) -> SimulationLog:
         """Get simulation log.

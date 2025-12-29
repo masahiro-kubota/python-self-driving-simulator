@@ -3,9 +3,9 @@
 
 defaults:
   - experiment: evaluation # デフォルトの実験タイプ [str]
-  - env: default         # デフォルトの環境設定 [str]
+  - env: randomized         # デフォルトの環境設定 [str]
   - vehicle: default     # デフォルトの車両設定 [str]
-  - ad_components: pure_pursuit # デフォルトのADコンポーネント構成 [str]
+  - ad_components: lateral_shift # デフォルトのADコンポーネント構成 [str]
   - _self_
 
 split: "train" # データセットの分割タグ (例: "train", "val", "test") [str]
@@ -18,6 +18,8 @@ hydra:
     subdir: ${hydra.job.num} # 各ジョブのサブディレクトリ名
 
   job_logging:
+    version: 1
+    disable_existing_loggers: false
     filters:
       sim_time_filter:
         (): core.utils.logging.SimTimeFilter
@@ -25,8 +27,16 @@ hydra:
       simple:
         format: '[%(asctime)s][SimTime: %(sim_time)s][%(short_name)s][%(levelname)s] %(message)s'
     handlers:
+      console:
+        class: logging.StreamHandler
+        formatter: simple
+        stream: ext://sys.stdout
+        filters: [sim_time_filter]
       file:
         class: logging.FileHandler
         filename: ${hydra:runtime.output_dir}/simulation.log
         formatter: simple
         filters: [sim_time_filter]
+    root:
+      level: INFO
+      handlers: [console, file]

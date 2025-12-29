@@ -29,6 +29,7 @@ class TestLidarSensor:
             y=0.0,
             z=0.0,
             yaw=0.0,
+            publish_rate_hz=10.0,
         )
 
     @pytest.fixture

@@ -22,6 +22,9 @@ class LidarConfig(ComponentConfig):
     y: float = Field(...)
     z: float = Field(...)
     yaw: float = Field(...)
+    publish_rate_hz: float = Field(
+        ..., description="LiDAR data publish rate [Hz]. Must be <= simulator rate_hz"
+    )
 
 
 class VehicleParameters(BaseModel):
