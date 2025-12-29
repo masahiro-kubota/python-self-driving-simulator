@@ -1,26 +1,28 @@
 # Default Environment Configuration
+# デフォルト環境設定
 
-map_path: "experiment/assets/lanelet2_map.osm"
-track_path: "experiment/assets/raceline_awsim_15km.csv"
+map_path: "experiment/assets/lanelet2_map.osm" # Lanelet2形式の地図ファイルパス [str]
+track_path: "experiment/assets/raceline_awsim_15km.csv" # 基準となる競争走行ライン（CSV形式）のパス [str]
 
-# Initial State
+# Initial State (初期状態)
 initial_state:
-  x: 89630.067
-  y: 43130.695
-  yaw: 2.2
-  velocity: 0.0
+  x: 89630.067  # 初期X座標 [m]
+  y: 43130.695  # 初期Y座標 [m]
+  yaw: 2.2      # 初期ヨー角 [rad]
+  velocity: 0.0 # 初期速度 [m/s]
 
-# Goal Configuration
+# Goal Configuration (ゴール設定)
 goal_position:
-  x: 89630.067
-  y: 43130.695
-goal_tolerance: 6.0
+  x: 89630.067  # ゴールX座標 [m]
+  y: 43130.695  # ゴールY座標 [m]
+goal_tolerance: 6.0 # ゴール判定の許容半径 [m]
 
-# Checkpoints
+# Checkpoints (チェックポイント設定)
+# 通過確認用の地点リスト
 checkpoints:
   - x: 89625.0
     y: 43140.0
-    tolerance: 6.0
+    tolerance: 6.0 # チェックポイント通過判定半径 [m]
   - x: 89625.0
     y: 43160.0
     tolerance: 6.0
@@ -28,33 +30,34 @@ checkpoints:
     y: 43178.0
     tolerance: 6.0
 
-# Obstacles
+# Obstacles (障害物設定)
 obstacles:
   generation:
-    enabled: false
-    groups: []
+    enabled: false # 自動生成を無効化 [bool]
+    groups: []     # 生成グループリスト（無効時は空）
     # 障害物除外ゾーン設定
     # 初期位置から一定距離内に障害物を配置しないようにする
     exclusion_zone:
-      enabled: true
+      enabled: true # 除外ゾーンを有効化 [bool]
       # 初期位置からの除外距離 [m]
       distance: 10.0
   list:
-    - type: static
+    # 固定障害物のリスト
+    - type: static # 種類 (static: 静的) [str]
       shape:
-        type: rectangle
-        width: 1.30   # Vehicle width
-        length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
-        height: 0.5
+        type: rectangle # 形状 (rectangle: 長方形) [str]
+        width: 1.30   # 幅 [m]
+        length: 2.064 # 全長 [m]
+        height: 0.5   # 高さ [m]
       position:
-        x: 89635.303
-        y: 43148.381
-        yaw: 0
+        x: 89635.303 # X座標 [m]
+        y: 43148.381 # Y座標 [m]
+        yaw: 0       # ヨー角 [rad]
     - type: static
       shape:
         type: rectangle
-        width: 1.30   # Vehicle width
-        length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        width: 1.30
+        length: 2.064
         height: 0.5
       position:
         x: 89642.364
@@ -63,8 +66,8 @@ obstacles:
     - type: static
       shape:
         type: rectangle
-        width: 1.30   # Vehicle width
-        length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        width: 1.30
+        length: 2.064
         height: 0.5
       position:
         x: 89640.387
@@ -73,8 +76,8 @@ obstacles:
     - type: static
       shape:
         type: rectangle
-        width: 1.30   # Vehicle width
-        length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        width: 1.30
+        length: 2.064
         height: 0.5
       position:
         x: 89639.822
@@ -83,8 +86,8 @@ obstacles:
     - type: static
       shape:
         type: rectangle
-        width: 1.30   # Vehicle width
-        length: 2.064 # Vehicle total length (wheelbase + front_overhang + rear_overhang)
+        width: 1.30
+        length: 2.064
         height: 0.5
       position:
         x: 89645.0

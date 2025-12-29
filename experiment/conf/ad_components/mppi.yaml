@@ -1,41 +1,42 @@
 # MPPI Agent Configuration
+# MPPI制御エージェント設定
 
 nodes:
   sensor:
     type: "ideal_sensor.sensor_node.IdealSensorNode"
-    rate_hz: 50.0
-    priority: 10  # Execute after simulator
+    rate_hz: 50.0  # センサー更新レート [Hz]
+    priority: 10   # 実行優先度（シミュレータの後に実行）
     params:
       vehicle_params: ${vehicle}
       vehicle_color: ${visualization.colors.vehicle}
   control:
     type: "mppi_controller.mppi_controller_node.MPPIControllerNode"
-    rate_hz: 10.0
-    priority: 20  # Execute after sensor (MPPI is planning+control combined)
+    rate_hz: 10.0  # 制御（プランニング含む）更新レート [Hz]
+    priority: 20   # 実行優先度（センサーの後に実行 (MPPIはプランニングと制御を統合)）
     params:
       vehicle_params: ${vehicle}
       track_path: ${env.track_path}
       map_path: ${env.map_path}
 
-      # MPPI Parameters
-      horizon: 30
-      dt: 0.1
-      num_samples: 100
-      temperature: 10.0     # Increased for better averaging (smoothness)
-      noise_sigma_steering: 0.3 # Increased for better exploration
-      seed: 43
+      # MPPI Parameters (アルゴリズムパラメータ)
+      horizon: 30       # 予測ホライズン（ステップ数） [steps]
+      dt: 0.1           # 時間刻み [s]
+      num_samples: 100  # サンプル数（パーティクル数） [個]
+      temperature: 10.0 # 温度パラメータ（平滑化の度合い、大きいほど平均化される）
+      noise_sigma_steering: 0.3 # ステアリング角ノイズの標準偏差 [rad]
+      seed: 43          # 乱数シード
 
-      # Obstacle avoidance
-      obstacle_cost_weight: 1000.0
-      collision_threshold: 0.5
+      # Obstacle avoidance (障害物回避)
+      obstacle_cost_weight: 1000.0 # 障害物コストの重み
+      collision_threshold: 0.5     # 衝突判定の閾値（コスト計算用） [m]
 
-      # Map boundary
-      off_track_cost_weight: 10000.0
-      position_weight: 50.0  # Increased to keep lane tightly
+      # Map boundary (コース逸脱抑制)
+      off_track_cost_weight: 10000.0 # コース逸脱コストの重み
+      position_weight: 50.0  # 位置誤差コストの重み（レーン維持のため増加）
 
-      # Velocity control
-      target_velocity: 5.0  # Target velocity [m/s]
+      # Velocity control (速度制御)
+      target_velocity: 5.0  # 目標速度 [m/s]
 
-      # Visualization colors
-      candidate_color: "#80DEEA26" # Light Cyan (Ethereal light trails)
-      optimal_color: "#FFF176FF"   # Solid Yellow (The definitive decision)
+      # Visualization colors (可視化色設定)
+      candidate_color: "#80DEEA26" # 候補軌道群の色 (Light Cyan, Ethereal light trails)
+      optimal_color: "#FFF176FF"   # 最適軌道の色 (Solid Yellow, The definitive decision)

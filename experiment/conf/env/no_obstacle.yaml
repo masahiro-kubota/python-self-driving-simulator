@@ -1,9 +1,10 @@
 # Environment configuration with NO obstacles (for planner validation)
+# 障害物なし環境設定（プランナー検証用）
 defaults:
   - default
 
 obstacles:
   generation:
-    enabled: false
-    groups: []
-  list: []
+    enabled: false # 障害物生成を無効化 [bool]
+    groups: []     # グループリストを空にする
+  list: []         # 固定障害物リストを空にする

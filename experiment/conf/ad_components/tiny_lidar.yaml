@@ -1,26 +1,27 @@
 # Tiny LiDAR Agent Configuration
+# 学習済みTiny LiDAR Netを用いたエージェント設定
 
-model_path: "outputs/2025-12-21/21-46-10/tinylidarnet.npy"
+model_path: "outputs/2025-12-21/21-46-10/tinylidarnet.npy" # 推論用モデルのパス（デフォルト） [str]
 
 nodes:
   sensor:
     type: "ideal_sensor.sensor_node.IdealSensorNode"
-    rate_hz: 50.0
-    priority: 10  # Execute after simulator
+    rate_hz: 50.0  # センサー更新レート [Hz]
+    priority: 10   # 実行優先度（シミュレータの後に実行）
     params:
       vehicle_params: ${vehicle}
       vehicle_color: ${visualization.colors.vehicle}
   tiny_lidar_net:
     type: "tiny_lidar_net.node.TinyLidarNetNode"
-    rate_hz: 50.0 # Match sensor rate or similar
-    priority: 20  # Execute after sensor
+    rate_hz: 50.0 # 推論・制御更新レート（センサーと同じかそれ以下） [Hz]
+    priority: 20  # 実行優先度（センサーの後に実行）
     params:
-      input_dim: 1080
-      output_dim: 2
-      architecture: "large"
+      input_dim: 1080       # 入力次元数（LiDARのビーム数） [次元]
+      output_dim: 2         # 出力次元数（ステアリング、アクセル） [次元]
+      architecture: "large" # モデルアーキテクチャ名 [str]
       # This path will be overridden via CLI in evaluation
-      model_path: ${agent.model_path}
-      fixed_acceleration: 1.0 # Use AI for accel if mode is AI
-      control_mode: "ai"
-      max_range: 30.0
+      model_path: ${agent.model_path} # モデルパス（CLIで上書き可能） [str]
+      fixed_acceleration: 1.0 # control_modeがfixed_accelの場合の固定加速度 [m/s^2]
+      control_mode: "ai"      # 制御モード ("ai": AI制御, "fixed_accel": 固定加速+AIステア) [str]
+      max_range: 30.0         # LiDARの最大検知距離（正規化に使用） [m]
       vehicle_params: ${vehicle}

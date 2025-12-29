@@ -1,52 +1,53 @@
 # Static Avoidance Planner + Pure Pursuit Controller Agent Configuration
+# 静的障害物回避プランナー + Pure Pursuit制御のエージェント設定
 
 nodes:
   sensor:
     type: "ideal_sensor.sensor_node.IdealSensorNode"
-    rate_hz: 50.0
-    priority: 10  # Execute after simulator
+    rate_hz: 50.0  # センサー更新レート [Hz]
+    priority: 10   # 実行優先度（シミュレータの後に実行）
     params:
       vehicle_params: ${vehicle}
       vehicle_color: ${visualization.colors.vehicle}
 
   planning:
     type: LateralShiftPlannerNode
-    rate_hz: 10.0
-    priority: 20  # Execute after sensor
+    rate_hz: 10.0  # プランニング更新レート [Hz]
+    priority: 20   # 実行優先度（センサーの後に実行）
     params:
       track_path: ${env.track_path}
       map_path: ${env.map_path}
-      # Perception / Planning Horizon
-      lookahead_distance: 15.0 # [m] Maximum distance to detect obstacles and generate trajectory. Determines the length of the planned path.
-      lookbehind_distance: 5.0 # [m] Maximum distance to detect obstacles behind the vehicle.
+      # Perception / Planning Horizon (認識・計画範囲)
+      lookahead_distance: 15.0 # [m] 障害物検知と軌道生成の最大プレビュー距離（計画する軌道の長さ）
+      lookbehind_distance: 5.0 # [m] 車両後方の障害物検知距離
 
-      # Shift Profile Parameters (Avoidance Logic)
-      avoidance_maneuver_length: 5.0 # [m] Longitudinal distance required to complete the lateral shift (from 0 to target lateral position).
-      longitudinal_margin_front: 0.0 # [m] Buffer distance BEFORE the obstacle. The vehicle will reach full avoidance position this many meters before the obstacle.
-      longitudinal_margin_rear: 0.0 # [m] Buffer distance AFTER the obstacle. The vehicle maintains avoidance position for this distance after passing the obstacle.
+      # Shift Profile Parameters (Avoidance Logic, 回避ロジック)
+      avoidance_maneuver_length: 5.0 # [m] 横方向移動（0から目標位置まで）を完了するために必要な縦方向距離
+      longitudinal_margin_front: 0.0 # [m] 障害物手前の余裕距離（障害物のこの距離手前で回避移動を完了する）
+      longitudinal_margin_rear: 0.0  # [m] 障害物通過後の余裕距離（障害物を通過した後、この距離だけ回避状態を維持する）
 
-      # Vehicle & Environment
-      vehicle_width: ${vehicle.width} # [m] Width of the ego vehicle.
-      safe_margin: 0.5 # [m] Additional lateral clearance to keep from the obstacle boundary.
+      # Vehicle & Environment (車両・環境設定)
+      vehicle_width: ${vehicle.width} # [m] 自車幅
+      safe_margin: 0.5 # [m] 障害物境界から確保すべき追加の横方向余裕
 
-      # Trajectory Generation
-      trajectory_resolution: 0.5 # [m] Spacing between discrete points in the output trajectory.
-      trajectory_color: "#4DB6ACCC" # Teal
+      # Trajectory Generation (軌道生成)
+      trajectory_resolution: 0.5    # [m] 出力軌道の離散化間隔
+      trajectory_color: "#4DB6ACCC" # 軌跡の色 (Teal)
 
   control:
     type: PurePursuitControllerNode
-    rate_hz: 30.0
-    priority: 30  # Execute after planning
+    rate_hz: 30.0  # 制御更新レート [Hz]
+    priority: 30   # 実行優先度（プランニングの後に実行）
     params:
       vehicle_params: ${vehicle}
-      lookahead_marker_color: "#D1C4E9CC" # Deep Purple 100
+      lookahead_marker_color: "#D1C4E9CC" # 前方注視点マーカーの色 (Deep Purple 100)
       lateral:
-        min_lookahead_distance: 2.0
-        max_lookahead_distance: 2.0
-        lookahead_speed_ratio: 1.5
+        min_lookahead_distance: 2.0   # 最小前方注視距離 [m]
+        max_lookahead_distance: 2.0   # 最大前方注視距離 [m]
+        lookahead_speed_ratio: 1.5    # 速度に対する注視距離の比率 [s]
       longitudinal:
-        kp: 1.0
-        ki: 0.1
-        kd: 0.05
-        u_min: -3.0
-        u_max: 3.0
+        kp: 1.0       # 比例ゲイン (P)
+        ki: 0.0       # 積分ゲイン (I)
+        kd: 0.05      # 微分ゲイン (D)
+        u_min: -3.0   # 最小制御入力（減速度） [m/s^2]
+        u_max: 3.0    # 最大制御入力（加速度） [m/s^2]

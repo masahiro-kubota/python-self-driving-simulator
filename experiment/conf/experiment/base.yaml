@@ -1,26 +1,26 @@
 # @package _global_
 # Base Experiment Configuration
-# This file contains common settings shared across all experiment types
+# 実験共通設定（全実験タイプで共有される設定）
 
 defaults:
   - _self_
 
-# Default execution settings
+# Default execution settings (デフォルト実行設定)
 execution:
-  num_episodes: 1
-  clock_rate_hz: 100.0
-  duration_sec: 200.0
-  # Clock type for simulation timing control
+  num_episodes: 1       # 実行エピソード数 [回]
+  clock_rate_hz: 100.0  # シミュレーションクロックレート（物理演算周期） [Hz]
+  duration_sec: 200.0   # 1エピソードの最大実行時間 [s]
+  # Clock type for simulation timing control (時間管理のタイプ)
   # Currently only "stepped" is supported, but may be extended in the future (e.g., "realtime", "external")
-  clock_type: "stepped"
+  clock_type: "stepped" # "stepped": ステップ実行（非リアルタイプ）, "realtime": 実時間同期 [str]
 
-# Default system configuration
+# Default system configuration (システム構成)
 system:
   nodes:
     simulator:
       type: "KinematicSimulator"
-      rate_hz: ${execution.clock_rate_hz}
-      priority: 1  # Execute first
+      rate_hz: ${execution.clock_rate_hz} # シミュレータ更新レート（クロックレートに同期） [Hz]
+      priority: 1  # 実行優先度（最優先）
       params:
         map_path: ${env.map_path}
         vehicle_params: ${vehicle}
@@ -29,11 +29,11 @@ system:
         obstacle_color: ${visualization.colors.obstacle}
     logger:
       type: "LoggerNode"
-      rate_hz: ${execution.clock_rate_hz}
-      priority: 99  # Execute last
+      rate_hz: ${execution.clock_rate_hz} # ロガー更新レート [Hz]
+      priority: 99  # 実行優先度（最後）
       params:
         # Must be a file path, not directory
-        output_mcap_path: ${postprocess.mcap.output_dir}/simulation.mcap
+        output_mcap_path: ${postprocess.mcap.output_dir}/simulation.mcap # MCAP出力パス [str]
         map_path: ${env.map_path}
         track_path: ${env.track_path}
         vehicle_params: ${vehicle}
@@ -43,46 +43,46 @@ system:
         path_color: ${visualization.colors.path}
     supervisor:
       type: "SupervisorNode"
-      rate_hz: 10.0
-      priority: 50  # Execute in the middle
+      rate_hz: 10.0 # 監視ノード更新レート [Hz]
+      priority: 50  # 実行優先度（中間）
       params:
         goal:
-          enabled: true
+          enabled: true # ゴール判定有効化 [bool]
           x: ${env.goal_position.x}
           y: ${env.goal_position.y}
           radius: ${env.goal_tolerance}
-          min_elapsed_time: 20.0
+          min_elapsed_time: 20.0 # ゴール判定開始までの最小経過時間（開始直後の誤判定防止） [s]
         checkpoints: ${env.checkpoints}
         collision:
-          enabled: true
+          enabled: true # 衝突判定有効化 [bool]
         off_track:
-          enabled: true
+          enabled: true # コースアウト判定有効化 [bool]
 
-# Default visualization configuration
+# Default visualization configuration (可視化設定)
 visualization:
   colors:
-    vehicle: "#3B99DDCC"    # Pure Ice Blue (Brightest focal point)
-    obstacle: "#FF5252B3"   # Clear Red
-    trajectory: "#4DB6ACCC" # Teal (The active plan)
-    lookahead: "#D1C4E9CC"  # Light Purple (Lookahead)
-    path: "#3B99DDCC"       # Muted Blue Grey Trail (Actual History)
-    map_left: "#B0BEC533"   # Subtle Boundary
-    map_right: "#B0BEC51A"  # Very Faint Boundary
-    global_track: "#E0E0E026" # Very Faint White (Reference track, like a road marking)
+    vehicle: "#3B99DDCC"    # 車体色 (Pure Ice Blue)
+    obstacle: "#FF5252B3"   # 障害物色 (Clear Red)
+    trajectory: "#4DB6ACCC" # 計画軌道色 (Teal)
+    lookahead: "#D1C4E9CC"  # 注視点色 (Light Purple)
+    path: "#3B99DDCC"       # 走行履歴色 (Muted Blue Grey Trail)
+    map_left: "#B0BEC533"   # 左側道路境界色 (Subtle Boundary)
+    map_right: "#B0BEC51A"  # 右側道路境界色 (Very Faint Boundary)
+    global_track: "#E0E0E026" # 基準トラック色 (Very Faint White)
 
-# Default postprocessing configuration
+# Default postprocessing configuration (後処理設定)
 postprocess:
   inputs:
     - ${postprocess.mcap.output_dir}/simulation.mcap
   mlflow:
-    enabled: false
-    tracking_uri: "http://localhost:5000"
+    enabled: false # MLflowトラッキング有効化 [bool]
+    tracking_uri: "http://localhost:5000" # トラッキングサーバーURI
   mcap:
-    enabled: true
+    enabled: true  # MCAP記録有効化 [bool]
     output_dir: "${hydra:runtime.output_dir}"
   dashboard:
-    enabled: true
+    enabled: true  # ダッシュボード生成有効化 [bool]
     map_path: ${env.map_path}
     vehicle_config_path: "experiment/conf/vehicle/default.yaml"
   foxglove:
-    auto_open: true
+    auto_open: true # シミュレーション終了後にFoxgloveを自動で開く [bool]
