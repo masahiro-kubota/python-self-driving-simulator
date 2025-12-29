@@ -30,15 +30,16 @@ class ScanControlDataset(Dataset):
             # Load raw data
             self.scans = np.load(self.data_dir / "scans.npy")
             self.steers = np.load(self.data_dir / "steers.npy")
+            self.accels = np.load(self.data_dir / "accelerations.npy")
         except FileNotFoundError as e:
             raise FileNotFoundError(f"Missing required .npy files in {self.data_dir}: {e}")
 
         # Validate data consistency
         n_samples = len(self.scans)
-        if len(self.steers) != n_samples:
+        if not (len(self.steers) == n_samples and len(self.accels) == n_samples):
             raise ValueError(
                 f"Data length mismatch in {self.data_dir}: "
-                f"Scans={len(self.scans)}, Steers={len(self.steers)}"
+                f"Scans={len(self.scans)}, Steers={len(self.steers)}, Accels={len(self.accels)}"
             )
 
         # Preprocessing: Clip and Normalize
@@ -58,10 +59,15 @@ class ScanControlDataset(Dataset):
         Returns:
             Tuple of (scan, target) where:
                 scan: Normalized LiDAR scan data (float32)
-                target: Steering angle (float32 scalar)
+                target: Control command vector [acceleration, steering] (float32)
         """
         # Ensure data is float32 for PyTorch compatibility
         scan = self.scans[idx].astype(np.float32)
+
+        accel = np.float32(self.accels[idx])
         steer = np.float32(self.steers[idx])
 
-        return scan, steer
+        # Target vector construction: [Acceleration, Steering]
+        target = np.array([accel, steer], dtype=np.float32)
+
+        return scan, target

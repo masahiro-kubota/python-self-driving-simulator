@@ -18,10 +18,10 @@ class TinyLidarNet(nn.Module):
         FC(flatten_dim→100) + ReLU
         FC(100→50) + ReLU
         FC(50→10) + ReLU
-        FC(10→output_dim) + Tanh
+        FC(10→2) + Tanh
     """
 
-    def __init__(self, input_dim: int = 1080, output_dim: int = 1):
+    def __init__(self, input_dim: int = 1080, output_dim: int = 2):
         super().__init__()
 
         # Convolutional Layers
@@ -86,7 +86,7 @@ class TinyLidarNet(nn.Module):
 class TinyLidarNetSmall(nn.Module):
     """Lightweight CNN architecture for 1D LiDAR data processing."""
 
-    def __init__(self, input_dim: int = 1080, output_dim: int = 1):
+    def __init__(self, input_dim: int = 1080, output_dim: int = 2):
         super().__init__()
 
         # Convolutional Layers

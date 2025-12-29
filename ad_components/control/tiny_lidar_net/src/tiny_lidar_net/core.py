@@ -14,7 +14,7 @@ class TinyLidarNetCore:
 
     Attributes:
         input_dim (int): Dimension of the input vector expected by the model.
-        output_dim (int): Dimension of the output vector (steering only).
+        output_dim (int): Dimension of the output vector (acceleration, steering).
         architecture (str): Model architecture type ('large' or 'small').
         acceleration (float): Fixed acceleration value used in 'fixed' control mode.
         control_mode (str): Control strategy ('ai' or 'fixed').
@@ -26,7 +26,7 @@ class TinyLidarNetCore:
     def __init__(
         self,
         input_dim: int = 1080,
-        output_dim: int = 1,
+        output_dim: int = 2,
         architecture: str = "large",
         ckpt_path: str = "",
         acceleration: float = 0.1,
@@ -47,8 +47,8 @@ class TinyLidarNetCore:
             acceleration (float, optional): The constant acceleration value to apply
                 when control_mode is set to 'fixed'. Defaults to 0.1.
             control_mode (str, optional): The control mode to determine output behavior.
-                'ai' uses model output for steering and fixed acceleration.
-                'fixed' is deprecated but kept for backward compatibility (same as 'ai').
+                'ai' uses model output for both acceleration and steering.
+                'fixed' uses the fixed acceleration value and model output for steering.
                 Defaults to 'ai'.
             max_range (float, optional): The maximum range value for normalization.
                 Values exceeding this will be clipped, and infinity will be replaced
@@ -95,9 +95,12 @@ class TinyLidarNetCore:
         outputs = self.model(x)[0]
 
         # 3. Post-process
-        # Always use fixed acceleration (model only outputs steering)
-        accel = self.acceleration
-        steer = float(np.clip(outputs[0], -1.0, 1.0))
+        if self.control_mode == "ai":
+            accel = float(np.clip(outputs[0], -1.0, 1.0))
+        else:
+            accel = self.acceleration
+
+        steer = float(np.clip(outputs[1], -1.0, 1.0))
 
         return accel, steer
 

@@ -17,12 +17,12 @@ nodes:
     priority: 20  # 実行優先度（センサーの後に実行）
     params:
       input_dim: 1080       # 入力次元数(LiDARのビーム数) [次元]
-      output_dim: 1         # 出力次元数(ステアリングのみ) [次元]
+      output_dim: 2         # 出力次元数(加速度+ステアリング、ただしノードではステアリングのみ使用) [次元]
       architecture: "large" # モデルアーキテクチャ名 [str]
       # This path will be overridden via CLI in evaluation
       model_path: ${ad_components.model_path} # モデルパス(CLIで上書き可能) [str]
       fixed_acceleration: 1.0 # 固定加速度(縦方向制御に使用) [m/s^2]
-      control_mode: "ai"      # 制御モード(常に固定加速度を使用、このパラメータは非推奨) [str]
+      control_mode: "fixed"   # 制御モード('fixed'で固定加速度+AIステアリング) [str]
       max_range: 30.0         # LiDARの最大検知距離(正規化に使用) [m]
       vehicle_params: ${vehicle}
   pid_controller:

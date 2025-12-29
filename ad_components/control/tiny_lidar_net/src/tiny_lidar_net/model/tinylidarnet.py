@@ -27,7 +27,7 @@ class TinyLidarNetNp:
         shapes (dict): Stores parameter shapes for initialization.
     """
 
-    def __init__(self, input_dim=1080, output_dim=1):
+    def __init__(self, input_dim=1080, output_dim=2):
         """Initializes TinyLidarNetNp.
 
         Args:
@@ -128,7 +128,7 @@ class TinyLidarNetSmallNp:
     architecture of the PyTorch `TinyLidarNetSmall` class.
     """
 
-    def __init__(self, input_dim=1080, output_dim=1):
+    def __init__(self, input_dim=1080, output_dim=2):
         """Initializes TinyLidarNetSmallNp.
 
         Args:
