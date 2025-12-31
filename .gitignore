@@ -34,3 +34,5 @@ tmp/
 # Tiny Lidar Net Data
 ad_components/control/tiny_lidar_net/data/
 ad_components/control/tiny_lidar_net/checkpoints/
+scripts/system_identification/data/
+scripts/system_identification/results/
