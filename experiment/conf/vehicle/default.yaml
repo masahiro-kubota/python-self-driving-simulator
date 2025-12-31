@@ -6,25 +6,20 @@ wheelbase: 1.087 # ホイールベース [m]
 width: 1.30      # 車幅 [m]
 front_overhang: 0.467 # フロントオーバーハング [m]
 rear_overhang: 0.510  # リアオーバーハング [m]
-vehicle_height: 0.5   # 車両高さ + センサーキット高さ [m]
+vehicle_height: 0.5   # 車両高さ [m]
 
 # Kinematics (運動学制約)
-max_steering_angle: 0.8 # 最大ステアリング角 [rad]
+max_steering_angle: 0.367 # 最大ステアリング角 [rad]
 max_velocity: 35.0      # 最大速度 [m/s]
-max_acceleration: 5.0   # 最大加速度 [m/s^2]
+max_acceleration: 4.37   # 最大加速度 [m/s^2]
 
-# Dynamics (動力学パラメータ)
-mass: 1500.0   # 車両重量 [kg]
-inertia: 2500.0 # ヨー慣性モーメント [kg*m^2]
-lf: 1.2        # 重心から前軸までの距離 [m]
-lr: 1.3        # 重心から後軸までの距離 [m]
-cf: 80000.0    # 前輪コーナリングスティフネス [N/rad]
-cr: 80000.0    # 後輪コーナリングスティフネス [N/rad]
-c_drag: 0.3    # 空気抵抗係数 (簡易モデル) [-]
-c_roll: 0.015  # ロール抵抗係数 [-]
-max_drive_force: 5000.0 # 最大駆動力 [N]
-max_brake_force: 8000.0 # 最大制動力 [N]
-tire_params: {} # タイヤパラメータ（詳細モデル用、現在は空）
+# Steering Response (ステアリング応答モデル)
+steer_delay_time: 0.1722      # 純粋な時間遅れ [秒] (0-0.5)
+steer_time_constant: 0.1    # 一次遅れの時定数 [秒] (0.01-1.0)
+max_steer_rate: 0.9366         # ステア角の最大変化率 [rad/s]
+steer_gain: 0.6979          # ステアリングゲイン (DCゲイン)
+steer_zeta: 0.6605          # SOPDT減衰比
+steer_omega_n: 5.9751       # SOPDT固有角周波数 [rad/s]
 
 # Sensors (センサー設定)
 lidar:

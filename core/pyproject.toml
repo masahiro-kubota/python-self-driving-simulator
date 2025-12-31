@@ -16,6 +16,8 @@ dependencies = [
     "deptry>=0.12.0",
     "scipy>=1.10.0",
     "pre-commit>=3.0.0",
+    "rosbags>=0.9.15",
+    "mcap>=1.0.0",
 ]
 
 [build-system]

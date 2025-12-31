@@ -1,31 +1,21 @@
 #!/usr/bin/env python3
-# /// script
-# dependencies = [
-#   "numpy",
-#   "scipy",
-#   "matplotlib",
-#   "plotly",
-#   "rosbags",
-# ]
-# python = ">=3.10"
-# ///
-#
 # Usage:
 #   uv run scripts/system_identification/estimate_steering_dynamics.py train scripts/system_identification/data/rosbag2_autoware_0.mcap
-#   uv run scripts/system_identification/estimate_steering_dynamics.py eval scripts/system_identification/data/rosbag2_autoware_0.mcap --load-params params.json
+#   uv run scripts/system_identification/estimate_steering_dynamics.py eval scripts/system_identification/data/rosbag2_autoware_0.mcap --load-params scripts/system_identification/results/params.json
 #   uv run scripts/system_identification/estimate_steering_dynamics.py --help
 #
 # Description:
 #   MCAPからステアリング制御入力と車両ステータスを抽出し、FOPDT/SOPDTモデルのパラメータ推定を行います。
 
 import argparse
-import sys
 import numpy as np
+import json
 from pathlib import Path
-from rosbags.highlevel import AnyReader
 from scipy.optimize import minimize
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
+
+from core.utils.mcap_utils import read_messages
 
 def extract_data(mcap_path):
     print(f"Extracting data from {mcap_path}...")
@@ -40,36 +30,27 @@ def extract_data(mcap_path):
     status_topic = "/vehicle/status/steering_status"
     vel_topic = "/localization/kinematic_state"
     
-    with AnyReader([Path(mcap_path)]) as reader:
-        connections = [x for x in reader.connections if x.topic in [cmd_topic, status_topic, vel_topic]]
-        
-        for connection, timestamp, rawdata in reader.messages(connections=connections):
-            msg = reader.deserialize(rawdata, connection.msgtype)
-            t = timestamp / 1e9
-            
-            if connection.topic == cmd_topic:
-                try:
-                    val = msg.lateral.steering_tire_angle
-                    cmd_times.append(t)
-                    cmd_vals.append(val)
-                except AttributeError:
-                    pass
-            elif connection.topic == status_topic:
-                try:
-                    val = msg.steering_tire_angle
-                    status_times.append(t)
-                    status_vals.append(val)
-                except AttributeError:
-                    pass
-            elif connection.topic == vel_topic:
-                try:
-                    # localized kinematic state: twist.twist.linear.x
-                    val = msg.twist.twist.linear.x
-                    vel_times.append(t)
-                    vel_vals.append(val)
-                except AttributeError:
-                    pass
-                    
+    for topic, msg, timestamp_ns in read_messages(mcap_path, [cmd_topic, status_topic, vel_topic]):
+        t = timestamp_ns / 1e9
+        if topic == cmd_topic:
+            try: 
+                val = msg.lateral.steering_tire_angle
+                cmd_times.append(t)
+                cmd_vals.append(val)
+            except AttributeError: pass
+        elif topic == status_topic:
+            try: 
+                val = msg.steering_tire_angle
+                status_times.append(t)
+                status_vals.append(val)
+            except AttributeError: pass
+        elif topic == vel_topic:
+            try: 
+                val = msg.twist.twist.linear.x
+                vel_times.append(t)
+                vel_vals.append(val)
+            except AttributeError: pass
+
     return (np.array(cmd_times), np.array(cmd_vals), 
             np.array(status_times), np.array(status_vals),
             np.array(vel_times), np.array(vel_vals))
@@ -123,7 +104,7 @@ def cost_gain_delay(params, u_interp, t_span, y_meas, u_times):
     y_sim = simulate_gain_delay(params, u_interp, t_span, u_times)
     return np.mean((y_sim - y_meas)**2)
 
-def simulate_sopdt(params, u_interp, t_span, u_times):
+def simulate_sopdt(params, u_interp, t_span, u_times, max_rate=None):
     # params: [K, zeta, omega_n, L]
     K, zeta, omega_n, L = params
     dt = np.mean(np.diff(t_span))
@@ -135,17 +116,32 @@ def simulate_sopdt(params, u_interp, t_span, u_times):
     
     y_sim[0] = y
     
+    # Pre-calc max delta if rate limited
+    max_delta = max_rate * dt if max_rate is not None else float('inf')
+    
+    # Calculate discrete delay steps (Match simulator logic)
+    delay_steps = max(1, int(L / dt))
+    
     for i in range(1, len(t_span)):
-        t_delayed = t_span[i] - L
-        u_val = u_interp(t_delayed) if t_delayed >= u_times[0] else u_interp(u_times[0])
+        # Discrete delay
+        t_delayed_discrete = t_span[i] - (delay_steps * dt)
+        u_val = u_interp(t_delayed_discrete) if t_delayed_discrete >= u_times[0] else u_interp(u_times[0])
         
         # Dynamics: y'' + 2*zeta*wn*y' + wn^2*y = K*wn^2*u
         # v' = K*wn^2*u - 2*zeta*wn*v - wn^2*y
         target = K * u_val
         
         dv = (omega_n**2) * (target - y) - 2 * zeta * omega_n * v
-        v += dv * dt
-        y += v * dt
+        v_next = v + dv * dt
+        
+        # Rate Limiting (Match simulator/dynamics.py)
+        delta = v_next * dt
+        if abs(delta) > max_delta:
+            delta = np.copysign(max_delta, delta)
+            v_next = delta / dt
+            
+        y += delta
+        v = v_next
         
         y_sim[i] = y
             
@@ -225,7 +221,7 @@ def evaluate_models(models_params, u_interp, status_t, status_v, cmd_t):
     # SOPDT
     p_dict = models_params["sopdt"]
     p = [p_dict["K"], p_dict["zeta"], p_dict["omega_n"], p_dict["L"]]
-    y_sopdt = simulate_sopdt(p, u_interp, status_t, cmd_t)
+    y_sopdt = simulate_sopdt(p, u_interp, status_t, cmd_t, max_rate=0.937)
     rmse_sopdt = np.sqrt(np.mean((y_sopdt - status_v)**2))
     results["sopdt"] = {"y": y_sopdt, "rmse": rmse_sopdt, "params": p_dict}
     
@@ -396,7 +392,16 @@ def main():
     cmd_t = cmd_t[idx]
     cmd_v = cmd_v[idx]
     
-    u_interp = interp1d(cmd_t, cmd_v, kind='linear', fill_value="extrapolate")
+    # Prepend a point before t=0 to represent the "initial state" avoid backward extrapolation of step input
+    # We assume the command before simulation start was equal to the initial steering status (or 0)
+    # This captures the "Step" nature of the input at t=0
+    pre_t = cmd_t[0] - 1.0
+    pre_v = status_v[0] if len(status_v) > 0 else 0.0
+    
+    cmd_t = np.insert(cmd_t, 0, pre_t)
+    cmd_v = np.insert(cmd_v, 0, pre_v)
+    
+    u_interp = interp1d(cmd_t, cmd_v, kind='linear', fill_value=(pre_v, cmd_v[-1]), bounds_error=False)
     
     models_params = {}
     

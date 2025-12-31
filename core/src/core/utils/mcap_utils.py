@@ -7,7 +7,14 @@ import math
 import pkgutil
 from typing import Any
 
+from pathlib import Path
+from typing import Any, Generator, Tuple, List, Optional
+from types import SimpleNamespace
+
 from pydantic import BaseModel
+from rosbags.highlevel import AnyReader, AnyReaderError
+from rosbags.rosbag2.errors import ReaderError
+from mcap.reader import make_reader
 
 import core.data
 
@@ -15,6 +22,96 @@ logger = logging.getLogger(__name__)
 
 # Global cache for schema-to-model mapping
 _SCHEMA_TO_MODEL_CACHE: dict[str, type[BaseModel]] = {}
+
+
+def msg_to_dict(obj: Any) -> Any:
+    """Convert rosbags message object to dictionary."""
+    if hasattr(obj, '__dict__'):
+        return {k: msg_to_dict(v) for k, v in obj.__dict__.items() if not k.startswith('_')}
+    elif isinstance(obj, list):
+        return [msg_to_dict(x) for x in obj]
+    elif isinstance(obj, tuple):
+        if hasattr(obj, '_fields'):
+            return {k: msg_to_dict(getattr(obj, k)) for k in obj._fields}
+        return [msg_to_dict(x) for x in obj]
+    else:
+        return obj
+
+
+def dict_to_namespace(d: Any) -> Any:
+    """Convert dictionary to SimpleNamespace recursively."""
+    if isinstance(d, dict):
+        for k, v in d.items():
+            d[k] = dict_to_namespace(v)
+        return SimpleNamespace(**d)
+    elif isinstance(d, list):
+        return [dict_to_namespace(x) for x in d]
+    else:
+        return d
+
+
+def read_messages(
+    mcap_path: str, topics: List[str], as_namespace: bool = True
+) -> Generator[Tuple[str, Any, int], None, None]:
+    """
+    Reads messages from an MCAP file, handling both ROS2 (CDR) and JSON encoding.
+
+    Args:
+        mcap_path: Path to the MCAP file.
+        topics: List of topics to extract.
+        as_namespace: If True, converts dicts/JSON to SimpleNamespace for dot notation.
+
+    Yields:
+        (topic, message_object, timestamp_ns)
+    """
+    path = Path(mcap_path)
+    if not path.exists():
+        raise FileNotFoundError(f"MCAP file not found: {mcap_path}")
+
+    # Try AnyReader (ROS2 focus)
+    use_generic = False
+    try:
+        with AnyReader([path]) as reader:
+            # Filter connections
+            connections = [x for x in reader.connections if x.topic in topics]
+            
+            for connection, timestamp, rawdata in reader.messages(connections=connections):
+                try:
+                    if connection.digest == 'json' or 'json' in connection.encoding:
+                        msg = json.loads(rawdata)
+                        if as_namespace:
+                            msg = dict_to_namespace(msg)
+                    else:
+                        msg = reader.deserialize(rawdata, connection.msgtype)
+                        # rosbags usually returns objects with dot access already
+                        
+                    yield connection.topic, msg, timestamp
+                except Exception as e:
+                    # Log error but continue
+                    pass
+                    
+    except (ReaderError, AnyReaderError):
+        use_generic = True
+    except Exception:
+        use_generic = True
+        
+    # Fallback to generic MCAP reader
+    if use_generic:
+        with open(path, "rb") as f:
+            reader = make_reader(f)
+            for schema, channel, message in reader.iter_messages(topics=topics):
+                try:
+                    if schema.encoding in ['json', 'jsonschema']:
+                        msg = json.loads(message.data)
+                        if as_namespace:
+                            msg = dict_to_namespace(msg)
+                    else:
+                        # Skip unsupported encodings in generic mode
+                        continue
+                        
+                    yield channel.topic, msg, message.log_time
+                except Exception:
+                    pass
 
 
 def _discover_models():

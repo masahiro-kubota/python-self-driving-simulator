@@ -36,6 +36,10 @@ dependencies = [
     "onnxscript>=0.5.7",
     "lateral-shift-planner",
     "pure-pursuit-controller",
+    "matplotlib>=3.5.0",
+    "scipy>=1.10.0",
+    "plotly>=5.0.0",
+    "rosbags>=0.9.15",
 ]
 
 [tool.uv]

@@ -1,15 +1,7 @@
 #!/usr/bin/env python3
-# /// script
-# dependencies = [
-#   "numpy",
-#   "matplotlib",
-#   "rosbags",
-# ]
-# python = ">=3.10"
-# ///
 #
 # Usage:
-#   uv run scripts/system_identification/analyze_acceleration.py input.mcap
+#   uv run scripts/system_identification/analyze_acceleration.py scripts/system_identification/input.mcap
 #
 # Description:
 #   MCAPファイルから加速度（速度の変化率）の最大値や分布を解析します。
@@ -19,7 +11,8 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from rosbags.highlevel import AnyReader
+
+from core.utils.mcap_utils import read_messages
 
 def extract_velocity_data(mcap_path):
     print(f"Extracting data from {mcap_path}...")
@@ -29,26 +22,15 @@ def extract_velocity_data(mcap_path):
     
     vel_topic = "/localization/kinematic_state"
     
-    with AnyReader([Path(mcap_path)]) as reader:
-        connections = [x for x in reader.connections if x.topic == vel_topic]
-        
-        if not connections:
-            print(f"No connections found for topic: {vel_topic}")
-            return np.array([]), np.array([])
-        
-        # Check standard message type, might need adjustment if using different types
-        # Usually nav_msgs/msg/Odometry or similar
-        
-        for connection, timestamp, rawdata in reader.messages(connections=connections):
-            msg = reader.deserialize(rawdata, connection.msgtype)
-            t = timestamp / 1e9
-            try:
-                # localized kinematic state: twist.twist.linear.x
-                val = msg.twist.twist.linear.x
-                vel_times.append(t)
-                vel_vals.append(val)
-            except AttributeError:
-                pass
+    for topic, msg, timestamp_ns in read_messages(mcap_path, [vel_topic]):
+        t = timestamp_ns / 1e9
+        try:
+            # localized kinematic state: twist.twist.linear.x
+            val = msg.twist.twist.linear.x
+            vel_times.append(t)
+            vel_vals.append(val)
+        except AttributeError:
+            pass
                     
     return np.array(vel_times), np.array(vel_vals)
 

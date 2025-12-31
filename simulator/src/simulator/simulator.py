@@ -65,10 +65,16 @@ class SimulatorNode(Node[SimulatorConfig]):
         self._topic_intervals: dict[str, int] = {}
         self._topic_counters: dict[str, int] = {}
 
+        # Steering response model
+        from collections import deque
+
+        self._steer_delay_buffer: deque[float] = deque()
+
     def get_node_io(self) -> NodeIO:
         """Define node IO."""
         # Use lazy import for LidarScan because it might be circular if imported at top-level
         # (Though currently it's safe as it's in core.data)
+        from core.data.autoware import SteeringReport
         from core.data.ros import LaserScan, MarkerArray
 
         return NodeIO(
@@ -81,6 +87,7 @@ class SimulatorNode(Node[SimulatorConfig]):
                 "obstacle_states": list,
                 "obstacle_markers": MarkerArray,
                 "perception_lidar_scan": LaserScan,
+                "steering_status": SteeringReport,
             },
         )
 
@@ -89,6 +96,15 @@ class SimulatorNode(Node[SimulatorConfig]):
         # Reset state
         self._current_state = SimulationVehicleState.from_vehicle_state(self.config.initial_state)
         self.current_time = 0.0
+
+        # Reset steering delay buffer and pre-fill with initial steering
+        self._steer_delay_buffer.clear()
+        initial_steering = self._current_state.actual_steering
+        # Calculate needed steps using same logic as dynamics.py
+        delay_steps = max(1, int(self.config.vehicle_params.steer_delay_time / self.dt))
+        # Pre-fill with initial value to avoid "jump" at t=0
+        for _ in range(delay_steps):
+            self._steer_delay_buffer.append(initial_steering)
 
         # Initialize metadata with vehicle params and obstacles
         metadata = {}
@@ -198,12 +214,27 @@ class SimulatorNode(Node[SimulatorConfig]):
                 steering = 0.0
                 acceleration = 0.0
 
-        # Update state using bicycle model
+        # Apply steering response model
+        from simulator.dynamics import apply_steering_response_model
+
+        actual_steering, steer_rate_internal, self._steer_delay_buffer = apply_steering_response_model(
+            self._current_state,
+            steering,
+            self.dt,
+            self.config.vehicle_params,
+            self._steer_delay_buffer,
+        )
+
+        # Update internal state for next iteration
+        self._current_state.actual_steering = actual_steering
+        self._current_state.steer_rate_internal = steer_rate_internal
+
+        # Update state using bicycle model with actual steering
         from simulator.dynamics import update_bicycle_model
 
         self._current_state = update_bicycle_model(
             self._current_state,
-            steering,
+            actual_steering,
             acceleration,
             self.dt,
             self.config.vehicle_params.wheelbase,
@@ -307,6 +338,13 @@ class SimulatorNode(Node[SimulatorConfig]):
                     self.config.vehicle_params.lidar, ranges, self.current_time
                 )
                 self.publish("perception_lidar_scan", scan_msg)
+
+        # Publish steering status (actual steering angle after response model)
+        if self._should_publish("steering_status"):
+            from core.utils.ros_message_builder import build_steering_report
+
+            steering_report = build_steering_report(actual_steering, self.current_time)
+            self.publish("steering_status", steering_report)
 
         return NodeExecutionResult.SUCCESS
 

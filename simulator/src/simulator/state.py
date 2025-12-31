@@ -44,6 +44,11 @@ class SimulationVehicleState:
     steering: float = 0.0  # ステアリング角 [rad]
     throttle: float = 0.0  # スロットル [-1.0 to 1.0]
 
+    # ステアリング応答の内部状態
+    actual_steering: float = 0.0  # 実際に適用されるステアリング角 [rad]
+    target_steering: float = 0.0  # 目標ステアリング角 [rad]
+    steer_rate_internal: float = 0.0  # ステアリング変化率の内部状態 (SOPDT用) [rad/s]
+
     # タイムスタンプ
     timestamp: float | None = None
 
@@ -108,6 +113,9 @@ class SimulationVehicleState:
             throttle=0.0,
             # タイムスタンプ
             timestamp=state.timestamp,
+            # ステアリング応答の内部状態
+            actual_steering=state.steering or 0.0,
+            target_steering=state.steering or 0.0,
         )
 
     def to_vehicle_state(

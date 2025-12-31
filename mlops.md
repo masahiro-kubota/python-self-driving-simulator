@@ -226,20 +226,69 @@ uv run experiment-runner -m \
 学習済みモデルの評価は、**Test用シードセット（例：20000〜20099）** を使用して行います。学習時に一度も見たことのない障害物配置で走行させることで、真の汎化性能を測定します。
 
 #### 評価実行コマンド
+
+学習済みモデルを使用して評価を実行します。
+`ad_components=tiny_lidar` を指定し、`experiment` を `evaluation` に設定します。また、評価対象のモデルパスを指定する必要があります。
+
+> [!IMPORTANT]
+> 現在の実装では、`tiny_lidar_net` ノードは `.npy` 形式の重みファイルを必要とします（`.onnx` ではなく）。学習出力の `checkpoints` ディレクトリにある `best_model.npy` を指定してください。
+
+**1. 障害物なし環境での評価（基本性能確認）**
 ```bash
-# 学習済みモデルをロードして評価（シードはTestセットを使用）
-# model_pathは実際には学習アーティファクトのパスを指定
+# 経路追従能力の確認
 uv run experiment-runner -m \
   experiment=evaluation \
-  env.obstacles.generation.seed="range(20000,20100)" \
-  split=evaluation_results \
-  ad_components.nodes.control.type=InferenceControllerNode \
-  # ad_components.nodes.control.params.model_path=...
+  env=no_obstacle \
+  ad_components=tiny_lidar \
+  ad_components.model_path=$(pwd)/outputs/YYYY-MM-DD/HH-MM-SS/checkpoints/best_model.npy \
+  ad_components.nodes.tiny_lidar_net.params.model_path=$(pwd)/outputs/YYYY-MM-DD/HH-MM-SS/checkpoints/best_model.npy
 ```
+
+**2. 障害物あり環境での評価（汎化性能確認）**
+```bash
+# 未学習のシナリオ（Testセット: Seed 20000-20099）で評価
+uv run experiment-runner -m \
+  experiment=evaluation \
+  ad_components=tiny_lidar \
+  ad_components.model_path=$(pwd)/outputs/YYYY-MM-DD/HH-MM-SS/checkpoints/best_model.npy \
+  ad_components.nodes.tiny_lidar_net.params.model_path=$(pwd)/outputs/YYYY-MM-DD/HH-MM-SS/checkpoints/best_model.npy \
+  env.obstacles.generation.seed="range(20000,20005)" \
+  execution.num_episodes=1
+```
+
+**3. 評価ベンチマーク（障害物なし + 障害物あり複数ケースを1セット実行）**
+
+便利なシェルスクリプトを用意しています。モデルのチェックポイントディレクトリを指定するだけで実行できます。
+
+```bash
+# シェルスクリプトを使用（推奨）
+./run_evaluation_benchmark.sh outputs/YYYY-MM-DD/HH-MM-SS/checkpoints
+```
+
+または、直接コマンドで実行する場合:
+
+```bash
+# 障害物なし1ケース + 障害物あり5ケースを一度に評価
+uv run experiment-runner -m \
+  experiment=evaluation \
+  ad_components=tiny_lidar \
+  ad_components.model_path=$(pwd)/outputs/YYYY-MM-DD/HH-MM-SS/checkpoints/best_model.npy \
+  ad_components.nodes.tiny_lidar_net.params.model_path=$(pwd)/outputs/YYYY-MM-DD/HH-MM-SS/checkpoints/best_model.npy \
+  'env=no_obstacle,default,default,default,default,default' \
+  'env.obstacles.generation.seed=null,20000,20001,20002,20003,20004'
+```
+
+> [!TIP]
+> 上記のコマンドは6つのジョブを並列実行します:
+> - Job 0: 障害物なし環境
+> - Job 1-5: 障害物あり環境（Seed 20000-20004）
+>
+> 結果は `outputs/YYYY-MM-DD/HH-MM-SS/0/`, `outputs/YYYY-MM-DD/HH-MM-SS/1/`, ... に保存されます。
 
 - **Metrics**:
 - 評価専用のシード値セットを使用し、未学習のシナリオで評価します。
 - **成功率 (Success Rate)**、**衝突までの平均距離 (MPC)**、**チェックポイント通過率** などをメトリクスとして算出します。
+- 各エピソードの結果は `result.json` として保存され、`summarize_results.py` で集計可能です。
 
 ### デバッグと可視化
 - 評価時の全走行をMCAPとして記録。

@@ -80,6 +80,12 @@ class TestSimulatorNode:
         assert isinstance(node_io, NodeIO)
         assert "control_cmd" in node_io.inputs
         assert "sim_state" in node_io.outputs
+        assert "steering_status" in node_io.outputs
+
+        # Verify SteeringReport type
+        from core.data.autoware import SteeringReport
+
+        assert node_io.outputs["steering_status"] == SteeringReport
 
     def test_on_init(self, _mock_map) -> None:
         """Test on_init initializes state correctly."""
@@ -131,6 +137,7 @@ class TestSimulatorNode:
         frame_data.obstacle_states = TopicSlot([])
         frame_data.obstacle_markers = TopicSlot(None)
         frame_data.perception_lidar_scan = TopicSlot(None)
+        frame_data.steering_status = TopicSlot(None)
         sim.set_frame_data(frame_data)
 
         # Execute
@@ -140,6 +147,15 @@ class TestSimulatorNode:
         assert hasattr(frame_data, "sim_state")
         assert frame_data.sim_state is not None
         assert isinstance(frame_data.sim_state.data, VehicleState)
+
+        # Verify steering_status is published
+        assert hasattr(frame_data, "steering_status")
+        assert frame_data.steering_status is not None
+        from core.data.autoware import SteeringReport
+
+        assert isinstance(frame_data.steering_status.data, SteeringReport)
+        # Steering angle should be a float
+        assert isinstance(frame_data.steering_status.data.steering_tire_angle, float)
 
     def test_on_run_updates_state(self, _mock_map) -> None:
         """Test that on_run updates vehicle state."""
@@ -171,6 +187,7 @@ class TestSimulatorNode:
         frame_data.obstacle_states = TopicSlot([])
         frame_data.obstacle_markers = TopicSlot(None)
         frame_data.perception_lidar_scan = TopicSlot(None)
+        frame_data.steering_status = TopicSlot(None)
         sim.set_frame_data(frame_data)
 
         # Run multiple steps
@@ -201,6 +218,7 @@ class TestSimulatorNode:
         frame_data.obstacle_states = TopicSlot([])
         frame_data.obstacle_markers = TopicSlot(None)
         frame_data.perception_lidar_scan = TopicSlot(None)
+        frame_data.steering_status = TopicSlot(None)
         # Don't set action
         sim.set_frame_data(frame_data)
 
@@ -260,6 +278,7 @@ class TestSimulatorNode:
         frame_data.obstacle_states = TopicSlot([])
         frame_data.obstacle_markers = TopicSlot(None)
         frame_data.perception_lidar_scan = TopicSlot(None)
+        frame_data.steering_status = TopicSlot(None)
         sim.set_frame_data(frame_data)
 
         # Run 3 steps
@@ -305,6 +324,7 @@ class TestSimulatorNode:
         frame_data.obstacle_states = TopicSlot([])
         frame_data.obstacle_markers = TopicSlot(None)
         frame_data.perception_lidar_scan = TopicSlot(None)
+        frame_data.steering_status = TopicSlot(None)
         sim.set_frame_data(frame_data)
 
         # Run some steps
