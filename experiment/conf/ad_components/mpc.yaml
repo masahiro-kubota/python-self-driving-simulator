@@ -44,8 +44,8 @@ nodes:
       
       # MPC Lateral Control Parameters
       mpc_lateral:
-        prediction_horizon: 10        # 予測ホライズン [steps]
-        control_horizon: 5            # 制御ホライズン [steps]
+        prediction_horizon: 30        # 予測ホライズン [steps] (increased for longer lookahead)
+        control_horizon: 15           # 制御ホライズン [steps]
         dt: 0.1                       # 離散化時間 [s]
         weight_lateral_error: 50.0    # 横方向誤差の重み (increased for stronger control)
         weight_heading_error: 20.0    # ヨー角誤差の重み (increased from 5)

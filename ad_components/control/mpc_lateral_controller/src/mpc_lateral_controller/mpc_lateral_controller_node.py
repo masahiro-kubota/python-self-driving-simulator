@@ -12,6 +12,7 @@ from core.data.autoware import (
     Trajectory,
 )
 from core.data.node_io import NodeIO
+from core.data.ros import ColorRGBA, Marker, MarkerArray, Point
 from core.interfaces.node import Node, NodeExecutionResult
 from core.utils.geometry import distance, normalize_angle
 from core.utils.ros_message_builder import to_ros_time
@@ -92,7 +93,10 @@ class MPCLateralControllerNode(Node[MPCLateralControllerConfig]):
     def get_node_io(self) -> NodeIO:
         return NodeIO(
             inputs={"trajectory": Trajectory, "vehicle_state": VehicleState},
-            outputs={"control_cmd": AckermannControlCommand},
+            outputs={
+                "control_cmd": AckermannControlCommand,
+                "debug_predicted_trajectory": MarkerArray,
+            },
         )
 
     def on_run(self, current_time: float) -> NodeExecutionResult:
@@ -195,7 +199,7 @@ class MPCLateralControllerNode(Node[MPCLateralControllerConfig]):
 
         # Solve MPC for lateral control
         current_velocity = vehicle_state.velocity
-        steering_angle, success = self.mpc_solver.solve(
+        steering_angle, predicted_states, predicted_controls, success = self.mpc_solver.solve(
             lateral_error=lateral_error,
             heading_error=heading_error,
             current_steering=vehicle_state.steering,
@@ -203,11 +207,15 @@ class MPCLateralControllerNode(Node[MPCLateralControllerConfig]):
             current_velocity=current_velocity,
         )
 
-        if not success:
+        if success:
+            logger.info(f"[MPC] ✅ Optimization success")
+            # Publish predicted trajectory for debugging
+            self._publish_predicted_trajectory(
+                predicted_states, trajectory, closest_idx, current_time
+            )
+        else:
             logger.warning("[MPC] ❌ Optimization failed, using current steering")
             steering_angle = vehicle_state.steering
-        else:
-            logger.info(f"[MPC] ✅ Optimization success")
 
         logger.info(f"[MPC] Steering angle: {math.degrees(steering_angle):.3f}°")
         
@@ -235,10 +243,10 @@ class MPCLateralControllerNode(Node[MPCLateralControllerConfig]):
     def _find_closest_point(
         self, trajectory: Trajectory, vehicle_state: VehicleState
     ) -> tuple[int, float]:
-        """Find the closest point on the trajectory, then lookahead.
+        """Find the closest point on the trajectory.
 
         Returns:
-            tuple: (index of lookahead point, distance to closest point)
+            tuple: (index of closest point, distance to closest point)
         """
         min_dist = float("inf")
         closest_idx = 0
@@ -255,26 +263,7 @@ class MPCLateralControllerNode(Node[MPCLateralControllerConfig]):
                 min_dist = dist
                 closest_idx = i
 
-        # Find lookahead point 4m ahead along trajectory
-        lookahead_distance = 4.0  # meters
-        accumulated_distance = 0.0
-        lookahead_idx = closest_idx
-
-        for i in range(closest_idx, len(trajectory.points) - 1):
-            dx = trajectory.points[i + 1].pose.position.x - trajectory.points[i].pose.position.x
-            dy = trajectory.points[i + 1].pose.position.y - trajectory.points[i].pose.position.y
-            segment_length = math.sqrt(dx**2 + dy**2)
-            accumulated_distance += segment_length
-            
-            if accumulated_distance >= lookahead_distance:
-                lookahead_idx = i + 1
-                break
-        
-        # If we reached end of trajectory, use last point
-        if lookahead_idx >= len(trajectory.points):
-            lookahead_idx = len(trajectory.points) - 1
-
-        return lookahead_idx, min_dist
+        return closest_idx, min_dist
 
     def _calculate_lateral_error(
         self, target_point, vehicle_state: VehicleState
@@ -300,36 +289,55 @@ class MPCLateralControllerNode(Node[MPCLateralControllerConfig]):
     def _extract_reference_curvature(
         self, trajectory: Trajectory, start_idx: int
     ) -> np.ndarray:
-        """Extract reference path curvature for prediction horizon.
+        """Extract reference path curvature for prediction horizon based on distance.
 
         Args:
             trajectory: Reference trajectory
-            start_idx: Starting index
+            start_idx: Starting index (closest point)
 
         Returns:
             Array of curvatures
         """
         N = self.config.mpc_lateral.prediction_horizon
+        dt = self.config.mpc_lateral.dt
+        v = 3.0  # Assumed target velocity as per user suggestion
+        
         curvatures = []
+        accumulated_dist = 0.0
+        current_idx = start_idx
 
         for i in range(N):
-            idx = min(start_idx + i, len(trajectory.points) - 1)
-            # Calculate curvature from trajectory points
-            # For simplicity, we approximate curvature from heading change
+            target_dist = i * v * dt
+            
+            # Find point at target_dist along trajectory
+            while current_idx < len(trajectory.points) - 1:
+                dx = trajectory.points[current_idx + 1].pose.position.x - trajectory.points[current_idx].pose.position.x
+                dy = trajectory.points[current_idx + 1].pose.position.y - trajectory.points[current_idx].pose.position.y
+                ds = math.sqrt(dx**2 + dy**2)
+                
+                if accumulated_dist + ds >= target_dist:
+                    # Point is in this segment
+                    break
+                
+                accumulated_dist += ds
+                current_idx += 1
+            
+            # Calculate curvature at current_idx
+            idx = current_idx
             if idx < len(trajectory.points) - 1:
                 current_yaw = self._quaternion_to_yaw(trajectory.points[idx].pose.orientation)
                 next_yaw = self._quaternion_to_yaw(trajectory.points[idx + 1].pose.orientation)
                 dx = trajectory.points[idx + 1].pose.position.x - trajectory.points[idx].pose.position.x
                 dy = trajectory.points[idx + 1].pose.position.y - trajectory.points[idx].pose.position.y
-                ds = math.sqrt(dx**2 + dy**2)
+                seg_ds = math.sqrt(dx**2 + dy**2)
                 
-                if ds > 1e-6:
-                    curvature = normalize_angle(next_yaw - current_yaw) / ds
+                if seg_ds > 1e-6:
+                    curvature = normalize_angle(next_yaw - current_yaw) / seg_ds
                 else:
                     curvature = 0.0
             else:
                 curvature = 0.0
-
+            
             curvatures.append(curvature)
 
         return np.array(curvatures)
@@ -383,3 +391,68 @@ class MPCLateralControllerNode(Node[MPCLateralControllerConfig]):
         self.previous_time = current_time
 
         return acceleration
+
+    def _publish_predicted_trajectory(
+        self,
+        predicted_states: np.ndarray,
+        reference_trajectory: Trajectory,
+        start_idx: int,
+        current_time: float,
+    ) -> None:
+        """Publish predicted trajectory as MarkerArray.
+
+        Args:
+            predicted_states: [2, N+1] array of [lateral_error, heading_error]
+            reference_trajectory: Reference trajectory
+            start_idx: Current closest/lookahead index on reference trajectory
+            current_time: Current simulation time
+        """
+        if predicted_states is None:
+            return
+
+        marker_array = MarkerArray()
+        marker = Marker()
+        marker.header.frame_id = "map"
+        marker.header.stamp = to_ros_time(current_time)
+        marker.ns = "predicted_trajectory"
+        marker.id = 0
+        marker.type = 4  # LINE_STRIP
+        marker.action = 0  # ADD
+        marker.scale.x = 0.2  # Line width
+        marker.color = ColorRGBA(r=1.0, g=0.5, b=0.0, a=0.8)  # Orange
+
+        N = predicted_states.shape[1]
+        dt = self.config.mpc_lateral.dt
+        v = 3.0  # Assumed target velocity
+        accumulated_dist = 0.0
+        current_idx = start_idx
+
+        for i in range(N):
+            e_y = predicted_states[0, i]
+            target_dist = i * v * dt
+
+            # Find reference point at target_dist
+            while current_idx < len(reference_trajectory.points) - 1:
+                dx = reference_trajectory.points[current_idx + 1].pose.position.x - reference_trajectory.points[current_idx].pose.position.x
+                dy = reference_trajectory.points[current_idx + 1].pose.position.y - reference_trajectory.points[current_idx].pose.position.y
+                ds = math.sqrt(dx**2 + dy**2)
+                
+                if accumulated_dist + ds >= target_dist:
+                    break
+                
+                accumulated_dist += ds
+                current_idx += 1
+
+            ref_point = reference_trajectory.points[current_idx]
+            ref_x = ref_point.pose.position.x
+            ref_y = ref_point.pose.position.y
+            ref_yaw = self._quaternion_to_yaw(ref_point.pose.orientation)
+
+            # Reconstruct predicted absolute position
+            pred_x = ref_x - e_y * math.sin(ref_yaw)
+            pred_y = ref_y + e_y * math.cos(ref_yaw)
+
+            marker.points.append(Point(x=pred_x, y=pred_y, z=0.0))
+
+        marker_array.markers.append(marker)
+        self.publish("debug_predicted_trajectory", marker_array)

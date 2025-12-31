@@ -67,8 +67,10 @@ class LinearMPCLateralSolver:
             current_velocity: Current vehicle velocity [m/s]
 
         Returns:
-            tuple: (optimal_steering_angle, success)
+            tuple: (optimal_steering_angle, predicted_states, predicted_controls, success)
                 - optimal_steering_angle: Optimal steering angle [rad]
+                - predicted_states: Predicted state trajectory [2, N+1]
+                - predicted_controls: Predicted control trajectory [1, M]
                 - success: Whether optimization succeeded
         """
         N = self.config.prediction_horizon
@@ -154,17 +156,19 @@ class LinearMPCLateralSolver:
 
             if problem.status in [cp.OPTIMAL, cp.OPTIMAL_INACCURATE]:
                 optimal_steering_angle = u[0, 0].value
+                predicted_states = x.value
+                predicted_controls = u.value
                 
                 logger.debug(f"[MPC Solver] Status: {problem.status}, Cost: {problem.value:.4f}")
                 logger.debug(f"[MPC Solver] Optimal steering angle: {optimal_steering_angle:.6f} rad")
                 logger.debug(f"[MPC Solver] Predicted states x[:,0]: lat_err={x[0,0].value:.3f}, "
                             f"head_err={x[1,0].value:.3f}")
                 
-                return float(optimal_steering_angle), True
+                return float(optimal_steering_angle), predicted_states, predicted_controls, True
             else:
                 logger.warning(f"[MPC Solver] Optimization failed with status: {problem.status}")
-                return current_steering, False
+                return current_steering, None, None, False
 
         except Exception as e:
             logger.error(f"[MPC Solver] Optimization error: {e}")
-            return current_steering, False
+            return current_steering, None, None, False
