@@ -37,8 +37,23 @@ uv run experiment-runner -m \
   experiment.name=data_collection_val_v7
 ```
 
-- **出力先**: `outputs/<date>/<time>/data_collection_{train|val}_v7/...`
+- **出力先**: `outputs/<date>/<time>/...` (multirunの各ジョブが独立したディレクトリに出力)
 - **所要時間**: 並列数によりますが、数時間程度。
+
+**結果集計 (multirun完了後):**
+
+データ収集が完了したら、以下のスクリプトで全エピソードの統計を集計できます：
+
+```bash
+# 最新のmultirun出力を自動検出
+uv run python experiment/scripts/aggregate_multirun.py
+
+# または明示的にディレクトリ指定
+uv run python experiment/scripts/aggregate_multirun.py outputs/<date>/<time>
+```
+
+- **出力**: `collection_summary.json` (統計データ), `collection_summary.png` (可視化グラフ)
+- **集計内容**: 成功率、失敗理由の内訳 (off_track/collision/timeout等)
 
 ---
 

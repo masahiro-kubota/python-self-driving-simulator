@@ -19,7 +19,7 @@ env:
     position_mode: track_random
     lateral_offset_range: [-2.0, 2.0]
     yaw_offset_range: [-0.785, 0.785]  # ±45 deg
-    velocity_range: [10.0, 10.0]
+    velocity_range: [3.0, 3.0]
     max_retries: 10
     seed: null  # Placeholder for Hydra Sweeper
   obstacles:

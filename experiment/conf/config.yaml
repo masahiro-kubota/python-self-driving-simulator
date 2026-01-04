@@ -4,7 +4,7 @@
 defaults:
   - env: randomized         # デフォルトの環境設定 [str]
   - vehicle: default     # デフォルトの車両設定 [str]
-  - ad_components: mpc # デフォルトのADコンポーネント構成 [str]
+  - ad_components: lateral_shift # デフォルトのADコンポーネント構成 [str]
   - experiment: default # デフォルトの実験タイプ [str]
   - _self_
 

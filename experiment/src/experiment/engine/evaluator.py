@@ -79,9 +79,20 @@ class SimulatorRunner:
                 return val if val is not None else default
             return default
 
+        # Get reason and normalize empty/None based on simulation state
+        reason = get_val("done_reason", None)
+        if reason == "" or reason is None:
+            # Check if simulation reached duration limit (timeout) vs unexpected termination
+            final_time = clock.now
+            # Allow small tolerance for floating point comparison
+            if final_time >= duration - (1.0 / clock_rate):
+                reason = "timeout"
+            else:
+                reason = "unknown"
+
         return SimulationResult(
             success=get_val("success", False),
-            reason=get_val("done_reason", None),
+            reason=reason,
             final_state=get_val("sim_state", None),
             log=log,
             metrics={

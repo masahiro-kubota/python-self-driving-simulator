@@ -51,7 +51,7 @@ nodes:
 
       # Trajectory Generation (軌道生成)
       trajectory_resolution: 0.5    # [m] 出力軌道の離散化間隔
-      target_velocity: 10.0         # [m/s] 目標速度
+      target_velocity: 3.0         # [m/s] 目標速度
       trajectory_color: "#4DB6ACCC" # 軌跡の色 (Teal)
 
   # 実際の制御はPure Pursuitが担当
