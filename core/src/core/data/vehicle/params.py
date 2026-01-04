@@ -59,11 +59,19 @@ class VehicleParameters(BaseModel):
 
     steer_gain: float = Field(description="ステアリングゲイン (DCゲイン)")
 
-    steer_zeta: float = Field(description="SOPDTモデルの減衰比 (damping ratio)")
+    steer_zeta: float = Field(default=0.7, description="SOPDTモデルの減衰比 (damping ratio)")
 
     steer_omega_n: float = Field(
-        description="SOPDTモデルの固有角周波数 (natural frequency) [rad/s]"
+        default=5.0, description="SOPDTモデルの固有角周波数 (natural frequency) [rad/s]"
     )
+
+    steer_tau: float = Field(default=0.0, description="FOPDTモデルの時定数 (time constant) [秒]")
+
+    # Longitudinal Dynamics Parameters
+    accel_gain: float = Field(default=1.0, description="Longitudinal Acceleration Gain")
+    accel_offset: float = Field(default=0.0, description="Longitudinal Acceleration Offset [m/s^2]")
+    drag_coefficient: float = Field(default=0.0, description="Air Drag term C*v*|v|")
+    cornering_drag_coefficient: float = Field(default=0.0, description="Cornering Drag term C*|s|*v^2")
 
     # センサー設定
     lidar: LidarConfig | None = None

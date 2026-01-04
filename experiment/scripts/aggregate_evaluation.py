@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Aggregate results from Hydra multirun data collection.
+"""Aggregate results from evaluation runs.
 
 Usage:
-    uv run python scripts/aggregate_multirun.py outputs/2026-01-04/13-59-54
-    uv run python scripts/aggregate_multirun.py outputs/latest  # if symlink exists
+    uv run python experiment/scripts/aggregate_evaluation.py outputs/mlops/v8_20260104_202932/evaluation/standard
+    uv run python experiment/scripts/aggregate_evaluation.py outputs/mlops/v8_20260104_202932/evaluation/debug
 """
 
 import json
@@ -16,19 +16,16 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-def find_result_files(multirun_dir: Path) -> list[Path]:
-    """Find all result.json files in multirun subdirectories."""
+def find_result_files(eval_dir: Path) -> list[Path]:
+    """Find all result.json files in evaluation subdirectories."""
     results = []
-    for job_dir in sorted(multirun_dir.iterdir()):
-        if not job_dir.is_dir() or not job_dir.name.isdigit():
-            continue
-        # Search for result.json in nested structure
-        for result_path in job_dir.rglob("result.json"):
-            results.append(result_path)
-    return results
+    # Search for all result.json files recursively
+    for result_path in eval_dir.rglob("result.json"):
+        results.append(result_path)
+    return sorted(results)
 
 
-def aggregate_results(result_files: list[Path], multirun_dir: Path) -> dict:
+def aggregate_results(result_files: list[Path], eval_dir: Path) -> dict:
     """Aggregate all result files into a summary."""
     results = []
     reason_counter: Counter[str] = Counter()
@@ -56,24 +53,23 @@ def aggregate_results(result_files: list[Path], multirun_dir: Path) -> dict:
                 
                 # Get episode directory name from path
                 episode_dir = result_path.parent.name
-                job_dir = result_path.parent.parent.parent.parent.name  # job number
-                episode_path = result_path.parent.relative_to(multirun_dir)
-                mcap_rel_path = episode_path / "simulation.mcap"
                 
-                # Generate Foxglove URL with full path including date/time
-                import urllib.parse
-                # multirun_dir is like outputs/2026-01-04/14-24-35, we need to get date/time parts
-                date_time_path = multirun_dir.relative_to(multirun_dir.parent.parent)
-                mcap_url = f"http://127.0.0.1:8080/outputs/{date_time_path}/{mcap_rel_path}"
-                encoded_url = urllib.parse.quote(mcap_url, safe="")
-                foxglove_url = f"https://app.foxglove.dev/view?ds=remote-file&ds.url={encoded_url}"
+                # Get the scenario name (e.g., "default", "no_obstacle")
+                # Path structure: eval_dir/scenario/evaluation/episode_XXXX/result.json
+                scenario = result_path.parent.parent.parent.name
+                
+                episode_path = result_path.parent.relative_to(eval_dir)
+                
+                # Use the foxglove_url from the result if available
+                foxglove_url = result.get("foxglove_url", "")
                 
                 episodes_by_reason[reason].append({
-                    "job": job_dir,
+                    "scenario": scenario,
                     "episode": episode_dir,
                     "seed": result.get("seed"),
                     "path": str(episode_path),
-                    "foxglove": foxglove_url
+                    "foxglove": foxglove_url,
+                    "metrics": result.get("metrics", {})
                 })
         except Exception as e:
             logger.warning(f"Failed to read {result_path}: {e}")
@@ -92,16 +88,16 @@ def aggregate_results(result_files: list[Path], multirun_dir: Path) -> dict:
 
     total_checkpoints = sum(r.get("metrics", {}).get("checkpoint_count", 0) for r in results)
     total_goals = sum(r.get("metrics", {}).get("goal_count", 0) for r in results)
-    avg_checkpoints = total_checkpoints / total
+    avg_checkpoints = total_checkpoints / total if total > 0 else 0
 
     # Get relative path from project root if possible
     try:
-        output_dir_str = str(multirun_dir.relative_to(Path.cwd()))
+        output_dir_str = str(eval_dir.relative_to(Path.cwd()))
     except ValueError:
-        output_dir_str = str(multirun_dir)
+        output_dir_str = str(eval_dir)
 
     summary = {
-        "output_dir": output_dir_str,
+        "evaluation_dir": output_dir_str,
         "total_episodes": total,
         "success_rate": success_rate,
         "reason_breakdown": reason_breakdown,
@@ -144,13 +140,13 @@ def plot_summary(output_dir: Path, reason_counter: Counter, total: int) -> None:
             startangle=90,
             textprops={"fontsize": 10},
         )
-        ax1.set_title(f"Episode Outcomes (n={total})", fontsize=14, fontweight="bold")
+        ax1.set_title(f"Evaluation Outcomes (n={total})", fontsize=14, fontweight="bold")
 
         # Bar chart
         bars = ax2.bar(labels, sizes, color=colors)
         ax2.set_ylabel("Count", fontsize=12)
         ax2.set_xlabel("Outcome", fontsize=12)
-        ax2.set_title("Episode Outcome Distribution", fontsize=14, fontweight="bold")
+        ax2.set_title("Evaluation Outcome Distribution", fontsize=14, fontweight="bold")
 
         for bar, count in zip(bars, sizes):
             ax2.text(
@@ -164,7 +160,7 @@ def plot_summary(output_dir: Path, reason_counter: Counter, total: int) -> None:
 
         plt.tight_layout()
 
-        plot_path = output_dir / "collection_summary.png"
+        plot_path = output_dir / "evaluation_summary.png"
         plt.savefig(plot_path, dpi=150, bbox_inches="tight")
         plt.close()
 
@@ -175,69 +171,36 @@ def plot_summary(output_dir: Path, reason_counter: Counter, total: int) -> None:
     except Exception as e:
         logger.warning(f"Failed to generate plot: {e}")
 
-def find_latest_multirun(outputs_dir: Path) -> Path | None:
-    """Find the most recent multirun directory in outputs."""
-    if not outputs_dir.exists():
-        return None
-    
-    # Look for directories with date/time pattern
-    latest = None
-    latest_mtime = 0
-    
-    for date_dir in outputs_dir.iterdir():
-        if not date_dir.is_dir():
-            continue
-        for time_dir in date_dir.iterdir():
-            if not time_dir.is_dir():
-                continue
-            # Check if it looks like a multirun (has numbered subdirs)
-            has_numbered_dirs = any(
-                d.name.isdigit() for d in time_dir.iterdir() if d.is_dir()
-            )
-            if has_numbered_dirs:
-                mtime = time_dir.stat().st_mtime
-                if mtime > latest_mtime:
-                    latest_mtime = mtime
-                    latest = time_dir
-    
-    return latest
-
 
 def main():
     if len(sys.argv) < 2:
-        # Auto-detect latest multirun directory
-        outputs_dir = Path.cwd() / "outputs"
-        multirun_dir = find_latest_multirun(outputs_dir)
-        if multirun_dir is None:
-            print("Usage: uv run python experiment/scripts/aggregate_multirun.py [multirun_dir]")
-            print("       If no directory specified, auto-detects latest from outputs/")
-            print("\nNo multirun directories found in outputs/")
-            sys.exit(1)
-        logger.info(f"Auto-detected latest multirun: {multirun_dir}")
-    else:
-        multirun_dir = Path(sys.argv[1]).resolve()
-
-    if not multirun_dir.exists():
-        logger.error(f"Directory not found: {multirun_dir}")
+        print("Usage: uv run python experiment/scripts/aggregate_evaluation.py [evaluation_dir]")
+        print("Example: uv run python experiment/scripts/aggregate_evaluation.py outputs/mlops/v8_20260104_202932/evaluation/standard")
         sys.exit(1)
 
-    logger.info(f"Aggregating results from: {multirun_dir}")
+    eval_dir = Path(sys.argv[1]).resolve()
 
-    result_files = find_result_files(multirun_dir)
+    if not eval_dir.exists():
+        logger.error(f"Directory not found: {eval_dir}")
+        sys.exit(1)
+
+    logger.info(f"Aggregating evaluation results from: {eval_dir}")
+
+    result_files = find_result_files(eval_dir)
     logger.info(f"Found {len(result_files)} result files")
 
     if not result_files:
         logger.error("No result.json files found")
         sys.exit(1)
 
-    summary, reason_counter, episodes_by_reason = aggregate_results(result_files, multirun_dir)
+    summary, reason_counter, episodes_by_reason = aggregate_results(result_files, eval_dir)
 
     if summary is None:
         logger.error("Failed to aggregate results")
         sys.exit(1)
 
     # Save summary JSON
-    summary_path = multirun_dir / "collection_summary.json"
+    summary_path = eval_dir / "evaluation_summary.json"
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=2)
     logger.info(f"Created summary: {summary_path}")
@@ -250,9 +213,9 @@ def main():
     )
 
     # Generate plot
-    plot_summary(multirun_dir, reason_counter, summary["total_episodes"])
+    plot_summary(eval_dir, reason_counter, summary["total_episodes"])
 
-    print(f"\n✅ Aggregation complete! Output: {multirun_dir}")
+    print(f"\n✅ Aggregation complete! Output: {eval_dir}")
 
 
 if __name__ == "__main__":

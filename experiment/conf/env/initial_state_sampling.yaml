@@ -1,9 +1,11 @@
-# Random Initial State Sampling Configuration
-# Lanelet内のランダムな位置・姿勢・速度でシミュレーションを開始
+defaults:
+  - default
+  - _self_
 
-enabled: true                        # ランダムサンプリングの有効/無効 [bool]
-position_mode: track_random          # サンプリングモード: track_random (centerline上からサンプリング) [str]
-lateral_offset_range: [-2.0, 2.0]   # centerlineからの横方向オフセット範囲 [m]
-yaw_offset_range: [-0.2, 0.2]        # centerline方向に対する姿勢オフセット範囲 [rad] (~±11度)
-velocity_range: [5.0, 15.0]          # 初期速度範囲 [m/s]
-max_retries: 10                      # Lanelet内チェックの最大リトライ回数 [int]
+initial_state_sampling:
+  enabled: true                        # ランダムサンプリングの有効/無効 [bool]
+  position_mode: track_random          # サンプリングモード: track_random (centerline上からサンプリング) [str]
+  lateral_offset_range: [-2.0, 2.0]   # centerlineからの横方向オフセット範囲 [m]
+  yaw_offset_range: [-0.2, 0.2]        # centerline方向に対する姿勢オフセット範囲 [rad] (~±11度)
+  velocity_range: [5.0, 15.0]          # 初期速度範囲 [m/s]
+  max_retries: 10                      # Lanelet内チェックの最大リトライ回数 [int]

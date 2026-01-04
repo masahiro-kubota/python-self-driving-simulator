@@ -4,7 +4,7 @@
 
 defaults:
   - base
-  - override /ad_components: tiny_lidar
+  - override /ad_components: tiny_lidar_debug
   - override /hydra/launcher: joblib  # 並列実行用（override を明示）
   - _self_
 
@@ -19,7 +19,5 @@ execution:
 
 # 後処理設定
 postprocess:
-  #foxglove:
-  #  auto_open: false  # ベンチマーク実行時は自動で開かない
   dashboard:
     enabled: false  # ベンチマーク実行時はダッシュボードを無効化

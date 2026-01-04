@@ -10,7 +10,7 @@ experiment:
 
 # Override execution for test episodes
 execution:
-  duration_sec: 6.0
+  duration_sec: 3.0
 
 # Enable random initial state sampling (env in data_collection is minimal, so we add this)
 env:

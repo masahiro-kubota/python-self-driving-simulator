@@ -10,7 +10,7 @@ mlflow/*/
 mlflow/.trash/
 # Data and Models
 /data/*
-!/data/*.dvc
+!/data/**/*.dvc
 !/data/.gitignore
 
 models/

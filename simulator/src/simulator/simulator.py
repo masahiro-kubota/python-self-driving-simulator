@@ -239,7 +239,7 @@ class SimulatorNode(Node[SimulatorConfig]):
             actual_steering,
             acceleration,
             self.dt,
-            self.config.vehicle_params.wheelbase,
+            self.config.vehicle_params,
         )
         self.current_time += self.dt
         self._current_state.timestamp = self.current_time

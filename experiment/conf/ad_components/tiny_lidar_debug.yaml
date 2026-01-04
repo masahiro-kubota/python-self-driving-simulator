@@ -23,12 +23,22 @@ nodes:
       output_dim: 2         # 出力次元数(加速度+ステアリング) [次元]
       architecture: "large" # モデルアーキテクチャ名 [str]
       model_path: ${ad_components.model_path} # 推論用モデルのパス [str]
-      target_velocity: 10.0 # 目標速度 [m/s]
+      target_velocity: 3.0 # 目標速度 [m/s]
       max_range: 30.0       # LiDARの最大検知距離(正規化に使用) [m]
       vehicle_params: ${vehicle}
-      control_cmd_topic: "control_cmd_tinylidar" # デバッグ用トピック名（シミュレータは購読しない）
+      control_cmd_topic: "control_cmd" # デバッグ用トピック名（シミュレータは購読しない）
 
-  # 障害物回避プランナー（LateralShiftPlanner）
+  # 差分出力ノード
+  diff_publisher:
+    type: "experiment.debug_nodes.ControlCmdDiffNode"
+    rate_hz: 50.0
+    priority: 40
+    params:
+      topic_a: ${ad_components.nodes.control.params.control_cmd_topic}
+      topic_b: ${ad_components.nodes.tiny_lidar_net.params.control_cmd_topic}
+      output_topic: "steering_command_diff"
+      wait_for_both: true
+
   planning:
     type: LateralShiftPlannerNode
     rate_hz: 50.0  # プランニング更新レート [Hz]
@@ -42,8 +52,8 @@ nodes:
 
       # Shift Profile Parameters (Avoidance Logic, 回避ロジック)
       avoidance_maneuver_length: 5.0 # [m] 横方向移動（0から目標位置まで）を完了するために必要な縦方向距離
-      longitudinal_margin_front: 0.0 # [m] 障害物手前の余裕距離（障害物のこの距離手前で回避移動を完了する）
-      longitudinal_margin_rear: 0.0  # [m] 障害物通過後の余裕距離（障害物を通過した後、この距離だけ回避状態を維持する）
+      longitudinal_margin_front: 2.0 # [m] 障害物手前の余裕距離（障害物のこの距離手前で回避移動を完了する）
+      longitudinal_margin_rear: 2.0  # [m] 障害物通過後の余裕距離（障害物を通過した後、この距離だけ回避状態を維持する）
 
       # Vehicle & Environment (車両・環境設定)
       vehicle_width: ${vehicle.width} # [m] 自車幅
@@ -51,23 +61,22 @@ nodes:
 
       # Trajectory Generation (軌道生成)
       trajectory_resolution: 0.5    # [m] 出力軌道の離散化間隔
-      target_velocity: 3.0         # [m/s] 目標速度
+      target_velocity: 3.0         # [m/s] 目標速度（設定がない、またはnullの場合はデフォルト値またはマップ速度を使用）
       trajectory_color: "#4DB6ACCC" # 軌跡の色 (Teal)
 
-  # 実際の制御はPure Pursuitが担当
   control:
     type: PurePursuitControllerNode
     rate_hz: 50.0  # 制御更新レート [Hz]
     priority: 30   # 実行優先度（プランニングの後に実行）
     params:
       vehicle_params: ${vehicle}
+      control_cmd_topic: "control_cmd_pure_pursuit"
       lookahead_marker_color: "#D1C4E9CC" # 前方注視点マーカーの色 (Deep Purple 100)
-      control_cmd_topic: "control_cmd" # 制御コマンドの出力トピック名（シミュレータはこれを購読）
       lateral:
         min_lookahead_distance: 3.5   # 最小前方注視距離 [m]
         max_lookahead_distance: 100.0   # 最大前方注視距離 [m]
         lookahead_speed_ratio: 1.5    # 速度に対する注視距離の比率 [s]
-        steering_gain: 1.63            # ステアリング出力ゲイン
+        steering_gain: 1.639            # ステアリング出力ゲイン
       longitudinal:
         kp: 1.0       # 比例ゲイン (P)
         ki: 0.0       # 積分ゲイン (I)

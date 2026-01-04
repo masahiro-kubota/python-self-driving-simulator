@@ -69,6 +69,9 @@ class CollectorEngine(BaseEngine):
 
             # Save result to JSON for metrics aggregation and filtering
             result_path = episode_dir / "result.json"
+            mcap_path = episode_dir / "simulation.mcap"
+            foxglove_url = self._get_foxglove_url(mcap_path)
+
             try:
                 import json
 
@@ -82,6 +85,7 @@ class CollectorEngine(BaseEngine):
                             "seed": seed_val,
                             "success": result.success,
                             "reason": result.reason,
+                            "foxglove_url": foxglove_url,
                             "metrics": result.metrics,
                             "final_state": {
                                 "x": result.final_state.x if result.final_state else None,

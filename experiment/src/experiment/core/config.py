@@ -32,12 +32,12 @@ class ObstaclePlacement(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    strategy: Literal["random_track", "random_map"]
+    strategy: Literal["random_track", "random_map", "track_forward"]
     offset: dict[str, float] | None = None
-    yaw_mode: Literal["aligned", "random"] | None = None
     yaw_mode: Literal["aligned", "random"] | None = None
     bounds: dict[str, float] | None = None
     min_distance: float = Field(0.0, ge=0.0)
+    forward_distance: float | None = Field(None, ge=0.0, description="Forward distance for track_forward strategy")
 
 
 class ObstacleGroup(BaseModel):

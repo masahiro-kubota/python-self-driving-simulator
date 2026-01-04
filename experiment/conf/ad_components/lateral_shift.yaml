@@ -23,8 +23,8 @@ nodes:
 
       # Shift Profile Parameters (Avoidance Logic, 回避ロジック)
       avoidance_maneuver_length: 5.0 # [m] 横方向移動（0から目標位置まで）を完了するために必要な縦方向距離
-      longitudinal_margin_front: 0.0 # [m] 障害物手前の余裕距離（障害物のこの距離手前で回避移動を完了する）
-      longitudinal_margin_rear: 0.0  # [m] 障害物通過後の余裕距離（障害物を通過した後、この距離だけ回避状態を維持する）
+      longitudinal_margin_front: 2.0 # [m] 障害物手前の余裕距離（障害物のこの距離手前で回避移動を完了する）
+      longitudinal_margin_rear: 2.0  # [m] 障害物通過後の余裕距離（障害物を通過した後、この距離だけ回避状態を維持する）
 
       # Vehicle & Environment (車両・環境設定)
       vehicle_width: ${vehicle.width} # [m] 自車幅
@@ -46,7 +46,7 @@ nodes:
         min_lookahead_distance: 3.5   # 最小前方注視距離 [m]
         max_lookahead_distance: 100.0   # 最大前方注視距離 [m]
         lookahead_speed_ratio: 1.5    # 速度に対する注視距離の比率 [s]
-        steering_gain: 1.63            # ステアリング出力ゲイン
+        steering_gain: 1.639            # ステアリング出力ゲイン
       longitudinal:
         kp: 1.0       # 比例ゲイン (P)
         ki: 0.0       # 積分ゲイン (I)

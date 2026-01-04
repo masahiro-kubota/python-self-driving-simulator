@@ -179,6 +179,9 @@ class EvaluatorEngine(BaseEngine):
 
             # Save result to JSON for metrics aggregation
             result_path = episode_dir / "result.json"
+            mcap_path = episode_dir / "simulation.mcap"
+            foxglove_url = self._get_foxglove_url(mcap_path)
+
             try:
                 import json
 
@@ -189,6 +192,7 @@ class EvaluatorEngine(BaseEngine):
                             "seed": episode_seed,
                             "success": res.success,
                             "reason": res.reason,
+                            "foxglove_url": foxglove_url,
                             "metrics": res.metrics,
                             "final_state": {
                                 "x": res.final_state.x if res.final_state else None,
@@ -235,35 +239,16 @@ class EvaluatorEngine(BaseEngine):
                         logger.warning(f"Failed to generate dashboard for episode {i}: {e}")
 
                 # Log Foxglove URL
-                try:
-                    import urllib.parse
+                if foxglove_url:
+                    last_foxglove_url = foxglove_url
 
-                    # Find project root by looking for uv.lock or .git
-                    current_dir = Path(__file__).resolve().parent
-                    project_root = None
-                    for parent in [current_dir, *list(current_dir.parents)]:
-                        if (parent / "uv.lock").exists() or (parent / ".git").exists():
-                            project_root = parent
-                            break
+                    # Use print with flush to ensure it shows up in terminal
+                    print(f"\n🦊 View in Foxglove: {foxglove_url}", flush=True)
 
-                    if project_root:
-                        rel_mcap_path = mcap_path.resolve().relative_to(project_root.resolve())
-                        mcap_url = f"http://127.0.0.1:8080/{rel_mcap_path}"
-                        encoded_url = urllib.parse.quote(mcap_url, safe="")
-                        foxglove_url = (
-                            f"https://app.foxglove.dev/view?ds=remote-file&ds.url={encoded_url}"
-                        )
-                        last_foxglove_url = foxglove_url
-
-                        # Use print with flush to ensure it shows up in terminal
-                        print(f"\n🦊 View in Foxglove: {foxglove_url}", flush=True)
-
-                        # Auto-open if configured
-                        if cfg.postprocess.foxglove.auto_open:
-                            logger.info(f"Auto-opening Foxglove URL: {foxglove_url}")
-                            webbrowser.open(foxglove_url)
-                except Exception:
-                    pass
+                    # Auto-open if configured
+                    if cfg.postprocess.foxglove.auto_open:
+                        logger.info(f"Auto-opening Foxglove URL: {foxglove_url}")
+                        webbrowser.open(foxglove_url)
 
         # Calculate Aggregate Metrics
         success_count = sum(1 for r in results if r.success)

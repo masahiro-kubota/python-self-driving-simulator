@@ -76,6 +76,9 @@ class ExtractorEngine(BaseEngine):
         all_accels = []
         s_freq_list = []
         c_freq_list = []
+        
+        from collections import Counter
+        skipped_reasons = Counter()
 
         for mcap_file in mcap_files:
             # Check result.json for success status
@@ -90,6 +93,7 @@ class ExtractorEngine(BaseEngine):
                         if exclude_reasons is None:
                             # Exclude all failures
                             logger.info(f"Skipping failed episode: {mcap_file.parent}")
+                            skipped_reasons["failed_unspecified"] += 1
                             continue
 
                         failure_reason = result_data.get("reason", "")
@@ -99,12 +103,14 @@ class ExtractorEngine(BaseEngine):
                                 f"Skipping episode due to excluded reason "
                                 f"'{failure_reason}': {mcap_file.parent}"
                             )
+                            skipped_reasons[failure_reason] += 1
                             continue
                         # Else: include this failed episode
                 except Exception as e:
                     logger.warning(f"Failed to read result.json at {result_json_path}: {e}")
                     # If we can't read result.json, skip it unless we're including all
                     if exclude_reasons is None:
+                        skipped_reasons["read_error"] += 1
                         continue
 
             result = self._extract_from_single_mcap(mcap_file)
@@ -147,8 +153,20 @@ class ExtractorEngine(BaseEngine):
             logger.warning("No finite scan values found for statistics.")
             valid_scans = np.zeros(1)
 
+        # Count processed episodes and reason breakdown
+        processed_episodes = len(mcap_files) - sum(skipped_reasons.values())
+        
         stats = {
+            "dataset_overview": {
+                "input_dir": str(input_dir),
+                "total_episodes": len(mcap_files),
+                "processed_episodes": processed_episodes,
+                "skipped_episodes": sum(skipped_reasons.values()),
+                "total_samples": len(scans),
+            },
+            "skipped_episodes_breakdown": dict(skipped_reasons),
             "scans": {
+                "count_per_episode_avg": len(scans) / processed_episodes if processed_episodes > 0 else 0,
                 "mean": float(np.mean(valid_scans)),
                 "std": float(np.std(valid_scans)),
                 # Use numpy min/max to handle potentially empty valid set if logic above fails, though caught by len check
@@ -156,12 +174,18 @@ class ExtractorEngine(BaseEngine):
                 "max": float(np.max(valid_scans)),
             },
             "steers": {
+                "count_per_episode_avg": len(steers) / processed_episodes if processed_episodes > 0 else 0,
                 "mean": float(np.mean(steers)),
                 "std": float(np.std(steers)),
+                "min": float(np.min(steers)),
+                "max": float(np.max(steers)),
             },
             "accels": {
+                "count_per_episode_avg": len(accels) / processed_episodes if processed_episodes > 0 else 0,
                 "mean": float(np.mean(accels)),
                 "std": float(np.std(accels)),
+                "min": float(np.min(accels)),
+                "max": float(np.max(accels)),
             },
         }
 

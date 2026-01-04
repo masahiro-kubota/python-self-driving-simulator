@@ -1,7 +1,8 @@
 import os
 import subprocess
 from abc import ABC, abstractmethod
-from typing import Any
+from pathlib import Path
+from typing import Any, Optional
 
 import mlflow
 from omegaconf import DictConfig, OmegaConf
@@ -85,3 +86,25 @@ class BaseEngine(ABC):
             cfg: Hydra設定オブジェクト
         """
         pass
+
+    def _get_foxglove_url(self, mcap_path: Path) -> Optional[str]:
+        """Generate Foxglove URL for the given MCAP file."""
+        try:
+            import urllib.parse
+
+            # Find project root by looking for uv.lock or .git
+            current_dir = Path(__file__).resolve().parent
+            project_root = None
+            for parent in [current_dir, *list(current_dir.parents)]:
+                if (parent / "uv.lock").exists() or (parent / ".git").exists():
+                    project_root = parent
+                    break
+
+            if project_root:
+                rel_mcap_path = mcap_path.resolve().relative_to(project_root.resolve())
+                mcap_url = f"http://127.0.0.1:8080/{rel_mcap_path}"
+                encoded_url = urllib.parse.quote(mcap_url, safe="")
+                return f"https://app.foxglove.dev/view?ds=remote-file&ds.url={encoded_url}"
+        except Exception:
+            pass
+        return None

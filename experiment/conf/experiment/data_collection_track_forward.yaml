@@ -1,0 +1,23 @@
+# @package _global_
+
+defaults:
+  - data_collection
+  - override /env: track_forward_initial_state_sampling
+  - _self_
+
+experiment:
+  name: data_collection_track_forward
+  description: Data collection with track_forward obstacles and 7s duration
+
+execution:
+  duration_sec: 7.0
+
+env:
+  initial_state_sampling:
+    seed: 0  # Default seed for single run, will be overridden by sweeper in multirun
+
+hydra:
+  sweeper:
+    params:
+      # Automatically generate seed range based on total episodes
+      env.initial_state_sampling.seed: ${seed_range:${execution.base_seed},0,${execution.total_episodes},${execution.num_episodes}}

@@ -1,5 +1,6 @@
 # Default Vehicle Parameters
 # デフォルト車両パラメータ設定
+# (これらの値は scripts/system_identification/estimate_dynamics.py によって同定された実機データに基づいています)
 
 # Base Geometry (基本形状)
 wheelbase: 1.087 # ホイールベース [m]
@@ -13,18 +14,21 @@ max_steering_angle: 0.367 # 最大ステアリング角 [rad]
 max_velocity: 35.0      # 最大速度 [m/s]
 max_acceleration: 4.37   # 最大加速度 [m/s^2]
 
-# Steering Response (ステアリング応答モデル)
-steer_delay_time: 0.1737      # 純粋な時間遅れ [秒] (0-0.5)
-max_steer_rate: 0.9366         # ステア角の最大変化率 [rad/s]
-
 # ステアリングゲイン (DCゲイン)
 # 統合値 = アクチュエータゲイン × タイヤ滑り補正係数
-# システム同定 (Yaw Rate SOPDT): scripts/system_identification/estimate_steering_dynamics.py
-# K_total = 0.6212
-steer_gain: 0.6212
+# システム同定 (Yaw Rate FOPDT): scripts/system_identification/estimate_dynamics.py
+# K_total = 0.6209
+steer_gain: 0.6209
 
-steer_zeta: 0.6979          # SOPDT減衰比
-steer_omega_n: 4.1244       # SOPDT固有角周波数 [rad/s]
+steer_tau: 0.1460            # FOPDT時定数 [秒]
+steer_delay_time: 0.3644      # FOPDT無駄時間 [秒]
+max_steer_rate: 0.9366         # ステア角の最大変化率 [rad/s]
+
+# Longitudinal Dynamics (縦方向ダイナミクス)
+accel_gain: 0.1             # 加速度ゲイン (補正係数)
+accel_offset: 0.8660        # 加速バイアス [m/s^2]
+drag_coefficient: 0.1097    # 空気抵抗係数 (C_drag * v * |v|)
+cornering_drag_coefficient: 0.0418 # コーナリング抵抗係数 (C_corner * |steer| * v^2)
 
 # Sensors (センサー設定)
 lidar:

@@ -69,14 +69,14 @@ uv run experiment-runner \
   experiment=extraction \
   input_dir=outputs/YYYY-MM-DD/HH-MM-SS/data_collection_train_v7 \
   output_dir=data/processed/train_v7 \
-  exclude_failure_reasons=[off_track,collision,unknown]
+  exclude_failure_reasons='[off_track,collision,unknown]'
 
 # Valデータの処理
 uv run experiment-runner \
   experiment=extraction \
   input_dir=outputs/YYYY-MM-DD/HH-MM-SS/data_collection_val_v7 \
   output_dir=data/processed/val_v7 \
-  exclude_failure_reasons=[off_track,collision,unknown]
+  exclude_failure_reasons='[off_track,collision,unknown]'
 ```
 
 - **input_dir**: データ収集ステップの出力ディレクトリ (`outputs/日付/時刻/...`)
@@ -116,10 +116,17 @@ uv run experiment-runner -m \
 ```bash
 # モデルパスとターゲット速度を指定可能
 uv run experiment-runner experiment=evaluation \
-    ad_components=tiny_lidar \
+    ad_components=tiny_lidar_debug \
+    ad_components.model_path=$(pwd)/checkpoints/tiny_lidar_net_v7_3000/best_model.npy \
+    env=no_obstacle
+
+# [Debug Evaluation] Pure Pursuitで走行し、モデル出力を監視のみする場合
+uv run experiment-runner experiment=evaluation \
+    ad_components=tiny_lidar_debug \
     ad_components.model_path=$(pwd)/checkpoints/tiny_lidar_net_v7_3000/best_model.npy \
     env=no_obstacle \
-    ad_components.nodes.tiny_lidar_net.params.target_velocity=10.0
+    ad_components.nodes.tiny_lidar_net.params.control_cmd_topic=control_cmd_tinylidar \
+    ad_components.nodes.control.params.control_cmd_topic=control_cmd
 ```
 
 ---

@@ -229,6 +229,9 @@ class ObstacleGenerator:
                 elif strategy == "random_track":
                     pose = self._place_random_track(placement)
 
+                elif strategy == "track_forward":
+                    pose = self._place_track_forward(placement)
+
                 else:
                     logger.warning(f"Unknown placement strategy: {strategy}")
                     break
@@ -256,6 +259,10 @@ class ObstacleGenerator:
                     ):
                         generated.append(obstacle)
                         break
+                else:
+                    logger.warning(
+                        f"Failed to place obstacle {len(generated)+1} for group '{group_config.get('name')}' after 100 attempts."
+                    )
 
         return generated
 
@@ -392,6 +399,94 @@ class ObstacleGenerator:
             float(offset_y),
             float(yaw),
             {"centerline_index": int(centerline_idx), "centerline_dist": float(current_dist)},
+        )
+
+    def _place_track_forward(
+        self, placement_config: DictConfig
+    ) -> tuple[float, float, float, dict[str, Any]] | None:
+        """Generate a pose a fixed distance ahead of initial position along the track."""
+        if not self.initial_state or not self.global_centerline:
+            logger.warning("track_forward strategy requires initial_state and global track.")
+            return None
+
+        # Find closest point on global centerline to initial state
+        init_x = self.initial_state["x"]
+        init_y = self.initial_state["y"]
+
+        # Simple linear search for closest point
+        # self.global_centerline is list of (x, y, yaw, dist)
+        closest_idx = -1
+        min_dist_sq = float("inf")
+
+        # Optimization: Use numpy if points are efficiently accessible or just standard loop
+        # Since global_centerline is a list of tuples, standard loop is okay-ish.
+        # But we can do better if we just iterate.
+        for i, pt in enumerate(self.global_centerline):
+            dx = pt[0] - init_x
+            dy = pt[1] - init_y
+            d2 = dx * dx + dy * dy
+            if d2 < min_dist_sq:
+                min_dist_sq = d2
+                closest_idx = i
+
+        if closest_idx == -1:
+            return None
+
+        current_dist = self.global_centerline[closest_idx][3]
+
+        # Add lookahead distance
+        forward_dist = placement_config.get("forward_distance", 3.0)
+        target_dist = current_dist + forward_dist
+
+        # Handle wrap-around
+        if self.total_track_length > 0:
+            target_dist %= self.total_track_length
+
+        # Interpolate state at target_dist
+        p1 = self.global_centerline[-1]
+        p2 = self.global_centerline[-1]
+
+        for i in range(len(self.global_centerline) - 1):
+            if self.global_centerline[i + 1][3] >= target_dist:
+                p1 = self.global_centerline[i]
+                p2 = self.global_centerline[i + 1]
+                break
+
+        d1, d2 = p1[3], p2[3]
+        seg_len = d2 - d1
+        ratio = (target_dist - d1) / seg_len if seg_len > 1e-6 else 0
+
+        base_x = p1[0] + ratio * (p2[0] - p1[0])
+        base_y = p1[1] + ratio * (p2[1] - p1[1])
+
+        # Yaw interpolation
+        yaw1, yaw2 = p1[2], p2[2]
+        dyaw = yaw2 - yaw1
+        while dyaw > math.pi:
+            dyaw -= 2 * math.pi
+        while dyaw < -math.pi:
+            dyaw += 2 * math.pi
+        base_yaw = yaw1 + ratio * dyaw
+
+        # Apply lateral offset
+        # Default to 0.0 for this mode if not specified, assuming "on centerline" intent
+        offset_range = placement_config.get("offset", {"min": 0.0, "max": 0.0})
+        lateral_offset = self.rng.uniform(
+            offset_range.get("min", 0.0), offset_range.get("max", 0.0)
+        )
+
+        offset_x = base_x - math.sin(base_yaw) * lateral_offset
+        offset_y = base_y + math.cos(base_yaw) * lateral_offset
+
+        # Yaw mode
+        yaw_mode = placement_config.get("yaw_mode", "aligned")
+        yaw = self.rng.uniform(-math.pi, math.pi) if yaw_mode == "random" else base_yaw
+
+        return (
+            float(offset_x),
+            float(offset_y),
+            float(yaw),
+            {"centerline_index": -1, "centerline_dist": float(target_dist)},
         )
 
     def _validate_placement(

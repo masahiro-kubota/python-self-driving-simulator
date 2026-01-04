@@ -45,6 +45,7 @@ OmegaConf.register_new_resolver("div_int", div_int_resolver, replace=True)
 OmegaConf.register_new_resolver("div_ceil", div_ceil_resolver, replace=True)
 OmegaConf.register_new_resolver("add_int", add_int_resolver, replace=True)
 OmegaConf.register_new_resolver("seed_range", seed_range_resolver, replace=True)
+OmegaConf.register_new_resolver("eval", eval, replace=True)
 
 
 

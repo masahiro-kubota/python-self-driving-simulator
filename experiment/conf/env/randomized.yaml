@@ -14,11 +14,11 @@ obstacles:
         count: 10 # 生成する障害物の数 [個]
         shape:
           type: rectangle # 形状の種類 (rectangle: 長方形) [str]
-          width: 1.30   # 車両の幅 [m]
-          length: 2.064 # 車両の全長 (ホイールベース + 前後オーバーハング) [m]
-          height: 0.5   # 高さ [m]
+          width: ${vehicle.width}   # 車両の幅 [m]
+          length: ${eval:'${vehicle.wheelbase} + ${vehicle.front_overhang} + ${vehicle.rear_overhang}'} # 車両の全長 (ホイールベース + 前後オーバーハング) [m]
+          height: ${vehicle.vehicle_height}   # 高さ [m]
         placement:
-          strategy: random_track # 配置戦略 (random_track: トラック上にランダム配置) [str]
+          strategy: random_track # 配置戦略 (random_track: トラック上にランダム配置, track_forward: 初期位置から一定距離前方) [str]
           min_distance: 10.0 # 障害物間の最小距離 [m]
           offset:
             min: -1.0 # 基準線（中心線）からの最小横方向オフセット [m]

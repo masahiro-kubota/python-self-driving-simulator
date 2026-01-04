@@ -16,7 +16,30 @@ from simulator.state import SimulationVehicleState
 class TestUpdateBicycleModel:
     """Tests for update_bicycle_model function."""
 
-    def test_straight_line_motion(self) -> None:
+    @pytest.fixture
+    def default_params(self) -> VehicleParameters:
+        return VehicleParameters(
+            wheelbase=2.5,
+            width=2.0,
+            front_overhang=1.0,
+            rear_overhang=1.0,
+            vehicle_height=2.2,
+            max_steering_angle=0.6,
+            max_velocity=20.0,
+            max_acceleration=3.0,
+            steer_delay_time=0.0,
+            max_steer_rate=10.0,
+            steer_gain=1.0,
+            steer_tau=0.1,
+            steer_zeta=0.7,
+            steer_omega_n=5.0,
+            accel_gain=1.0,
+            accel_offset=0.0,
+            drag_coefficient=0.0,
+            cornering_drag_coefficient=0.0
+        )
+
+    def test_straight_line_motion(self, default_params: VehicleParameters) -> None:
         """Test straight line motion with constant velocity."""
         state = SimulationVehicleState(
             x=0.0,
@@ -32,7 +55,7 @@ class TestUpdateBicycleModel:
             steering=0.0,
             acceleration=0.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # Position should move forward
@@ -42,7 +65,7 @@ class TestUpdateBicycleModel:
         assert abs(next_state.vx - 5.0) < 1e-10
         assert next_state.timestamp == 0.1
 
-    def test_acceleration(self) -> None:
+    def test_acceleration(self, default_params: VehicleParameters) -> None:
         """Test acceleration increases velocity."""
         state = SimulationVehicleState(
             x=0.0,
@@ -56,7 +79,7 @@ class TestUpdateBicycleModel:
             steering=0.0,
             acceleration=2.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # Velocity should increase
@@ -64,7 +87,7 @@ class TestUpdateBicycleModel:
         assert abs(next_state.vx - expected_vx) < 1e-10
         assert next_state.ax == 2.0
 
-    def test_deceleration(self) -> None:
+    def test_deceleration(self, default_params: VehicleParameters) -> None:
         """Test deceleration decreases velocity."""
         state = SimulationVehicleState(
             x=0.0,
@@ -78,14 +101,14 @@ class TestUpdateBicycleModel:
             steering=0.0,
             acceleration=-1.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # Velocity should decrease
         expected_vx = 5.0 - 1.0 * 0.1
         assert abs(next_state.vx - expected_vx) < 1e-10
 
-    def test_turning_motion(self) -> None:
+    def test_turning_motion(self, default_params: VehicleParameters) -> None:
         """Test turning motion with steering input."""
         state = SimulationVehicleState(
             x=0.0,
@@ -100,7 +123,7 @@ class TestUpdateBicycleModel:
             steering=0.1,  # Small left turn
             acceleration=0.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # Yaw should increase (turning left)
@@ -110,7 +133,7 @@ class TestUpdateBicycleModel:
         # Steering should be stored
         assert next_state.steering == 0.1
 
-    def test_zero_velocity(self) -> None:
+    def test_zero_velocity(self, default_params: VehicleParameters) -> None:
         """Test behavior at zero velocity."""
         state = SimulationVehicleState(
             x=0.0,
@@ -124,7 +147,7 @@ class TestUpdateBicycleModel:
             steering=0.5,  # Large steering angle
             acceleration=0.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # At zero velocity, yaw rate should be zero
@@ -133,7 +156,7 @@ class TestUpdateBicycleModel:
         assert abs(next_state.x - state.x) < 1e-10
         assert abs(next_state.y - state.y) < 1e-10
 
-    def test_large_steering_angle(self) -> None:
+    def test_large_steering_angle(self, default_params: VehicleParameters) -> None:
         """Test with large steering angle."""
         state = SimulationVehicleState(
             x=0.0,
@@ -148,13 +171,13 @@ class TestUpdateBicycleModel:
             steering=math.pi / 4,
             acceleration=0.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # Should produce large yaw rate
         assert abs(next_state.yaw_rate) > 0.5
 
-    def test_negative_steering(self) -> None:
+    def test_negative_steering(self, default_params: VehicleParameters) -> None:
         """Test right turn with negative steering."""
         state = SimulationVehicleState(
             x=0.0,
@@ -169,14 +192,14 @@ class TestUpdateBicycleModel:
             steering=-0.1,
             acceleration=0.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # Yaw should decrease (turning right)
         assert next_state.yaw < state.yaw
         assert next_state.yaw_rate < 0
 
-    def test_timestamp_none(self) -> None:
+    def test_timestamp_none(self, default_params: VehicleParameters) -> None:
         """Test with no initial timestamp."""
         state = SimulationVehicleState(
             x=0.0,
@@ -191,13 +214,13 @@ class TestUpdateBicycleModel:
             steering=0.0,
             acceleration=0.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # Timestamp should remain None
         assert next_state.timestamp is None
 
-    def test_kinematic_constraints(self) -> None:
+    def test_kinematic_constraints(self, default_params: VehicleParameters) -> None:
         """Test that kinematic model constraints are maintained."""
         state = SimulationVehicleState(
             x=0.0,
@@ -211,7 +234,7 @@ class TestUpdateBicycleModel:
             steering=0.1,
             acceleration=1.0,
             dt=0.1,
-            wheelbase=2.5,
+            params=default_params,
         )
 
         # Kinematic model assumes vy = 0
@@ -334,23 +357,17 @@ class TestGetBicycleModelPolygon:
             max_steering_angle=0.6,
             max_velocity=20.0,
             max_acceleration=3.0,
-            mass=1500.0,
-            inertia=2500.0,
-            lf=1.2,
-            lr=1.3,
-            cf=80000.0,
-            cr=80000.0,
-            c_drag=0.3,
-            c_roll=0.015,
-            max_drive_force=5000.0,
-            max_brake_force=8000.0,
             vehicle_height=2.2,
             steer_delay_time=0.0,
             max_steer_rate=0.87,
             steer_gain=1.0,
+            steer_tau=0.1,
             steer_zeta=1.0,
             steer_omega_n=5.0,
-            tire_params={},
+            accel_gain=1.0,
+            accel_offset=0.0,
+            drag_coefficient=0.0,
+            cornering_drag_coefficient=0.0
         )
 
         polygon = get_bicycle_model_polygon(state, params)
@@ -376,23 +393,17 @@ class TestGetBicycleModelPolygon:
             max_steering_angle=0.6,
             max_velocity=20.0,
             max_acceleration=3.0,
-            mass=1500.0,
-            inertia=2500.0,
-            lf=1.2,
-            lr=1.3,
-            cf=80000.0,
-            cr=80000.0,
-            c_drag=0.3,
-            c_roll=0.015,
-            max_drive_force=5000.0,
-            max_brake_force=8000.0,
             vehicle_height=2.2,
             steer_delay_time=0.0,
             max_steer_rate=0.87,
             steer_gain=1.0,
+            steer_tau=0.1,
             steer_zeta=1.0,
             steer_omega_n=5.0,
-            tire_params={},
+            accel_gain=1.0,
+            accel_offset=0.0,
+            drag_coefficient=0.0,
+            cornering_drag_coefficient=0.0
         )
 
         polygon = get_bicycle_model_polygon(state, params)

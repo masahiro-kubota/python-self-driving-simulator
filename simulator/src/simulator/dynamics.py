@@ -59,32 +59,45 @@ def apply_steering_response_model(
 
     # 遅延された値を取得
     delayed_steering = delay_buffer[0] if len(delay_buffer) > 0 else gain_steering
-
     actual_steering = state.actual_steering
+    y_next = actual_steering
+    v_next = state.steer_rate_internal
 
-    # ステップ4: SOPDT (Second Order Plus Dead Time)
-    # 2次系: d²y/dt² + 2ζωn dy/dt + ωn² y = ωn² u
-    # 状態変数モデル:
-    #   dy/dt = v
-    #   dv/dt = ωn²(u - y) - 2ζωn v
+    if hasattr(params, "steer_tau") and params.steer_tau > 0.0:
+        # ステップ4: FOPDT (First Order Plus Dead Time)
+        # 1次系: tau * dy/dt + y = u
+        # 離散化: y_{k+1} = alpha * y_k + (1 - alpha) * u
+        # alpha = exp(-dt / tau)
+        tau = params.steer_tau
+        alpha = math.exp(-dt / tau)
+        u_delayed = delayed_steering
+        
+        y_next = alpha * state.actual_steering + (1 - alpha) * u_delayed
+        v_next = (y_next - state.actual_steering) / dt
+    else:
+        # ステップ4: SOPDT (Second Order Plus Dead Time)
+        # 2次系: d²y/dt² + 2ζωn dy/dt + ωn² y = ωn² u
+        # 状態変数モデル:
+        #   dy/dt = v
+        #   dv/dt = ωn²(u - y) - 2ζωn v
 
-    omega_n = params.steer_omega_n
-    zeta = params.steer_zeta
+        omega_n = params.steer_omega_n
+        zeta = params.steer_zeta
 
-    # Delayed input (from step 3)
-    u_delayed = delayed_steering
+        # Delayed input (from step 3)
+        u_delayed = delayed_steering
 
-    # Current state
-    y_k = state.actual_steering
-    v_k = state.steer_rate_internal
+        # Current state
+        y_k = state.actual_steering
+        v_k = state.steer_rate_internal
 
-    # Semi-implicit Euler integration
-    # v_{k+1} = v_k + (omega_n^2 * (u - y_k) - 2*zeta*omega_n * v_k) * dt
-    # y_{k+1} = y_k + v_{k+1} * dt
+        # Semi-implicit Euler integration
+        # v_{k+1} = v_k + (omega_n^2 * (u - y_k) - 2*zeta*omega_n * v_k) * dt
+        # y_{k+1} = y_k + v_{k+1} * dt
 
-    dv_dt = (omega_n**2) * (u_delayed - y_k) - (2 * zeta * omega_n) * v_k
-    v_next = v_k + dv_dt * dt
-    y_next = y_k + v_next * dt
+        dv_dt = (omega_n**2) * (u_delayed - y_k) - (2 * zeta * omega_n) * v_k
+        v_next = v_k + dv_dt * dt
+        y_next = y_k + v_next * dt
 
     # ステップ5: RateLimit - 変化率制限 (出力のレート制限)
 
@@ -110,7 +123,7 @@ def update_bicycle_model(
     steering: float,
     acceleration: float,
     dt: float,
-    wheelbase: float,
+    params: "VehicleParameters",
 ) -> SimulationVehicleState:
     """Update state using kinematic bicycle model.
 
@@ -129,9 +142,16 @@ def update_bicycle_model(
     # y_dot = vx * sin(yaw) + vy * cos(yaw)
     # yaw_dot = vx / L * tan(delta)
     # vx_dot = ax
+    
+    # Apply Longitudinal Dynamics
+    # Effective Acceleration = K*cmd + Offset - Drag*v^2 - CornerDrag*|steer|*v^2
+    v = state.vx
+    acc_eff = params.accel_gain * acceleration + params.accel_offset \
+              - params.drag_coefficient * v * abs(v) \
+              - params.cornering_drag_coefficient * abs(steering) * (v**2)
 
     # Kinamatics model assumes vy = 0
-    vx_next = state.vx + acceleration * dt
+    vx_next = state.vx + acc_eff * dt
 
     # Use average velocity for position update
     vx_avg = (state.vx + vx_next) / 2.0
@@ -140,7 +160,7 @@ def update_bicycle_model(
     if abs(vx_avg) < 0.01:
         yaw_rate_next = 0.0
     else:
-        yaw_rate_next = vx_avg / wheelbase * math.tan(steering)
+        yaw_rate_next = vx_avg / params.wheelbase * math.tan(steering)
 
     # Update position and orientation (using average velocity)
     x_next = state.x + vx_avg * math.cos(state.yaw) * dt
@@ -170,7 +190,7 @@ def update_bicycle_model(
         pitch_rate=0.0,
         yaw_rate=yaw_rate_next,
         # Acceleration
-        ax=acceleration,
+        ax=acc_eff,
         ay=0.0,
         az=0.0,
         # Input

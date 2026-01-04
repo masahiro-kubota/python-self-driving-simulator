@@ -1,0 +1,33 @@
+
+# Track Forward Environment Configuration
+# start_track_forward: 初期位置から3m前方に障害物を1つ配置する設定
+
+defaults:
+  - default
+  - _self_
+
+
+obstacles:
+  generation:
+    enabled: true
+    groups:
+      - name: "single_forward_obstacle"
+        type: static
+        count: 1
+        shape:
+          type: rectangle
+          width: ${vehicle.width}   # 車両の幅 [m]
+          length: ${eval:'${vehicle.wheelbase} + ${vehicle.front_overhang} + ${vehicle.rear_overhang}'} # 車両の全長 (ホイールベース + 前後オーバーハング) [m]
+          height: ${vehicle.vehicle_height}   # 高さ [m]
+        placement:
+          strategy: track_forward
+          forward_distance: 15.0 # 前方への距離 [m]
+          offset:
+            min: -1.0 # 最小横方向オフセット [m] (中心より左)
+            max: 1.0  # 最大横方向オフセット [m] (中心より右)
+          yaw_mode: aligned
+    exclusion_zone:
+      enabled: true
+      distance: 1.0 # 1m以上離れていれば許可（3m先ならOK）
+
+  list: []
