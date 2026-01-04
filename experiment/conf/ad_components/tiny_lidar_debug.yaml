@@ -1,0 +1,76 @@
+# Tiny LiDAR Debug Agent Configuration
+# Pure Pursuitで制御しながら、TinyLidarNetの出力をデバッグ用にpublishする設定
+# デバッグ目的: モデル出力を可視化しつつ、安定したPure Pursuit制御で走行
+
+model_path: "outputs/2025-12-21/21-46-10/tinylidarnet.npy" # 推論用モデルのパス（デフォルト） [str]
+
+nodes:
+  sensor:
+    type: "ideal_sensor.sensor_node.IdealSensorNode"
+    rate_hz: 50.0  # センサー更新レート [Hz]
+    priority: 10   # 実行優先度（シミュレータの後に実行）
+    params:
+      vehicle_params: ${vehicle}
+      vehicle_color: ${visualization.colors.vehicle}
+
+  # TinyLidarNet推論ノード（デバッグ用：推論結果をcontrol_cmd_tinylidarにpublish）
+  tiny_lidar_net:
+    type: "tiny_lidar_net.node.TinyLidarNetNode"
+    rate_hz: 50.0 # 推論更新レート [Hz]
+    priority: 15  # 実行優先度（センサーの後、プランニングの前に実行）
+    params:
+      input_dim: 1080       # 入力次元数(LiDARのビーム数) [次元]
+      output_dim: 2         # 出力次元数(加速度+ステアリング) [次元]
+      architecture: "large" # モデルアーキテクチャ名 [str]
+      model_path: ${ad_components.model_path} # 推論用モデルのパス [str]
+      target_velocity: 10.0 # 目標速度 [m/s]
+      max_range: 30.0       # LiDARの最大検知距離(正規化に使用) [m]
+      vehicle_params: ${vehicle}
+      control_cmd_topic: "control_cmd_tinylidar" # デバッグ用トピック名（シミュレータは購読しない）
+
+  # 障害物回避プランナー（LateralShiftPlanner）
+  planning:
+    type: LateralShiftPlannerNode
+    rate_hz: 50.0  # プランニング更新レート [Hz]
+    priority: 20   # 実行優先度（センサーの後に実行）
+    params:
+      track_path: ${env.track_path}
+      map_path: ${env.map_path}
+      # Perception / Planning Horizon (認識・計画範囲)
+      lookahead_distance: 20.0 # [m] 障害物検知と軌道生成の最大プレビュー距離（計画する軌道の長さ）
+      lookbehind_distance: 5.0 # [m] 車両後方の障害物検知距離
+
+      # Shift Profile Parameters (Avoidance Logic, 回避ロジック)
+      avoidance_maneuver_length: 5.0 # [m] 横方向移動（0から目標位置まで）を完了するために必要な縦方向距離
+      longitudinal_margin_front: 0.0 # [m] 障害物手前の余裕距離（障害物のこの距離手前で回避移動を完了する）
+      longitudinal_margin_rear: 0.0  # [m] 障害物通過後の余裕距離（障害物を通過した後、この距離だけ回避状態を維持する）
+
+      # Vehicle & Environment (車両・環境設定)
+      vehicle_width: ${vehicle.width} # [m] 自車幅
+      safe_margin: 1.0 # [m] 障害物境界から確保すべき追加の横方向余裕
+
+      # Trajectory Generation (軌道生成)
+      trajectory_resolution: 0.5    # [m] 出力軌道の離散化間隔
+      target_velocity: 10.0         # [m/s] 目標速度
+      trajectory_color: "#4DB6ACCC" # 軌跡の色 (Teal)
+
+  # 実際の制御はPure Pursuitが担当
+  control:
+    type: PurePursuitControllerNode
+    rate_hz: 50.0  # 制御更新レート [Hz]
+    priority: 30   # 実行優先度（プランニングの後に実行）
+    params:
+      vehicle_params: ${vehicle}
+      lookahead_marker_color: "#D1C4E9CC" # 前方注視点マーカーの色 (Deep Purple 100)
+      control_cmd_topic: "control_cmd" # 制御コマンドの出力トピック名（シミュレータはこれを購読）
+      lateral:
+        min_lookahead_distance: 3.5   # 最小前方注視距離 [m]
+        max_lookahead_distance: 100.0   # 最大前方注視距離 [m]
+        lookahead_speed_ratio: 1.5    # 速度に対する注視距離の比率 [s]
+        steering_gain: 1.63            # ステアリング出力ゲイン
+      longitudinal:
+        kp: 1.0       # 比例ゲイン (P)
+        ki: 0.0       # 積分ゲイン (I)
+        kd: 0.001      # 微分ゲイン (D)
+        u_min: -3.0   # 最小制御入力（減速度） [m/s^2]
+        u_max: 3.0    # 最大制御入力（加速度） [m/s^2]

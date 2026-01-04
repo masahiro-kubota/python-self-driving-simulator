@@ -37,6 +37,9 @@ class PurePursuitControllerConfig(ComponentConfig):
 
     vehicle_params: VehicleParameters = Field(..., description="Vehicle parameters")
     lookahead_marker_color: str = Field("#FF00FFCC", description="Lookahead marker color")
+    control_cmd_topic: str = Field(
+        "control_cmd", description="Output topic name for control command"
+    )
 
     lateral: LateralControlParams = Field(..., description="Lateral control parameters")
     longitudinal: LongitudinalControlParams = Field(
@@ -51,6 +54,7 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
         super().__init__("PurePursuitController", rate_hz, config, priority)
         self.vehicle_params = config.vehicle_params
         self.wheelbase = self.vehicle_params.wheelbase
+        self.control_cmd_topic = config.control_cmd_topic
 
         # PID state
         self.integral_error = 0.0
@@ -62,7 +66,7 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
         return NodeIO(
             inputs={"trajectory": Trajectory, "vehicle_state": VehicleState},
             outputs={
-                "control_cmd": AckermannControlCommand,
+                self.control_cmd_topic: AckermannControlCommand,
                 "lookahead_marker": MarkerArray,
             },
         )
@@ -84,7 +88,7 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
             from core.utils.ros_message_builder import to_ros_time
 
             self.publish(
-                "control_cmd",
+                self.control_cmd_topic,
                 AckermannControlCommand(
                     stamp=to_ros_time(_current_time),
                     lateral=AckermannLateralCommand(
@@ -108,7 +112,7 @@ class PurePursuitControllerNode(Node[PurePursuitControllerConfig]):
         from core.utils.ros_message_builder import to_ros_time
 
         self.publish(
-            "control_cmd",
+            self.control_cmd_topic,
             AckermannControlCommand(
                 stamp=to_ros_time(_current_time),
                 lateral=AckermannLateralCommand(

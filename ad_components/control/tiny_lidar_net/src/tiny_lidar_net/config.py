@@ -16,3 +16,6 @@ class TinyLidarNetConfig(ComponentConfig):
     max_range: float = Field(..., description="Maximum LiDAR range for normalization [m]")
     target_velocity: float = Field(..., description="Target velocity [m/s]")
     vehicle_params: VehicleParameters = Field(..., description="Vehicle parameters")
+    control_cmd_topic: str = Field(
+        "control_cmd", description="Output topic name for control command"
+    )

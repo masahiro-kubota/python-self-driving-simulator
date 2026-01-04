@@ -31,6 +31,7 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
         self.logger = logging.getLogger(__name__)
 
         self.target_velocity = config.target_velocity
+        self.control_cmd_topic = config.control_cmd_topic
 
         # Initialize core inference engine
         try:
@@ -62,7 +63,7 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
 
         return NodeIO(
             inputs={"perception_lidar_scan": LaserScan, "vehicle_state": VehicleState},
-            outputs={"control_cmd": AckermannControlCommand},
+            outputs={self.control_cmd_topic: AckermannControlCommand},
         )
 
     def on_run(self, _current_time: float) -> NodeExecutionResult:
@@ -97,7 +98,7 @@ class TinyLidarNetNode(Node[TinyLidarNetConfig]):
         from core.utils.ros_message_builder import to_ros_time
 
         self.publish(
-            "control_cmd",
+            self.control_cmd_topic,
             AckermannControlCommand(
                 stamp=to_ros_time(_current_time),
                 lateral=AckermannLateralCommand(

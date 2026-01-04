@@ -20,7 +20,7 @@ nodes:
       output_dim: 2         # 出力次元数(加速度+ステアリング、ただしノードではステアリングのみ使用) [次元]
       architecture: "large" # モデルアーキテクチャ名 [str]
       # This path will be overridden via CLI in evaluation
-      model_path: ${ad_components.model_path} # モデルパス(CLIで上書き可能) [str]
+      model_path: ${ad_components.model_path} # 推論用モデルのパス [str]
       target_velocity: 10.0   # 目標速度 [m/s]
       max_range: 30.0         # LiDARの最大検知距離(正規化に使用) [m]
       vehicle_params: ${vehicle}
