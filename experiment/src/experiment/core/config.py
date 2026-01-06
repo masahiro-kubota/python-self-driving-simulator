@@ -33,12 +33,14 @@ class ObstaclePlacement(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     strategy: Literal["random_track", "random_map", "track_forward"]
-    offset: dict[str, float] | None = None
-    yaw_mode: Literal["aligned", "random"] | None = None
+    lateral_offset_range: tuple[float, float] | list[float] = Field(..., description="Lateral offset range [min, max] from centerline")
+    yaw_mode: Literal["aligned", "random"] = Field(..., description="Yaw mode (aligned or random)")
     bounds: dict[str, float] | None = None
     min_distance: float = Field(0.0, ge=0.0)
     forward_distance: float | None = Field(None, ge=0.0, description="Forward distance for track_forward strategy (fixed value)")
     forward_distance_range: tuple[float, float] | list[float] | None = Field(None, description="Forward distance range [min, max] for track_forward strategy (random sampling)")
+    require_within_bounds: bool = Field(False, description="Whether to require obstacle to be strictly within map bounds")
+    yaw_offset_range: dict[str, float] | tuple[float, float] | list[float] = Field(..., description="Yaw offset range (min, max) for aligned mode")
 
 
 class ObstacleGroup(BaseModel):

@@ -20,10 +20,10 @@ obstacles:
         placement:
           strategy: random_track # 配置戦略 (random_track: トラック上にランダム配置, track_forward: 初期位置から一定距離前方) [str]
           min_distance: 10.0 # 障害物間の最小距離 [m]
-          offset:
-            min: -1.0 # 基準線（中心線）からの最小横方向オフセット [m]
-            max: 1.0  # 基準線（中心線）からの最大横方向オフセット [m]
+          lateral_offset_range: [-3.0, 3.0] # 基準線（中心線）からの横方向オフセット範囲 [min, max] [m]
+          require_within_bounds: true # Map内（Lanelet内）に完全に収まることを要求
           yaw_mode: aligned # ヨー角の決定モード (aligned: 基準線に合わせる, random: ランダム) [str]
+          yaw_offset_range: [0.0, 0.0]
 
 
   # 特定の固定障害物をリスト形式でここに追加することも可能です

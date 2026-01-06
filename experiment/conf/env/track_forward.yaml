@@ -22,10 +22,9 @@ obstacles:
         placement:
           strategy: track_forward
           forward_distance: 15.0 # 前方への距離 [m]
-          offset:
-            min: -1.0 # 最小横方向オフセット [m] (中心より左)
-            max: 1.0  # 最大横方向オフセット [m] (中心より右)
+          lateral_offset_range: [-1.0, 1.0] # 横方向オフセット範囲 [min, max] [m]
           yaw_mode: aligned
+          yaw_offset_range: [0.0, 0.0]
     exclusion_zone:
       enabled: true
       distance: 1.0 # 1m以上離れていれば許可（3m先ならOK）

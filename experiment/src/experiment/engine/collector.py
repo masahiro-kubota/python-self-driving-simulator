@@ -324,18 +324,28 @@ class CollectorEngine(BaseEngine):
         track_path = Path(track_path_str)
 
         # Create sampler
-        lanelet_map = LaneletMap(map_path)
-        sampler = InitialStateSampler(track_path, lanelet_map)
+        # lanelet_map = LaneletMap(map_path) # No longer needed here if only for sampler
+        sampler = InitialStateSampler(track_path, map_path)
 
         # Sample new initial state
         sampling_config = cfg.env.initial_state_sampling
         try:
+            vehicle_params = sim_node.params.vehicle_params
+            vehicle_width = vehicle_params.width
+            vehicle_length = (
+                vehicle_params.wheelbase
+                + vehicle_params.front_overhang
+                + vehicle_params.rear_overhang
+            )
+
             sampled_state = sampler.sample_initial_state(
                 rng=rng,
                 lateral_offset_range=tuple(sampling_config.lateral_offset_range),
                 yaw_offset_range=tuple(sampling_config.yaw_offset_range),
                 velocity_range=tuple(sampling_config.velocity_range),
                 max_retries=sampling_config.get("max_retries", 10),
+                vehicle_width=vehicle_width,
+                vehicle_length=vehicle_length,
             )
 
             # Update initial state

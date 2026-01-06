@@ -22,7 +22,6 @@ class ObstacleGenerator:
 
         Args:
             map_path: Path to the Lanelet2 OSM map file.
-            map_path: Path to the Lanelet2 OSM map file.
             track_path: Path to the reference track CSV file (optional).
             seed: Random seed.
         """
@@ -47,32 +46,33 @@ class ObstacleGenerator:
                 self.track_path = track_path
 
         self.rng = np.random.default_rng(seed)
-        self.centerlines: list[list[tuple[float, float, float]]] = []  # List of (x, y, yaw)
-        self.global_centerline: list[tuple[float, float, float, float]] | None = (
-            None  # (x, y, yaw, dist_from_start)
-        )
-        self.total_track_length: float = 0.0
 
-        self.drivable_area: Polygon | None = None
         self.initial_state: dict[str, float] | None = None
         self.exclusion_zone: dict[str, Any] | None = None
-        self._load_map()
-        self._load_track()
+        
+        from experiment.engine.pose_sampler import PoseSampler
+        self.pose_sampler = PoseSampler(self.map_path, self.track_path, seed)
+        
+        # Expose properties for legacy access if needed (or minimal support)
+        self.drivable_area = self.pose_sampler.drivable_area
+        self.global_centerline = self.pose_sampler.global_centerline
+        self.total_track_length = self.pose_sampler.total_track_length
+        
+        self.centerlines: list[list[tuple[float, float, float]]] = [] 
+        self._load_lanelets_centerlines() # Fallback for non-global track usage
 
-    def _load_map(self) -> None:
-        """Load and parse the map to extract centerlines and drivable area."""
+    def _load_lanelets_centerlines(self) -> None:
+        """Load lanelet centerlines for fallback."""
         if not self.map_path.exists():
-            msg = f"Map file not found: {self.map_path}"
-            raise FileNotFoundError(msg)
+            return
 
         try:
-            from core.utils.osm_parser import parse_osm_for_collision
-
-            self.drivable_area = parse_osm_for_collision(self.map_path)
-
+            from core.utils.osm_parser import parse_osm_file
+            
+            # Note: drivable_area is loaded by PoseSampler
+            
             osm_data = parse_osm_file(self.map_path)
             nodes = osm_data["nodes"]
-            _ways = osm_data["ways"]  # Unused
             lanelets = osm_data["lanelets"]
 
             for left_nodes, right_nodes in lanelets:
@@ -80,14 +80,6 @@ class ObstacleGenerator:
                 left_points = [nodes[nid] for nid in left_nodes if nid in nodes]
                 right_points = [nodes[nid] for nid in right_nodes if nid in nodes]
 
-                # Ensure same direction (assuming right is reversed in raw data?
-                # core.utils.osm_parser.parse_osm_for_collision reverses right for polygon loop.
-                # In parse_osm_file, it just returns node IDs.
-                # Lanelet2 standard: left and right boundaries are linestrings in same direction.
-                # Let's assume consistent direction for now.)
-
-                # Resample or match points to average
-                # Simple approach: interpolate along the shorter one
                 n_points = min(len(left_points), len(right_points))
                 if n_points < 2:
                     continue
@@ -116,55 +108,7 @@ class ObstacleGenerator:
                     self.centerlines.append(centerline)
 
         except Exception as e:
-            logger.error(f"Failed to parse map for obstacle generation: {e}")
-
-    def _load_track(self) -> None:
-        """Load global reference track if available."""
-        if not self.track_path or not self.track_path.exists():
-            return
-
-        try:
-            import pandas as pd
-
-            df = pd.read_csv(self.track_path)
-            # Assuming CSV cols: x, y, z, x_quat, y_quat, z_quat, w_quat, speed
-            # We need x, y, yaw. Calculate yaw from quat or adjacent points.
-            # Usually simulation track CSVs are dense enough.
-
-            path_points = []
-            cumulative_dist = 0.0
-            prev_x, prev_y = None, None
-
-            for _, row in df.iterrows():
-                x, y = row["x"], row["y"]
-                # Approximate yaw if not available, or use quat to yaw.
-                # Here we just store x, y and calc yaw/dist on the fly or pre-calc.
-                # Let's trust the track is ordered.
-
-                # Simple yaw calculation from quaternion (x,y,z,w)
-                qx, qy, qz, qw = row["x_quat"], row["y_quat"], row["z_quat"], row["w_quat"]
-                # yaw (z-axis rotation) = atan2(2(wz + xy), 1 - 2(y^2 + z^2))
-                siny_cosp = 2 * (qw * qz + qx * qy)
-                cosy_cosp = 1 - 2 * (qy * qy + qz * qz)
-                yaw = math.atan2(siny_cosp, cosy_cosp)
-
-                dist = 0.0
-                if prev_x is not None:
-                    dist = math.hypot(x - prev_x, y - prev_y)
-
-                cumulative_dist += dist
-                path_points.append((x, y, yaw, cumulative_dist))
-
-                prev_x, prev_y = x, y
-
-            self.global_centerline = path_points
-            self.total_track_length = cumulative_dist
-            logger.info(
-                f"Loaded global track from {self.track_path}, length={self.total_track_length:.2f}m"
-            )
-
-        except Exception as e:
-            logger.warning(f"Failed to load global track: {e}")
+            logger.error(f"Failed to parse map for lanelets: {e}")
 
     def generate(
         self, config: DictConfig, initial_state: dict[str, float] | None = None
@@ -209,6 +153,7 @@ class ObstacleGenerator:
         shape_config = group_config.get("shape", {"type": "rectangle", "width": 1.0, "length": 1.0})
 
         min_distance = placement.get("min_distance", 0.0)
+        require_within_bounds = placement.get("require_within_bounds", False)
 
         for _ in range(count):
             # Attempt to place obstacle
@@ -255,7 +200,10 @@ class ObstacleGenerator:
                     }
 
                     if self._validate_placement(
-                        obstacle, existing_obstacles + generated, min_distance
+                        obstacle, 
+                        existing_obstacles + generated, 
+                        min_distance,
+                        require_within_bounds
                     ):
                         generated.append(obstacle)
                         break
@@ -287,212 +235,91 @@ class ObstacleGenerator:
         self, placement_config: DictConfig
     ) -> tuple[float, float, float, dict[str, Any]] | None:
         """Generate a random pose along the track."""
-        # Use global centerline if available for consistent distance
-        if self.global_centerline:
-            target_dist = self.rng.uniform(0, self.total_track_length)
-
-            # Find point on track
-            # Binary search or simple scan (optimized for read simplicity)
-            # global_centerline is list of (x, y, yaw, dist)
-
-            # Simple linear interpolation
-            p1 = self.global_centerline[-1]
-            p2 = self.global_centerline[-1]  # fallback
-
-            for i in range(len(self.global_centerline) - 1):
-                if self.global_centerline[i + 1][3] >= target_dist:
-                    p1 = self.global_centerline[i]
-                    p2 = self.global_centerline[i + 1]
-                    break
-
-            # Interpolate
-            d1, d2 = p1[3], p2[3]
-            seg_len = d2 - d1
-            ratio = (target_dist - d1) / seg_len if seg_len > 1e-6 else 0
-
-            base_x = p1[0] + ratio * (p2[0] - p1[0])
-            base_y = p1[1] + ratio * (p2[1] - p1[1])
-
-            # Yaw interplation
-            yaw1, yaw2 = p1[2], p2[2]
-            dyaw = yaw2 - yaw1
-            while dyaw > math.pi:
-                dyaw -= 2 * math.pi
-            while dyaw < -math.pi:
-                dyaw += 2 * math.pi
-            base_yaw = yaw1 + ratio * dyaw
-
-            centerline_idx = -1  # Special ID for global track
-            current_dist = target_dist
-
-        elif self.centerlines:
-            # Fallback to Lanelet centerlines
-            # Pick a random centerline
-            # Ideally weighted by length, but simple random for now
-            centerline_idx = self.rng.integers(0, len(self.centerlines))
-            centerline = self.centerlines[centerline_idx]
-
-            if not centerline:
-                return None
-
-            # Pick a random point on centerline
-            # Linear memory: segment lengths
-            total_length = 0.0
-            segments = []
-            for i in range(len(centerline) - 1):
-                p1_c = centerline[i]
-                p2_c = centerline[i + 1]
-                dist = math.hypot(p2_c[0] - p1_c[0], p2_c[1] - p1_c[1])
-                segments.append((dist, p1_c, p2_c))
-                total_length += dist
-
-            if total_length <= 0:
-                return None
-
-            target_dist = self.rng.uniform(0, total_length)
-
-            current_dist = 0.0
-            chosen_segment = segments[-1]
-            for dist, p1_c, p2_c in segments:
-                if current_dist + dist >= target_dist:
-                    chosen_segment = (dist, p1_c, p2_c)
-                    break
-                current_dist += dist
-
-            # Interpolate
-            seg_len, (x1, y1, yaw1), (x2, y2, yaw2) = chosen_segment
-            remaining = target_dist - current_dist
-            ratio = remaining / seg_len if seg_len > 0 else 0
-
-            base_x = x1 + ratio * (x2 - x1)
-            base_y = y1 + ratio * (y2 - y1)
-            # Interpolate yaw properly
-            dyaw = yaw2 - yaw1
-            while dyaw > math.pi:
-                dyaw -= 2 * math.pi
-            while dyaw < -math.pi:
-                dyaw += 2 * math.pi
-            base_yaw = yaw1 + ratio * dyaw
+        lateral_offset_range = placement_config.get("lateral_offset_range", [-1.0, 1.0])
+        yaw_mode = placement_config.get("yaw_mode", "aligned")
+        
+        yaw_offset_dict = placement_config.get("yaw_offset_range", [0.0, 0.0])
+        # Convert list/tuple if needed (config handles list from yaml)
+        if isinstance(yaw_offset_dict, (list, tuple)):
+            yaw_offset_range = (yaw_offset_dict[0], yaw_offset_dict[1])
         else:
-            return None
+            # Fallback for dict likely not needed due to schema enforcement but defensive
+            yaw_offset_range = (0.0, 0.0)
 
-        # Apply offsets
-        offset_range = placement_config.get("offset", {"min": -1.0, "max": 1.0})
-        lateral_offset = self.rng.uniform(
-            offset_range.get("min", -1.0), offset_range.get("max", 1.0)
-        )
-
-        # Calculate offset position
-        # Normal vector (-sin, cos)
-        offset_x = base_x - math.sin(base_yaw) * lateral_offset
-        offset_y = base_y + math.cos(base_yaw) * lateral_offset
-
-        # Yaw can be random or aligned
-        yaw_mode = placement_config.get("yaw_mode", "aligned")  # aligned, random
-        if yaw_mode == "random":
-            yaw = self.rng.uniform(-math.pi, math.pi)
-        else:
-            yaw = base_yaw
-
-        return (
-            float(offset_x),
-            float(offset_y),
-            float(yaw),
-            {"centerline_index": int(centerline_idx), "centerline_dist": float(current_dist)},
-        )
+        if self.pose_sampler.global_centerline:
+             return self.pose_sampler.sample_track_pose(
+                 lateral_offset_range=(lateral_offset_range[0], lateral_offset_range[1]),
+                 yaw_mode=yaw_mode,
+                 yaw_offset_range=yaw_offset_range,
+             )
+        
+        logger.warning("No global track loaded. Cannot use random_track strategy.")
+        return None
 
     def _place_track_forward(
         self, placement_config: DictConfig
     ) -> tuple[float, float, float, dict[str, Any]] | None:
         """Generate a pose a fixed distance ahead of initial position along the track."""
-        if not self.initial_state or not self.global_centerline:
+        if not self.initial_state or not self.pose_sampler.global_centerline:
             logger.warning("track_forward strategy requires initial_state and global track.")
             return None
 
         # Find closest point on global centerline to initial state
         init_x = self.initial_state["x"]
         init_y = self.initial_state["y"]
-
-        # Simple linear search for closest point
-        # self.global_centerline is list of (x, y, yaw, dist)
+        
+        # We need current_dist of the initial state. 
+        # PoseSampler doesn't have "get_dist_from_point" helper yet, 
+        # so lets implement strict logic here or add helper to PoseSampler later.
+        # But reusing the previous linear search logic is okay for now, or assume 
+        # initial state *is* on track if we knew. 
+        # For robustness, we search. 
+        
+        # Optimization: Reuse global_centerline search.
+        # Note: existing code did this search efficiently.
+        
+        # Let's add a helper to PoseSampler later? 
+        # For now, quick search locally or just reimplement using pose_sampler data.
+        
+        # Search closest
         closest_idx = -1
         min_dist_sq = float("inf")
-
-        # Optimization: Use numpy if points are efficiently accessible or just standard loop
-        # Since global_centerline is a list of tuples, standard loop is okay-ish.
-        # But we can do better if we just iterate.
-        for i, pt in enumerate(self.global_centerline):
+        
+        for i, pt in enumerate(self.pose_sampler.global_centerline):
             dx = pt[0] - init_x
             dy = pt[1] - init_y
             d2 = dx * dx + dy * dy
             if d2 < min_dist_sq:
                 min_dist_sq = d2
                 closest_idx = i
-
-        if closest_idx == -1:
-            return None
-
-        current_dist = self.global_centerline[closest_idx][3]
-
-        # Add lookahead distance (support both fixed and random range)
+                
+        if closest_idx == -1: return None
+        
+        current_dist = self.pose_sampler.global_centerline[closest_idx][3]
+        
+        # Forward distance
         forward_distance_range = placement_config.get("forward_distance_range", None)
         if forward_distance_range is not None:
-            # Random sampling from range [min, max]
             forward_dist = self.rng.uniform(forward_distance_range[0], forward_distance_range[1])
         else:
-            # Fixed value (backward compatible)
             forward_dist = placement_config.get("forward_distance", 3.0)
+            
         target_dist = current_dist + forward_dist
-
-        # Handle wrap-around
-        if self.total_track_length > 0:
-            target_dist %= self.total_track_length
-
-        # Interpolate state at target_dist
-        p1 = self.global_centerline[-1]
-        p2 = self.global_centerline[-1]
-
-        for i in range(len(self.global_centerline) - 1):
-            if self.global_centerline[i + 1][3] >= target_dist:
-                p1 = self.global_centerline[i]
-                p2 = self.global_centerline[i + 1]
-                break
-
-        d1, d2 = p1[3], p2[3]
-        seg_len = d2 - d1
-        ratio = (target_dist - d1) / seg_len if seg_len > 1e-6 else 0
-
-        base_x = p1[0] + ratio * (p2[0] - p1[0])
-        base_y = p1[1] + ratio * (p2[1] - p1[1])
-
-        # Yaw interpolation
-        yaw1, yaw2 = p1[2], p2[2]
-        dyaw = yaw2 - yaw1
-        while dyaw > math.pi:
-            dyaw -= 2 * math.pi
-        while dyaw < -math.pi:
-            dyaw += 2 * math.pi
-        base_yaw = yaw1 + ratio * dyaw
-
-        # Apply lateral offset
-        # Default to 0.0 for this mode if not specified, assuming "on centerline" intent
-        offset_range = placement_config.get("offset", {"min": 0.0, "max": 0.0})
-        lateral_offset = self.rng.uniform(
-            offset_range.get("min", 0.0), offset_range.get("max", 0.0)
-        )
-
-        offset_x = base_x - math.sin(base_yaw) * lateral_offset
-        offset_y = base_y + math.cos(base_yaw) * lateral_offset
-
-        # Yaw mode
+        
+        lateral_offset_range = placement_config.get("lateral_offset_range", [0.0, 0.0])
         yaw_mode = placement_config.get("yaw_mode", "aligned")
-        yaw = self.rng.uniform(-math.pi, math.pi) if yaw_mode == "random" else base_yaw
+        
+        yaw_offset_dict = placement_config.get("yaw_offset_range", [0.0, 0.0])
+        if isinstance(yaw_offset_dict, (list, tuple)):
+            yaw_offset_range = (yaw_offset_dict[0], yaw_offset_dict[1])
+        else:
+             yaw_offset_range = (0.0, 0.0)
 
-        return (
-            float(offset_x),
-            float(offset_y),
-            float(yaw),
-            {"centerline_index": -1, "centerline_dist": float(target_dist)},
+        return self.pose_sampler.sample_track_pose(
+            target_dist=target_dist,
+            lateral_offset_range=(lateral_offset_range[0], lateral_offset_range[1]),
+            yaw_mode=yaw_mode,
+            yaw_offset_range=yaw_offset_range,
         )
 
     def _validate_placement(
@@ -500,6 +327,7 @@ class ObstacleGenerator:
         candidate: dict[str, Any],
         existing: list[dict[str, Any]],
         min_distance: float = 0.0,
+        require_within_bounds: bool = False,
     ) -> bool:
         """Validate if the candidate placement is valid (no collisions, inside map if required)."""
         shape_cfg = candidate["shape"]
@@ -539,29 +367,40 @@ class ObstacleGenerator:
         c_dist = candidate["position"].get("centerline_dist")
         c_idx = candidate["position"].get("centerline_index")
 
-        if min_distance > 0.0 and c_dist is not None and c_idx is not None:
+        if min_distance > 0.0 and c_dist is not None:
             for obs in existing:
                 o_pos = obs["position"]
                 o_dist = o_pos.get("centerline_dist")
                 o_idx = o_pos.get("centerline_index")
 
-                # Only compare if on the same centerline
-                if o_dist is not None and o_idx == c_idx:
+                # Checks if obstacles are on the same track reference.
+                # If centerline_index is present (Lanelet), they must match.
+                # If centerline_index is None (PoseSampler/Global), we compare if both are None (or assume single global track).
+                indices_match = (o_idx == c_idx)
+                
+                # If one is None and other is not, we technically shouldn't compare, 
+                # but currently we only mix mostly uniform obstacles.
+                # Safest is to compare if equal. (None == None is True).
+
+                if o_dist is not None and indices_match:
                     dist_diff = abs(c_dist - o_dist)
 
-                    # Handle lap wrap-around if on global track
-                    if c_idx == -1 and self.total_track_length > 0:
+                    # Handle lap wrap-around if on global track (c_idx is None implies global via PoseSampler usually, 
+                    # or c_idx == -1 for legacy).
+                    # Check invalid/None index or explicit -1 convention
+                    if (c_idx is None or c_idx == -1) and self.total_track_length > 0:
                         dist_diff = min(dist_diff, self.total_track_length - dist_diff)
 
                     if dist_diff < min_distance:
                         return False
 
-        # Check map bounds (if drivable area is available)
-        # For random_track, we expect it to be on track, but offsets might push it off.
-        # But maybe we wantobstacles to be ON the track.
-        if self.drivable_area is not None and not self.drivable_area.intersects(box):
-            # If it doesn't even touch drivable area, it's definitely off
-            return False
+        # Check map bounds using PoseSampler
+        if not self.pose_sampler.validate_pose(
+            (pos["x"], pos["y"], pos["yaw"]), 
+            shape=shape_cfg, 
+            require_fully_contained=require_within_bounds if require_within_bounds else False # intersects if false
+        ):
+             return False
 
         # Check collision with existing obstacles
         for obs in existing:

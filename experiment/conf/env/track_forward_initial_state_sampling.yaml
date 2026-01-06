@@ -21,10 +21,10 @@ obstacles:
         placement:
           strategy: track_forward
           forward_distance_range: [6.0, 10.0] # 前方への距離の範囲 [min, max] [m]
-          offset:
-            min: -1.0 # 最小横方向オフセット [m] (中心より左)
-            max: 1.0  # 最大横方向オフセット [m] (中心より右)
+          lateral_offset_range: [-3.0, 3.0] # 横方向オフセット範囲 [min, max] [m] (中心より左-, 右+)
+          require_within_bounds: true # Map内（Lanelet内）に完全に収まることを要求
           yaw_mode: aligned
+          yaw_offset_range: [-0.0, 0.0] # Yaw方向のオフセット範囲 [min, max] [rad]
     exclusion_zone:
       enabled: true
       distance: 1.0 # 1m以上離れていれば許可（3m先ならOK）
