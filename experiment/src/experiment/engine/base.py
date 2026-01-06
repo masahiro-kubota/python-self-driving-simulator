@@ -87,10 +87,39 @@ class BaseEngine(ABC):
         """
         pass
 
+    def _load_env_file(self) -> None:
+        """Load .env file manually if it exists."""
+        try:
+            # Find project root
+            current_dir = Path(__file__).resolve().parent
+            project_root = None
+            for parent in [current_dir, *list(current_dir.parents)]:
+                if (parent / ".env").exists():
+                    project_root = parent
+                    break
+            
+            if project_root:
+                env_path = project_root / ".env"
+                with open(env_path) as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if "=" in line:
+                            key, value = line.split("=", 1)
+                            # Only set if not already set (env vars take precedence)
+                            if key.strip() == "MCAP_BASE_URL" and "MCAP_BASE_URL" not in os.environ:
+                                os.environ["MCAP_BASE_URL"] = value.strip()
+        except Exception:
+            pass
+
     def _get_foxglove_url(self, mcap_path: Path) -> Optional[str]:
         """Generate Foxglove URL for the given MCAP file."""
         try:
             import urllib.parse
+            
+            # Ensure env is loaded
+            self._load_env_file()
 
             # Find project root by looking for uv.lock or .git
             current_dir = Path(__file__).resolve().parent
@@ -102,7 +131,23 @@ class BaseEngine(ABC):
 
             if project_root:
                 rel_mcap_path = mcap_path.resolve().relative_to(project_root.resolve())
-                mcap_url = f"http://127.0.0.1:8080/{rel_mcap_path}"
+                
+                # Use MCAP_BASE_URL from env
+                base_url = os.getenv("MCAP_BASE_URL")
+                
+                if base_url:
+                    # Strip trailing slash if present
+                    base_url = base_url.rstrip("/")
+                    mcap_url = f"{base_url}/{rel_mcap_path}"
+                else:
+                    # Fallback to local default logic
+                    # Only used if MCAP_BASE_URL is missing
+                    host = os.getenv("FOXGLOVE_HOST_IP", "127.0.0.1")
+                    if "ts.net" in host:
+                        mcap_url = f"https://{host}/{rel_mcap_path}"
+                    else:
+                        mcap_url = f"http://{host}:8080/{rel_mcap_path}"
+
                 encoded_url = urllib.parse.quote(mcap_url, safe="")
                 return f"https://app.foxglove.dev/view?ds=remote-file&ds.url={encoded_url}"
         except Exception:

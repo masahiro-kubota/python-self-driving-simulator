@@ -65,149 +65,164 @@ class ExtractorEngine(BaseEngine):
         logger.info(f"Extracting data from {input_dir} to {output_dir}")
 
         # 1. MCAP files discovery
-        mcap_files = list(input_dir.rglob("*.mcap"))
+        mcap_files = sorted(list(input_dir.rglob("*.mcap")))
         if not mcap_files:
             logger.error(f"No MCAP files found in {input_dir}")
             return None
 
-        # 2. Extract and sync data from all MCAPs
-        all_scans = []
-        all_steers = []
-        all_accels = []
-        s_freq_list = []
-        c_freq_list = []
+        # Chunked extraction settings
+        chunk_size = cfg.get("chunk_size", 500)
+        total_mcaps = len(mcap_files)
+        num_chunks = (total_mcaps + chunk_size - 1) // chunk_size
         
+        logger.info(f"Total MCAP files: {total_mcaps}, Chunk size: {chunk_size}, Num chunks: {num_chunks}")
+
         from collections import Counter
-        skipped_reasons = Counter()
+        global_skipped_reasons = Counter()
+        global_processed = 0
+        global_samples = 0
+        all_stats = []
 
-        for mcap_file in mcap_files:
-            # Check result.json for success status
-            result_json_path = mcap_file.parent / "result.json"
-            if result_json_path.exists():
-                try:
-                    with open(result_json_path) as f:
-                        result_data = json.load(f)
+        # 2. Process in chunks
+        for chunk_idx in range(num_chunks):
+            start_idx = chunk_idx * chunk_size
+            end_idx = min(start_idx + chunk_size, total_mcaps)
+            chunk_mcaps = mcap_files[start_idx:end_idx]
+            
+            batch_name = f"batch_{chunk_idx:04d}"
+            scans_path = output_dir / f"{batch_name}_scans.npy"
+            steers_path = output_dir / f"{batch_name}_steers.npy"
+            accels_path = output_dir / f"{batch_name}_accelerations.npy"
+            
+            # Skip if batch already exists
+            if scans_path.exists() and steers_path.exists() and accels_path.exists():
+                logger.info(f"Skipping {batch_name} (already exists)")
+                # Load stats from existing batch if available
+                batch_stats_path = output_dir / f"{batch_name}_stats.json"
+                if batch_stats_path.exists():
+                    with open(batch_stats_path) as f:
+                        batch_stats = json.load(f)
+                        global_processed += batch_stats.get("processed_episodes", 0)
+                        global_samples += batch_stats.get("total_samples", 0)
+                        for reason, count in batch_stats.get("skipped_breakdown", {}).items():
+                            global_skipped_reasons[reason] += count
+                continue
+            
+            logger.info(f"Processing {batch_name}: MCAPファイル {start_idx}-{end_idx} ({len(chunk_mcaps)} files)")
+            
+            all_scans = []
+            all_steers = []
+            all_accels = []
+            s_freq_list = []
+            c_freq_list = []
+            skipped_reasons = Counter()
 
-                    if not result_data.get("success", False):
-                        # Failed episode - check if we should skip it
+            for mcap_file in chunk_mcaps:
+                # Check result.json for success status
+                result_json_path = mcap_file.parent / "result.json"
+                if result_json_path.exists():
+                    try:
+                        with open(result_json_path) as f:
+                            result_data = json.load(f)
+
+                        if not result_data.get("success", False):
+                            # Failed episode - check if we should skip it
+                            if exclude_reasons is None:
+                                # Exclude all failures
+                                skipped_reasons["failed_unspecified"] += 1
+                                continue
+
+                            failure_reason = result_data.get("reason", "")
+                            if failure_reason in exclude_reasons:
+                                # This reason is in the exclude list
+                                skipped_reasons[failure_reason] += 1
+                                continue
+                            # Else: include this failed episode
+                    except Exception as e:
+                        logger.warning(f"Failed to read result.json at {result_json_path}: {e}")
+                        # If we can't read result.json, skip it unless we're including all
                         if exclude_reasons is None:
-                            # Exclude all failures
-                            logger.info(f"Skipping failed episode: {mcap_file.parent}")
-                            skipped_reasons["failed_unspecified"] += 1
+                            skipped_reasons["read_error"] += 1
                             continue
 
-                        failure_reason = result_data.get("reason", "")
-                        if failure_reason in exclude_reasons:
-                            # This reason is in the exclude list
-                            logger.info(
-                                f"Skipping episode due to excluded reason "
-                                f"'{failure_reason}': {mcap_file.parent}"
-                            )
-                            skipped_reasons[failure_reason] += 1
-                            continue
-                        # Else: include this failed episode
-                except Exception as e:
-                    logger.warning(f"Failed to read result.json at {result_json_path}: {e}")
-                    # If we can't read result.json, skip it unless we're including all
-                    if exclude_reasons is None:
-                        skipped_reasons["read_error"] += 1
-                        continue
+                result = self._extract_from_single_mcap(mcap_file)
+                if result:
+                    all_scans.append(result["scans"])
+                    all_steers.append(result["steers"])
+                    all_accels.append(result["accelerations"])
+                    if "s_freq" in result:
+                        s_freq_list.append(result["s_freq"])
+                    if "c_freq" in result:
+                        c_freq_list.append(result["c_freq"])
 
-            result = self._extract_from_single_mcap(mcap_file)
-            if result:
-                all_scans.append(result["scans"])
-                all_steers.append(result["steers"])
-                all_accels.append(result["accelerations"])
-                if "s_freq" in result:
-                    s_freq_list.append(result["s_freq"])
-                if "c_freq" in result:
-                    c_freq_list.append(result["c_freq"])
+            if not all_scans:
+                logger.warning(f"No data extracted for {batch_name}, skipping")
+                continue
 
-        if not all_scans:
+            scans = np.concatenate(all_scans, axis=0)
+            steers = np.concatenate(all_steers, axis=0)
+            accels = np.concatenate(all_accels, axis=0)
+
+            # Save batch files
+            np.save(scans_path, scans)
+            np.save(steers_path, steers)
+            np.save(accels_path, accels)
+
+            # Update global counters
+            processed_in_batch = len(chunk_mcaps) - sum(skipped_reasons.values())
+            global_processed += processed_in_batch
+            global_samples += len(scans)
+            for reason, count in skipped_reasons.items():
+                global_skipped_reasons[reason] += count
+
+            # Save batch stats
+            batch_stats = {
+                "batch_name": batch_name,
+                "mcap_range": [start_idx, end_idx],
+                "processed_episodes": processed_in_batch,
+                "total_samples": len(scans),
+                "skipped_breakdown": dict(skipped_reasons),
+            }
+            with open(output_dir / f"{batch_name}_stats.json", "w") as f:
+                json.dump(batch_stats, f, indent=2)
+            
+            all_stats.append(batch_stats)
+            logger.info(f"Saved {batch_name}: {len(scans)} samples from {processed_in_batch} episodes")
+
+        # 3. Calculate and save global statistics
+        if global_samples == 0:
             logger.error("No data could be extracted from any MCAP file.")
             return None
 
-        scans = np.concatenate(all_scans, axis=0)
-        steers = np.concatenate(all_steers, axis=0)
-        accels = np.concatenate(all_accels, axis=0)
-
-        scans = np.concatenate(all_scans, axis=0)
-        steers = np.concatenate(all_steers, axis=0)
-        accels = np.concatenate(all_accels, axis=0)
-
-        # 3. Calculate and Log Global Frequency
-        valid_s_freq = [f for f in s_freq_list if f is not None]
-        if valid_s_freq:
-            avg_s_freq = np.mean(valid_s_freq)
-            logger.info(f"Global Average LiDAR Frequency: {avg_s_freq:.2f} Hz")
-
-        valid_c_freq = [f for f in c_freq_list if f is not None]
-        if valid_c_freq:
-            avg_c_freq = np.mean(valid_c_freq)
-            logger.info(f"Global Average Control Frequency: {avg_c_freq:.2f} Hz")
-
-        # 4. Calculate statistics
-        # Filter finite values for stats calculation to avoid NaN
-        valid_scans = scans[np.isfinite(scans)]
-        if len(valid_scans) == 0:
-            logger.warning("No finite scan values found for statistics.")
-            valid_scans = np.zeros(1)
-
-        # Count processed episodes and reason breakdown
-        processed_episodes = len(mcap_files) - sum(skipped_reasons.values())
-        
         stats = {
             "dataset_overview": {
                 "input_dir": str(input_dir),
-                "total_episodes": len(mcap_files),
-                "processed_episodes": processed_episodes,
-                "skipped_episodes": sum(skipped_reasons.values()),
-                "total_samples": len(scans),
+                "total_episodes": total_mcaps,
+                "processed_episodes": global_processed,
+                "skipped_episodes": sum(global_skipped_reasons.values()),
+                "total_samples": global_samples,
+                "num_batches": num_chunks,
+                "chunk_size": chunk_size,
             },
-            "skipped_episodes_breakdown": dict(skipped_reasons),
-            "scans": {
-                "count_per_episode_avg": len(scans) / processed_episodes if processed_episodes > 0 else 0,
-                "mean": float(np.mean(valid_scans)),
-                "std": float(np.std(valid_scans)),
-                # Use numpy min/max to handle potentially empty valid set if logic above fails, though caught by len check
-                "min": float(np.min(valid_scans)),
-                "max": float(np.max(valid_scans)),
-            },
-            "steers": {
-                "count_per_episode_avg": len(steers) / processed_episodes if processed_episodes > 0 else 0,
-                "mean": float(np.mean(steers)),
-                "std": float(np.std(steers)),
-                "min": float(np.min(steers)),
-                "max": float(np.max(steers)),
-            },
-            "accels": {
-                "count_per_episode_avg": len(accels) / processed_episodes if processed_episodes > 0 else 0,
-                "mean": float(np.mean(accels)),
-                "std": float(np.std(accels)),
-                "min": float(np.min(accels)),
-                "max": float(np.max(accels)),
-            },
+            "skipped_episodes_breakdown": dict(global_skipped_reasons),
+            "batches": all_stats,
         }
 
-        # 4. Save processed data and stats
         with open(output_dir / "stats.json", "w") as f:
             json.dump(stats, f, indent=4)
 
-        np.save(output_dir / "scans.npy", scans)
-        np.save(output_dir / "steers.npy", steers)
-        np.save(output_dir / "accelerations.npy", accels)
-
-        # 5. Save metadata (Lineage)
+        # 4. Save metadata (Lineage)
         self._save_metadata(output_dir, input_dir)
 
-        logger.info(f"Successfully extracted {len(scans)} samples.")
+        logger.info(f"Successfully extracted {global_samples} samples in {num_chunks} batches.")
         logger.info(f"Dataset saved to {output_dir}")
 
-        # 6. DVC Automation
-        if cfg.dvc and cfg.dvc.auto_add:
-            self._run_dvc_commands(output_dir, cfg.dvc.auto_push)
+        # 5. DVC Automation - Disabled as per user request
+        # if cfg.dvc and cfg.dvc.auto_add:
+        #     self._run_dvc_commands(output_dir, cfg.dvc.auto_push)
 
         return output_dir
+
 
     def _save_metadata(self, output_dir: Path, input_dir: Path) -> None:
         """Save metadata for data lineage."""

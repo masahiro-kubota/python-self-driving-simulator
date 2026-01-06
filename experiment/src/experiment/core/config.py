@@ -37,7 +37,8 @@ class ObstaclePlacement(BaseModel):
     yaw_mode: Literal["aligned", "random"] | None = None
     bounds: dict[str, float] | None = None
     min_distance: float = Field(0.0, ge=0.0)
-    forward_distance: float | None = Field(None, ge=0.0, description="Forward distance for track_forward strategy")
+    forward_distance: float | None = Field(None, ge=0.0, description="Forward distance for track_forward strategy (fixed value)")
+    forward_distance_range: tuple[float, float] | list[float] | None = Field(None, description="Forward distance range [min, max] for track_forward strategy (random sampling)")
 
 
 class ObstacleGroup(BaseModel):

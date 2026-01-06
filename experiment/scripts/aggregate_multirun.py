@@ -8,6 +8,9 @@ Usage:
 
 import json
 import logging
+import os
+import socket
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -28,13 +31,49 @@ def find_result_files(multirun_dir: Path) -> list[Path]:
     return results
 
 
+
+
+
+
+def load_env_file() -> None:
+    """Load .env file manually if it exists."""
+    try:
+        # Check current dir and parents for .env
+        current_dir = Path.cwd()
+        project_root = None
+        for parent in [current_dir, *list(current_dir.parents)]:
+            if (parent / ".env").exists():
+                project_root = parent
+                break
+        
+        if project_root:
+            env_path = project_root / ".env"
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        key, value = line.split("=", 1)
+                        if key.strip() == "MCAP_BASE_URL" and "MCAP_BASE_URL" not in os.environ:
+                            os.environ["MCAP_BASE_URL"] = value.strip()
+    except Exception:
+        pass
+
+
 def aggregate_results(result_files: list[Path], multirun_dir: Path) -> dict:
     """Aggregate all result files into a summary."""
+    load_env_file()
+    
     results = []
     reason_counter: Counter[str] = Counter()
     episodes_by_reason: dict[str, list[dict]] = {}
+    base_url = os.getenv("MCAP_BASE_URL")
+    # Fallback only if not set
+    host = os.getenv("FOXGLOVE_HOST_IP", "127.0.0.1")
 
     for result_path in result_files:
+
         try:
             with open(result_path) as f:
                 result = json.load(f)
@@ -60,11 +99,25 @@ def aggregate_results(result_files: list[Path], multirun_dir: Path) -> dict:
                 episode_path = result_path.parent.relative_to(multirun_dir)
                 mcap_rel_path = episode_path / "simulation.mcap"
                 
-                # Generate Foxglove URL with full path including date/time
+                # Generate Foxglove URL with full path from outputs/
                 import urllib.parse
-                # multirun_dir is like outputs/2026-01-04/14-24-35, we need to get date/time parts
-                date_time_path = multirun_dir.relative_to(multirun_dir.parent.parent)
-                mcap_url = f"http://127.0.0.1:8080/outputs/{date_time_path}/{mcap_rel_path}"
+                # Find the outputs/ directory in the path and get relative path from there
+                try:
+                    outputs_root = next(p for p in multirun_dir.parents if p.name == "outputs")
+                    full_rel_path = multirun_dir.relative_to(outputs_root.parent) / mcap_rel_path
+                except StopIteration:
+                    # Fallback: use multirun_dir relative to parent.parent (old behavior)
+                    date_time_path = multirun_dir.relative_to(multirun_dir.parent.parent)
+                    full_rel_path = Path("outputs") / date_time_path / mcap_rel_path
+                
+                if base_url:
+                    base_url = base_url.rstrip("/")
+                    mcap_url = f"{base_url}/{full_rel_path}"
+                elif "ts.net" in host:
+                    mcap_url = f"https://{host}/{full_rel_path}"
+                else:
+                    mcap_url = f"http://{host}:8080/{full_rel_path}"
+
                 encoded_url = urllib.parse.quote(mcap_url, safe="")
                 foxglove_url = f"https://app.foxglove.dev/view?ds=remote-file&ds.url={encoded_url}"
                 

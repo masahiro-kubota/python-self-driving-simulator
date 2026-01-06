@@ -67,7 +67,14 @@ class MLOpsPipeline:
         self.dataset_version = args.version
         
         # Base directory for this entire run
-        self.run_base_dir = self.project_root / "outputs" / "mlops" / f"{self.dataset_version}_{self.timestamp}"
+        if args.run_dir:
+            self.run_base_dir = Path(args.run_dir).resolve()
+            # Extract timestamp from existing directory name if possible
+            dir_name = self.run_base_dir.name
+            if "_" in dir_name:
+                self.timestamp = dir_name.split("_", 1)[1]
+        else:
+            self.run_base_dir = self.project_root / "outputs" / "mlops" / f"{self.dataset_version}_{self.timestamp}"
         self.collection_base_dir = self.run_base_dir / "collection"
         
         # Processed data directories (Final destination for training)
@@ -232,8 +239,13 @@ class MLOpsPipeline:
             f"train_data={self.train_data_dir} "
             f"val_data={self.val_data_dir} "
             f"experiment.name=train_{self.dataset_version}_{safe_timestamp} "
+            f"experiment.name=train_{self.dataset_version}_{safe_timestamp} "
             f"hydra.sweep.dir={training_out}"
         )
+        
+        if self.args.epochs:
+            cmd += f" training.num_epochs={self.args.epochs}"
+
         self.run_command(cmd, description="Model Training")
         
         if not self.args.dry_run:
@@ -347,6 +359,14 @@ class MLOpsPipeline:
         if not self.args.skip_collection:
             self.run_collection()
             self.run_aggregation()
+        else:
+            # Initialize collection_dirs from existing directory structure
+            for split in ["train", "val"]:
+                for exp_type in ["track_forward", "random_start"]:
+                    dir_path = self.collection_base_dir / split / exp_type
+                    if dir_path.exists():
+                        self.collection_dirs[split][exp_type] = dir_path
+                        logger.info(f"Found existing collection: {dir_path}")
         
         if not self.args.skip_extraction:
             self.run_extraction()
@@ -428,6 +448,7 @@ def main():
     parser.add_argument("--tf-val", type=int, default=200, help="Track Forward Val episodes")
     parser.add_argument("--rs-train", type=int, default=500, help="Random Start Train episodes")
     parser.add_argument("--rs-val", type=int, default=100, help="Random Start Val episodes")
+    parser.add_argument("--epochs", type=int, help="Number of training epochs")
     
     # Flags
     parser.add_argument("--skip-collection", action="store_true")
@@ -436,6 +457,7 @@ def main():
     parser.add_argument("--skip-evaluation", action="store_true")
     
     parser.add_argument("--model-path", type=str, help="Reuse existing model for evaluation")
+    parser.add_argument("--run-dir", type=str, help="Existing run directory to continue from")
     parser.add_argument("--dry-run", action="store_true", help="Don't execute commands")
     parser.add_argument("--continue-on-error", action="store_true", help="Don't stop on command failure")
 

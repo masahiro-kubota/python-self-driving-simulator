@@ -2,7 +2,7 @@
 # Pure Pursuitで制御しながら、TinyLidarNetの出力をデバッグ用にpublishする設定
 # デバッグ目的: モデル出力を可視化しつつ、安定したPure Pursuit制御で走行
 
-model_path: "outputs/2025-12-21/21-46-10/tinylidarnet.npy" # 推論用モデルのパス（デフォルト） [str]
+model_path: "outputs/2026-01-04/23-58-35/checkpoints/best_model.npy" # 推論用モデルのパス（デフォルト） [str]
 
 nodes:
   sensor:

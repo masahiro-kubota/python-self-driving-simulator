@@ -1,0 +1,7 @@
+INFO: Aggregating evaluation results from: /home/masa/python-self-driving-simulator/outputs/mlops/eval_184249/standard/default
+INFO: Found 5 result files
+INFO: Created summary: /home/masa/python-self-driving-simulator/outputs/mlops/eval_184249/standard/default/evaluation_summary.json
+INFO: Summary: Total=5, Success=5 (100.0%), Breakdown={'goal_reached': 5}
+INFO: Created plot: /home/masa/python-self-driving-simulator/outputs/mlops/eval_184249/standard/default/evaluation_summary.png
+
+✅ Aggregation complete! Output: /home/masa/python-self-driving-simulator/outputs/mlops/eval_184249/standard/default

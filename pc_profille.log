@@ -1,0 +1,55 @@
+Active Desktop Usage Profile
+Date: Tue Jan  6 00:47:28 2026
+
+=== GPU Usage (nvidia-smi) ===
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 560.35.03              Driver Version: 560.35.03      CUDA Version: 12.6     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4070 Ti     Off |   00000000:01:00.0  On |                  N/A |
+| 32%   31C    P8             20W /  285W |    1027MiB /  12282MiB |     51%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A      3567      G   /usr/lib/xorg/Xorg                            588MiB |
+|    0   N/A  N/A      3703      G   /usr/bin/gnome-shell                           43MiB |
+|    0   N/A  N/A      5092      G   /snap/slack/216/usr/lib/slack/slack            35MiB |
+|    0   N/A  N/A    478829      G   /usr/share/antigravity/antigravity             23MiB |
+|    0   N/A  N/A    802244      G   /usr/share/antigravity/antigravity            141MiB |
+|    0   N/A  N/A   3432646      G   ...cess-track-uuid=3190708988185955192        158MiB |
++-----------------------------------------------------------------------------------------+
+
+=== Memory Usage (free -h) ===
+               total        used        free      shared  buff/cache   available
+Mem:            62Gi        12Gi       3.1Gi       226Mi        47Gi        49Gi
+Swap:           93Gi       8.8Gi        84Gi
+
+=== CPU/Process Usage (top -b -n 1 | head -n 20) ===
+top - 00:47:28 up 6 days, 10:56,  2 users,  load average: 1.71, 1.34, 1.49
+Tasks: 624 total,   4 running, 618 sleeping,   0 stopped,   2 zombie
+%Cpu(s):  3.9 us,  1.8 sy,  0.0 ni, 93.3 id,  1.0 wa,  0.0 hi,  0.0 si,  0.0 st
+MiB Mem :  64010.7 total,   3156.7 free,  12367.6 used,  48486.5 buff/cache
+MiB Swap:  95518.5 total,  86557.0 free,   8961.5 used.  50691.2 avail Mem 
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND
+ 802272 masa      20   0 1415.1g 486252 111900 R  40.0   0.7  15:01.41 antigravity
+ 802244 masa      20   0   32.9g 159240  85224 S  33.3   0.2   3:07.48 antigravity
+ 803381 masa      20   0 7798284 998020  40320 S  26.7   1.5   6:34.01 language_ser+
+   3703 masa      20   0 5332160 348036  74112 R   6.7   0.5 345:16.63 gnome-shell
+ 877988 masa      20   0   14964   4608   3648 R   6.7   0.0   0:00.01 top
+3432646 masa      20   0   49.1g 282440 124780 S   6.7   0.4  63:15.64 chrome
+      1 root      20   0  167316   9360   6288 S   0.0   0.0   0:10.75 systemd
+      2 root      20   0       0      0      0 S   0.0   0.0   0:00.96 kthreadd
+      3 root      20   0       0      0      0 S   0.0   0.0   0:00.00 pool_workque+
+      4 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/R-rc+
+      5 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/R-rc+
+      6 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/R-sl+
+      7 root       0 -20       0      0      0 I   0.0   0.0   0:00.00 kworker/R-ne+

@@ -152,6 +152,8 @@ dev = [
     "import-linter>=2.0",
     "pytest>=9.0.2",
     "deptry>=0.24.0",
+    "tensorboard",
+    "torch-tb-profiler>=0.4.3",
 ]
 
 [tool.vulture]

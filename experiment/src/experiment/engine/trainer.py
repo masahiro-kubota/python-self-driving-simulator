@@ -58,8 +58,10 @@ class TrainerEngine(BaseEngine):
         #     logger.info(f"Loaded statistics from {stats_path}")
         logger.info("Using Max-Min normalization (stats=None) to match inference logic.")
 
-        train_dataset = ScanControlDataset(train_dir, stats=stats)
-        val_dataset = ScanControlDataset(val_dir, stats=stats)
+        # Enable in-memory caching for maximum performance
+        cache_to_ram = True
+        train_dataset = ScanControlDataset(train_dir, stats=stats, cache_to_ram=cache_to_ram)
+        val_dataset = ScanControlDataset(val_dir, stats=stats, cache_to_ram=cache_to_ram)
 
         num_workers = cfg.training.dataloader.get("num_workers", 4)
         pin_memory = cfg.training.dataloader.get("pin_memory", True)
@@ -100,24 +102,78 @@ class TrainerEngine(BaseEngine):
         _optimizer = optim.Adam(model.parameters(), lr=cfg.training.learning_rate)
         _criterion = WeightedHuberLoss()
 
+        # Output directory setup
+        try:
+            hydra_dir = Path(hydra.core.hydra_config.HydraConfig.get().run.dir)
+        except (ValueError, AttributeError):
+            hydra_dir = Path("outputs/latest")
+        
+        output_dir = hydra_dir / "checkpoints"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Checkpoints will be saved to {output_dir}")
+
+        best_val_loss = float("inf")
+
         logger.info(f"Starting training for {cfg.training.num_epochs} epochs on {device}")
+
+        import psutil
+        process = psutil.Process()
+
+        from torch.profiler import profile, record_function, ProfilerActivity, schedule, tensorboard_trace_handler
+
+        # Profiler output setup
+        prof_dir = hydra_dir / "profiler"
+        prof_dir.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Profiler logs will be saved to {prof_dir}")
+
+        # Define profiler schedule: wait 1, warmup 1, active 3, repeat 1
+        # This will profile steps 2,3,4.
+        my_schedule = schedule(wait=1, warmup=1, active=3, repeat=1) 
 
         for epoch in range(cfg.training.num_epochs):
             model.train()
             train_loss = 0.0
-            for batch_idx, (scans, targets) in enumerate(_train_loader):
-                scans, targets = scans.to(device), targets.to(device)
+            
+            # Log epoch start
+            logger.info(f"Starting Epoch {epoch + 1}/{cfg.training.num_epochs}")
+            
+            with profile(
+                activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+                schedule=my_schedule,
+                on_trace_ready=tensorboard_trace_handler(str(prof_dir)),
+                record_shapes=True,
+                profile_memory=True,
+                with_stack=True
+            ) as prof:
+                for batch_idx, (scans, targets) in enumerate(_train_loader):
+                    prof.step() # Signal step start
+                    
+                    # Log progress every 100 batches
+                    if batch_idx % 100 == 0:
+                        mem_info = process.memory_info()
+                        mem_gb = mem_info.rss / (1024 ** 3)
+                        logger.info(f"[Epoch {epoch+1}] Batch {batch_idx}/{len(_train_loader)} processing... (RAM: {mem_gb:.2f} GB)")
 
-                _optimizer.zero_grad()
-                # model expects (batch, 1, input_dim)
-                outputs = model(scans.unsqueeze(1))
-                loss = _criterion(outputs, targets)
-                loss.backward()
-                _optimizer.step()
+                    with record_function("data_transfer"):
+                         scans, targets = scans.to(device), targets.to(device)
 
-                train_loss += loss.item()
+                    _optimizer.zero_grad()
+                    
+                    with record_function("model_forward"):
+                        # model expects (batch, 1, input_dim)
+                        outputs = model(scans.unsqueeze(1))
+                    
+                    with record_function("loss_calc"):
+                        loss = _criterion(outputs, targets)
+                    
+                    with record_function("backward_step"):
+                        loss.backward()
+                        _optimizer.step()
 
-            avg_train_loss = train_loss / len(_train_loader)
+                    train_loss += loss.item()
+                    
+
+            avg_train_loss = train_loss / len(_train_loader) if len(_train_loader) > 0 else 0.0
 
             # Validation
             model.eval()
@@ -144,48 +200,40 @@ class TrainerEngine(BaseEngine):
                 }
             )
 
-        # Save the model
-        try:
-            hydra_dir = Path(hydra.core.hydra_config.HydraConfig.get().run.dir)
-        except (ValueError, AttributeError):
-            hydra_dir = Path("outputs/latest")
+            # Save Checkpoints
+            # 1. Save last model (every epoch)
+            last_model_path = output_dir / "last_model.pth"
+            torch.save(model.state_dict(), last_model_path)
 
-        output_dir = hydra_dir / "checkpoints"
-        output_dir.mkdir(parents=True, exist_ok=True)
+            # 2. Save best model (if val loss improved)
+            if avg_val_loss < best_val_loss:
+                best_val_loss = avg_val_loss
+                logger.info(f"Validation Loss Improved! Saving best model... (Loss: {best_val_loss:.6f})")
+                
+                # Save PyTorch weights
+                model_path = output_dir / "best_model.pth"
+                torch.save(model.state_dict(), model_path)
 
-        # 1. PyTorch weights
-        model_path = output_dir / "best_model.pth"
-        torch.save(model.state_dict(), model_path)
+                # Save Numpy weights (for simulation)
+                numpy_path = output_dir / "best_model.npy"
+                state_dict = model.state_dict()
+                numpy_weights = {}
+                for key, value in state_dict.items():
+                    new_key = key.replace(".", "_")
+                    numpy_weights[new_key] = value.cpu().numpy()
+                np.save(numpy_path, numpy_weights)
 
-        # 2. Numpy weights (for simulation)
-        numpy_path = output_dir / "best_model.npy"
-        state_dict = model.state_dict()
-        numpy_weights = {}
-        for key, value in state_dict.items():
-            new_key = key.replace(".", "_")
-            numpy_weights[new_key] = value.cpu().numpy()
-        np.save(numpy_path, numpy_weights)
+                # Save ONNX (optional, but good to keep updated)
+                # onnx_path = output_dir / "best_model.onnx"
+                # dummy_input = torch.randn(1, 1, cfg.model.input_width).to(device)
+                # torch.onnx.export(model, dummy_input, onnx_path)
+                logger.info("Skipping ONNX export to prevent crash.")
+        
+        logger.info(f"Training completed. Best Val Loss: {best_val_loss:.6f}")
+        logger.info(f"Models saved to {output_dir}")
 
-        # 3. ONNX for deployment if needed
-        onnx_path = output_dir / "best_model.onnx"
-        dummy_input = torch.randn(1, 1, cfg.model.input_width).to(device)
-        torch.onnx.export(model, dummy_input, onnx_path)
-
-        logger.info(f"Training completed. Models saved to {output_dir}")
-
-        # Log artifacts to MLflow
-        # 1. Log the PyTorch model using log_model to enable Model Registry features
-        mlflow.pytorch.log_model(model, "model")
-
-        # 2. Log other artifacts
-        # Note: best_model.pth is already included in the MLflow model format if we use log_model,
-        # but we can keep logging these specific formats if needed for other consumptions.
-        # mlflow.log_artifact(str(model_path), "models") # Redundant if using log_model
-        mlflow.log_artifact(str(numpy_path), "models")
-        mlflow.log_artifact(str(onnx_path), "models")
-
-        wandb.finish()
-        return model_path
+        # Return path to best model
+        return output_dir / "best_model.pth"
 
     def _get_dvc_hash(self, data_dir: Path) -> str:
         """Get DVC hash from .dvc file associated with the data directory."""

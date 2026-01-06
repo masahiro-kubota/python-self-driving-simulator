@@ -20,6 +20,26 @@ uv run experiment-runner --config experiment/configs/experiments/default_experim
 
 (学習用スクリプトまたは設定ファイルを用意して実行します)
 
+## 4. プロファイリング (Profiling)
+
+学習時のパフォーマンス分析（PyTorch Profiler）はデフォルトで有効になっています。
+
+### プロファイル結果の確認方法
+
+TensorBoard を使用してプロファイル結果を可視化します。
+1. TensorBoard を起動します：
+   ```bash
+   # 実験結果のディレクトリを日時で指定して表示します
+   uv run tensorboard --logdir outputs/YYYY-MM-DD/HH-MM-SS --port 6006 --bind_all
+   ```
+
+2. ブラウザで [http://localhost:6006/#pytorch_profiler](http://localhost:6006/#pytorch_profiler) にアクセスします。
+
+### 出力先
+
+プロファイルデータ（JSONトレース）は以下のディレクトリに出力されます：
+`outputs/YYYY-MM-DD/HH-MM-SS/profiler/`
+
 ## Configuration
 
 `experiment.type` によって動作が変わります。
@@ -124,3 +144,26 @@ for exp in experiments:
 - `boto3`: MLflow S3アーティファクトストレージ
 - `core`, `simulator`, `dashboard`, `experiment-training`: 内部パッケージ
 - `pure_pursuit`, `pid_controller`, `neural_controller`, `planning_utils`: コンポーネントパッケージ
+
+## Experiment Results (2026-01-06)
+
+### Optimization: In-Memory Caching (v8)
+
+IOボトルネック解消のため、`ScanControlDataset` にインメモリキャッシュ (`cache_to_ram=True`) を実装しました。
+
+| Metric | Before (mmap) | **After (RAM)** | Improvement |
+| :--- | :--- | :--- | :--- |
+| **Training Speed** | ~20 batches/sec | **~500 batches/sec** | **25x** |
+| **CPU I/O Wait** | ~25-30% | **2-4%** | Eliminated |
+| **Disk Read (bi)** | High (continuous) | **0** (during train) | Optimized |
+
+### Evaluation Results (Epoch 38 Model)
+
+7時間学習したモデル (Epoch 38) で評価を実施しましたが、学習不足の可能性があります。
+
+*   **Model:** `outputs/2026-01-06/03-36-56/checkpoints/best_model.npy`
+*   **Result (Standard Eval):**
+    *   **Success Rate:** 0.0% (0/6 episodes)
+    *   **Failure Reason:** All episodes failed with `off_track`.
+*   **Debug Eval:**
+    *   Pure Pursuit with TinyLidarNet monitoring (Debug Eval) was successful, confirming the pipeline itself works.

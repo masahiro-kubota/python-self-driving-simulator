@@ -434,8 +434,14 @@ class ObstacleGenerator:
 
         current_dist = self.global_centerline[closest_idx][3]
 
-        # Add lookahead distance
-        forward_dist = placement_config.get("forward_distance", 3.0)
+        # Add lookahead distance (support both fixed and random range)
+        forward_distance_range = placement_config.get("forward_distance_range", None)
+        if forward_distance_range is not None:
+            # Random sampling from range [min, max]
+            forward_dist = self.rng.uniform(forward_distance_range[0], forward_distance_range[1])
+        else:
+            # Fixed value (backward compatible)
+            forward_dist = placement_config.get("forward_distance", 3.0)
         target_dist = current_dist + forward_dist
 
         # Handle wrap-around

@@ -8,6 +8,7 @@ Usage:
 
 import json
 import logging
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -25,11 +26,45 @@ def find_result_files(eval_dir: Path) -> list[Path]:
     return sorted(results)
 
 
+
+
+
+def load_env_file() -> None:
+    """Load .env file manually if it exists."""
+    try:
+        # Check current dir and parents for .env
+        current_dir = Path.cwd()
+        project_root = None
+        for parent in [current_dir, *list(current_dir.parents)]:
+            if (parent / ".env").exists():
+                project_root = parent
+                break
+        
+        if project_root:
+            env_path = project_root / ".env"
+            with open(env_path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        key, value = line.split("=", 1)
+                        if key.strip() == "MCAP_BASE_URL" and "MCAP_BASE_URL" not in os.environ:
+                            os.environ["MCAP_BASE_URL"] = value.strip()
+    except Exception:
+        pass
+
+
 def aggregate_results(result_files: list[Path], eval_dir: Path) -> dict:
     """Aggregate all result files into a summary."""
+    load_env_file()
+
     results = []
     reason_counter: Counter[str] = Counter()
     episodes_by_reason: dict[str, list[dict]] = {}
+    base_url = os.getenv("MCAP_BASE_URL")
+    # Fallback default host
+    host = os.getenv("FOXGLOVE_HOST_IP", "127.0.0.1")
 
     for result_path in result_files:
         try:
@@ -56,12 +91,46 @@ def aggregate_results(result_files: list[Path], eval_dir: Path) -> dict:
                 
                 # Get the scenario name (e.g., "default", "no_obstacle")
                 # Path structure: eval_dir/scenario/evaluation/episode_XXXX/result.json
-                scenario = result_path.parent.parent.parent.name
+                # Note: eval_dir in main is likely outputs/.../evaluation/standard
+                try:
+                    scenario = result_path.parent.parent.parent.name
+                except Exception:
+                    scenario = "unknown"
                 
                 episode_path = result_path.parent.relative_to(eval_dir)
                 
-                # Use the foxglove_url from the result if available
-                foxglove_url = result.get("foxglove_url", "")
+                # Generate Foxglove URL dynamically to support remote viewing
+                foxglove_url = ""
+                try:
+                    import urllib.parse
+                    # Attempt to find outputs/ directory to calculate project-relative path
+                    # We assume mcap is alongside result.json
+                    mcap_path = result_path.parent / "simulation.mcap"
+                    
+                    # Search for 'outputs' in the path parents to find project root
+                    project_root = None
+                    for p in result_path.parents:
+                        if p.name == "outputs":
+                            project_root = p.parent
+                            break
+                    
+                    if project_root:
+                        full_rel_path = mcap_path.relative_to(project_root)
+                        
+                        if base_url:
+                            base_url = base_url.rstrip("/")
+                            mcap_url = f"{base_url}/{full_rel_path}"
+                        elif "ts.net" in host:
+                            mcap_url = f"https://{host}/{full_rel_path}"
+                        else:
+                            mcap_url = f"http://{host}:8080/{full_rel_path}"
+                            
+                        encoded_url = urllib.parse.quote(mcap_url, safe="")
+                        foxglove_url = f"https://app.foxglove.dev/view?ds=remote-file&ds.url={encoded_url}"
+                    else:
+                         foxglove_url = result.get("foxglove_url", "")
+                except Exception:
+                     foxglove_url = result.get("foxglove_url", "")
                 
                 episodes_by_reason[reason].append({
                     "scenario": scenario,

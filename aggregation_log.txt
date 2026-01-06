@@ -1,0 +1,7 @@
+INFO: Aggregating evaluation results from: /home/masa/python-self-driving-simulator/outputs/mlops/v8_new_resume_final/evaluation/standard
+INFO: Found 6 result files
+INFO: Created summary: /home/masa/python-self-driving-simulator/outputs/mlops/v8_new_resume_final/evaluation/standard/evaluation_summary.json
+INFO: Summary: Total=6, Success=0 (0.0%), Breakdown={'off_track': 6}
+INFO: Created plot: /home/masa/python-self-driving-simulator/outputs/mlops/v8_new_resume_final/evaluation/standard/evaluation_summary.png
+
+✅ Aggregation complete! Output: /home/masa/python-self-driving-simulator/outputs/mlops/v8_new_resume_final/evaluation/standard
